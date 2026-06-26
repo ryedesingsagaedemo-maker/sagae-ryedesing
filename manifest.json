@@ -1,0 +1,61 @@
+{
+  "name": "SAGAE — Sistema de Activos y Gestión Administrativa Educativa",
+  "short_name": "SAGAE Técnico",
+  "description": "Portal móvil para técnicos de soporte — RYE Design",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1B3A6B",
+  "theme_color": "#1B3A6B",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities", "education"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Mis Tickets",
+      "short_name": "Tickets",
+      "description": "Ver mis tickets asignados",
+      "url": "./index.html#tickets",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Inventario",
+      "short_name": "Inventario",
+      "description": "Consultar inventario de activos",
+      "url": "./index.html#inventario",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ]
+}
