@@ -5950,7 +5950,6 @@ function _detectarModulo(inputId){
 }
 
 async function _subirArchivoADrive(file, targetInputId, modulo){
-  const btnId = targetInputId.replace('foto','') + 'btn-foto';
   const prevId= targetInputId + '-preview';
 
   // Mostrar estado de carga en el botón
@@ -5960,24 +5959,34 @@ async function _subirArchivoADrive(file, targetInputId, modulo){
   try {
     // Leer archivo como base64
     const base64 = await _fileToBase64(file);
-    // Quitar el prefijo data:...;base64,
     const base64data = base64.split(',')[1];
 
-    // Enviar al Apps Script
-    const result = await apiPost(null, 'uploadFoto', {
-      base64:          base64data,
-      mimeType:        file.type,
-      nombreArchivo:   file.name,
-      modulo:          modulo,
-      codigoRegistro:  ''
+    // CORRECCION CRITICA: usar fetch directo (NO apiPost) para poder leer
+    // la respuesta JSON con la URL de Drive. apiPost usa no-cors y no
+    // permite leer el body de respuesta, por lo que result.url nunca llega.
+    const resp = await fetch(API, {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        sheet:   null,
+        action:  'uploadFoto',
+        payload: {
+          base64:          base64data,
+          mimeType:        file.type,
+          nombreArchivo:   file.name,
+          modulo:          modulo,
+          codigoRegistro:  '',
+          _apiToken:       API_TOKEN
+        }
+      })
     });
 
+    const result = await resp.json();
+
     if(result && result.url){
-      // Poner URL en el input
       const inp = document.getElementById(targetInputId);
       if(inp) inp.value = result.url;
 
-      // Mostrar preview
       const prev = document.getElementById(prevId);
       if(prev){
         const isImg = file.type.startsWith('image/');
