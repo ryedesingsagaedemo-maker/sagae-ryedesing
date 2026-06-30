@@ -1693,10 +1693,17 @@ tbody tr.clickable{cursor:pointer;}
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <input class="f-inp" id="et-foto" placeholder="https://drive.google.com/..." style="flex:1;">
-      <button type="button" class="btn" onclick="abrirDrivePicker('et-foto')"
+      <button type="button" class="btn" id="et-foto-btn" onclick="abrirDrivePicker('et-foto')"
         style="white-space:nowrap;padding:8px 12px;font-size:12px;">
         📂 Subir
       </button>
+      <button type="button" class="btn" id="et-foto-ver-btn" onclick="window.open(document.getElementById('et-foto').value,'_blank')"
+        style="display:none;white-space:nowrap;padding:8px 12px;font-size:12px;">
+        👁 Ver
+      </button>
+    </div>
+    <div id="et-foto-locked-note" style="display:none;margin-top:6px;font-size:11px;color:var(--text3);">
+      🔒 Este archivo fue adjuntado por quien generó el reporte y no puede reemplazarse, para preservar la integridad de la solicitud.
     </div>
     <div id="et-foto-preview" style="display:none;margin-top:6px;font-size:11px;color:var(--navy);
       background:var(--blue-l);padding:6px 10px;border-radius:6px;border-left:3px solid var(--navy);">
@@ -2876,11 +2883,39 @@ function openTicket(id){
     document.getElementById('et-prior').value=t.prior||'importante';document.getElementById('et-estado').value=t.estado||'abierto';
     document.getElementById('et-avance').value=t.avance||0;document.getElementById('et-dead').value=t.dead!=='—'?t.dead:'';
     document.getElementById('et-proy').value=t.proy!=='—'?t.proy:'';document.getElementById('et-desc').value=t.desc||'';const _etf=document.getElementById('et-foto');if(_etf)_etf.value=t.foto!=='—'?t.foto||'':'';
+    _aplicarBloqueoFotoTicket(t);
   }else{
     ['et-titulo','et-proy','et-desc'].forEach(i=>document.getElementById(i).value=''); document.getElementById('et-resp').value='';
     document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';const _etFoto=document.getElementById('et-foto');if(_etFoto)_etFoto.value='';
+    _aplicarBloqueoFotoTicket(null);
   }
   document.getElementById('mod-ticket').classList.add('open');
+}
+
+// Un ticket viene del Portal de Reportes cuando su descripción incluye la marca
+// "Reportado por: Nombre (correo)" que el portal agrega automáticamente al crearlo.
+// (misma convención que usa el backend, ver SAGAE_apps_script.js)
+function esTicketDePortal(t){
+  if(!t || !t.desc) return false;
+  return /Reportado por:[^(]*\([^)@]+@[^)]+\)/i.test(t.desc);
+}
+
+// Si el ticket fue creado desde el Portal de Reportes y ya tiene un adjunto,
+// el campo de foto se bloquea: ni el técnico ni el administrador pueden
+// reemplazarlo, solo verlo. Esto preserva la integridad de la evidencia
+// original aportada por quien reportó el problema. Si el ticket fue creado
+// internamente (por un técnico o admin), el campo permanece editable.
+function _aplicarBloqueoFotoTicket(t){
+  const input  = document.getElementById('et-foto');
+  const btnSub = document.getElementById('et-foto-btn');
+  const btnVer = document.getElementById('et-foto-ver-btn');
+  const nota   = document.getElementById('et-foto-locked-note');
+  const bloqueado = t && esTicketDePortal(t) && t.foto && t.foto!=='—';
+  if(input) input.readOnly = !!bloqueado;
+  if(input) input.dataset.locked = bloqueado ? 'true' : 'false';
+  if(btnSub) btnSub.style.display = bloqueado ? 'none' : '';
+  if(btnVer) btnVer.style.display = bloqueado ? '' : 'none';
+  if(nota) nota.style.display = bloqueado ? 'block' : 'none';
 }
 
 async function saveTicket(){
@@ -5919,6 +5954,11 @@ function onChangeAsignado(nombre){
 
 // Abre selector de archivo y sube al Drive via Apps Script
 function abrirDrivePicker(targetInputId, modulo){
+  const targetEl = document.getElementById(targetInputId);
+  if(targetEl && targetEl.dataset && targetEl.dataset.locked==='true'){
+    showToast('Este adjunto fue subido por quien reportó el problema y no puede reemplazarse.','');
+    return;
+  }
   // Crear input file oculto
   const input = document.createElement('input');
   input.type  = 'file';
