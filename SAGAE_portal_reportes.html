@@ -310,7 +310,7 @@ function subirFotoPortal(){
       const base64full = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error')); r.readAsDataURL(file); });
       const base64data = base64full.split(',')[1];
       const resp = await fetch(API, {
-        method:'POST', headers:{'Content-Type':'application/json'},
+        method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
         body: JSON.stringify({ sheet:null, action:'uploadFoto', payload:{ base64:base64data, mimeType:file.type, nombreArchivo:file.name, modulo:'Tickets', codigoRegistro:'', _apiToken:API_TOKEN }})
       });
       const data = await resp.json();
