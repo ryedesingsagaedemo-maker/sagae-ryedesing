@@ -125,11 +125,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Departamento / Área <span>*</span></label>
-          <input class="form-input" id="f-depto" type="text" placeholder="Ej: Primaria, Administración...">
+          <select class="form-select" id="f-depto" onchange="onChangeDeptoPortal(this.value)">
+            <option value="">— Selecciona tu departamento —</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">Ubicación del problema</label>
-          <input class="form-input" id="f-ubicacion" type="text" placeholder="Ej: Aula 3B, Lab Robótica...">
+          <select class="form-select" id="f-ubicacion">
+            <option value="">— Selecciona la ubicación —</option>
+          </select>
         </div>
       </div>
       <div class="form-group">
@@ -219,6 +223,55 @@ function checkReportLimit(){
 const API="https://script.google.com/macros/s/AKfycbxSA74xU_zCdMuS6GFwbwWcYwW0JxyzlPgb08TWaJPyu8AxthZVzuY9tYbwK6oXxFPU/exec"
 const API_TOKEN="SAGAE-DDAB838CDF2A9BDE7EDB2FF38669F09C";;
 let prioridad="normal";
+let departamentos=[], espacios=[];
+
+async function apiGetTimeout(sheet,ms=10000){
+  try{
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(),ms);
+    const r=await fetch(API+"?sheet="+sheet+"&t="+Date.now(),{mode:"cors",signal:ctrl.signal});
+    clearTimeout(t);
+    if(!r.ok) return null;
+    const d=await r.json();
+    return Array.isArray(d)?d:null;
+  }catch(e){ return null; }
+}
+
+function poblarUbicacionesPortal(depto){
+  const selUbic=document.getElementById("f-ubicacion");
+  if(!selUbic) return;
+  const espArr=Array.isArray(espacios)?espacios:[];
+  const filtradas = depto
+    ? espArr.filter(e=>e.estado!=="eliminado" && e.depto===depto)
+    : espArr.filter(e=>e.estado!=="eliminado");
+  selUbic.innerHTML = '<option value="">— Selecciona la ubicación —</option>' +
+    filtradas.map(e=>`<option value="${e.nombre}">${e.nombre}</option>`).join('');
+}
+
+function onChangeDeptoPortal(depto){
+  poblarUbicacionesPortal(depto);
+}
+
+async function cargarCatalogosPortal(){
+  try{
+    const [rawDep, rawEsp] = await Promise.all([
+      apiGetTimeout("departamentos"),
+      apiGetTimeout("espacios")
+    ]);
+    departamentos = Array.isArray(rawDep) ? rawDep : [];
+    espacios = Array.isArray(rawEsp) ? rawEsp : [];
+    const selDep = document.getElementById("f-depto");
+    if(selDep){
+      selDep.innerHTML = '<option value="">— Selecciona tu departamento —</option>' +
+        departamentos.filter(d=>d.estado!=="eliminado").map(d=>`<option value="${d.nombre}">${d.nombre}</option>`).join('');
+    }
+    poblarUbicacionesPortal("");
+  }catch(e){
+    showError("No se pudieron cargar los departamentos. Recarga la página o contacta a soporte.");
+  }
+}
+cargarCatalogosPortal();
+
 function selectPriority(p){
   prioridad=p;
   ["normal","importante","urgente"].forEach(opt=>{
@@ -352,6 +405,7 @@ function nuevoReporte(){
   document.getElementById("form-card").style.display="block";
   document.getElementById("success-screen").classList.remove("show");
   ["f-nombre","f-correo","f-depto","f-ubicacion","f-titulo","f-desc","f-foto-url"].forEach(id=>document.getElementById(id).value="");
+  poblarUbicacionesPortal("");
   const fp=document.getElementById("foto-preview"); if(fp){fp.style.display="none";fp.innerHTML="";}
   document.getElementById("f-tipo").value="";
   selectPriority("normal");
