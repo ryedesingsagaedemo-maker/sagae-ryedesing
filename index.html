@@ -1709,6 +1709,13 @@ tbody tr.clickable{cursor:pointer;}
       background:var(--blue-l);padding:6px 10px;border-radius:6px;border-left:3px solid var(--navy);">
     </div>
   </div>
+  <div class="f-row" id="et-hist-wrap" style="display:none;">
+    <div class="sec-title">Historial de seguimiento (<span id="et-hist-count">0</span> eventos)</div>
+    <div id="et-hist-list" style="max-height:240px;overflow-y:auto;padding-right:4px;"></div>
+  </div>
+  <div id="et-readonly-note" style="display:none;margin:2px 0 10px;font-size:11px;color:var(--text3);background:#F1F5F9;border-radius:6px;padding:8px 10px;">
+    👁 Estás viendo este ticket en modo solo lectura. Tu rol no tiene permiso de edición.
+  </div>
   <div class="f-row" id="et-motivo-wrap" style="display:none;">
     <div class="req-note">Motivo obligatorio — queda registrado en auditoría.</div>
     <div class="f-lbl">Motivo de la edición *</div>
@@ -2864,11 +2871,38 @@ async function tomarTicket(codigo){
   }
 }
 
-function openTicket(id){
+// Campos del formulario de ticket que deben bloquearse en modo solo-lectura
+const ET_CAMPOS_FORM=['et-titulo','et-activo','et-resp','et-tipo','et-prior','et-estado','et-avance','et-dead','et-proy','et-desc','et-foto'];
+
+function renderTicketHistorial(t){
+  const wrap=document.getElementById('et-hist-wrap'),list=document.getElementById('et-hist-list'),count=document.getElementById('et-hist-count');
+  const hist=(t&&t.historial)||[];
+  count.textContent=hist.length;
+  list.innerHTML = hist.length ? hist.slice().reverse().map(h=>{
+    const color=['red','green','amber','blue'].includes(h.color)?h.color:'navy';
+    return `<div class="hist-item">
+      <div class="hist-dot ${color}"></div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:#1B3A6B">${sanitizeHTML(h.tipo||'Evento')}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:pre-wrap">${sanitizeHTML(h.desc||'')}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${sanitizeHTML(h.fecha||'')}${h.usuario?' · '+sanitizeHTML(h.usuario):''}</div>
+      </div>
+    </div>`;
+  }).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin eventos registrados todavía.</div>';
+  wrap.style.display='block';
+}
+
+function openTicket(id,forceReadOnly){
   const isEdit=id!=null;
-  document.getElementById('mod-ticket-title').textContent=isEdit?'Editar ticket':'Nuevo ticket';
+  const per=PERMS[session.rol]||{};
+  // Defensa en profundidad: aunque el botón de edición esté oculto en la UI para roles sin
+  // permiso, la función también rechaza abrir en modo edición si el rol no puede editar.
+  const readOnly=isEdit&&(!!forceReadOnly||!per.edit);
+  document.getElementById('mod-ticket-title').textContent=isEdit?(readOnly?'Detalle del ticket':'Editar ticket'):'Nuevo ticket';
   document.getElementById('et-save-btn').textContent=isEdit?'Guardar cambios':'Guardar ticket';
-  document.getElementById('et-motivo-wrap').style.display=isEdit?'block':'none';
+  document.getElementById('et-save-btn').style.display=readOnly?'none':'';
+  document.getElementById('et-motivo-wrap').style.display=(isEdit&&!readOnly)?'block':'none';
+  document.getElementById('et-readonly-note').style.display=readOnly?'block':'none';
   document.getElementById('et-motivo').value='';document.getElementById('et-id').value=id||'';
   const sel=document.getElementById('et-activo');
   sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=='eliminado').map(a=>`<option value="${a.codigo}">${a.codigo} — ${sanitizeHTML(a.nombre||'')}</option>`).join('');
@@ -2884,11 +2918,21 @@ function openTicket(id){
     document.getElementById('et-avance').value=t.avance||0;document.getElementById('et-dead').value=t.dead!=='—'?t.dead:'';
     document.getElementById('et-proy').value=t.proy!=='—'?t.proy:'';document.getElementById('et-desc').value=t.desc||'';const _etf=document.getElementById('et-foto');if(_etf)_etf.value=t.foto!=='—'?t.foto||'':'';
     _aplicarBloqueoFotoTicket(t);
+    renderTicketHistorial(t);
   }else{
     ['et-titulo','et-proy','et-desc'].forEach(i=>document.getElementById(i).value=''); document.getElementById('et-resp').value='';
     document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';const _etFoto=document.getElementById('et-foto');if(_etFoto)_etFoto.value='';
     _aplicarBloqueoFotoTicket(null);
+    document.getElementById('et-hist-wrap').style.display='none';
   }
+  // Bloquear/desbloquear los campos del formulario según el modo
+  ET_CAMPOS_FORM.forEach(fid=>{
+    const el=document.getElementById(fid);if(!el)return;
+    if(el.tagName==='SELECT')el.disabled=readOnly; else el.readOnly=readOnly;
+    el.style.background=readOnly?'#F1F5F9':'';
+    el.style.cursor=readOnly?'not-allowed':'';
+  });
+  document.getElementById('et-foto-btn').style.display=readOnly?'none':(document.getElementById('et-foto-btn').style.display);
   document.getElementById('mod-ticket').classList.add('open');
 }
 
@@ -2919,6 +2963,9 @@ function _aplicarBloqueoFotoTicket(t){
 }
 
 async function saveTicket(){
+  // Defensa en profundidad: si el rol activo no tiene permiso de edición, se bloquea
+  // el guardado aunque el botón esté oculto y aunque alguien manipule el formulario.
+  if(!(PERMS[session.rol]||{}).edit){showToast('Tu rol no tiene permiso para editar tickets.','error');return;}
   const titulo=document.getElementById('et-titulo').value.trim();if(!titulo){alert('El título es obligatorio.');return;}
   const editId=document.getElementById('et-id').value,isEdit=editId!=='';
   if(isEdit){
@@ -3554,7 +3601,14 @@ function renderActivos(){
 }
 
 function renderTickets(){
-  const tb=document.getElementById('tb-tickets'),list=filtroT==='todos'?tickets:tickets.filter(t=>t.estado===filtroT),per=PERMS[session.rol]||{};
+  const tb=document.getElementById('tb-tickets'),per=PERMS[session.rol]||{};
+  // "Abiertos" es una vista agregada: agrupa todo lo que sigue activo (abierto+progreso+revisión).
+  // Se decidió así para que ningún ticket "desaparezca" de la vista de seguimiento activo
+  // solo por haber sido tomado o avanzado — sigue el mismo criterio que Jira/Zendesk.
+  // El resto de pestañas (progreso, revisión, cerrado, eliminado) siguen siendo filtros exactos por estado.
+  const list = filtroT==='todos' ? tickets
+    : filtroT==='abierto' ? tickets.filter(t=>['abierto','progreso','revision'].includes(t.estado))
+    : tickets.filter(t=>t.estado===filtroT);
   if(!list.length){tb.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text3);font-size:12px">Sin tickets.</td></tr>`;return;}
   tb.innerHTML=list.map(t=>`<tr class="${t.estado==='eliminado'?'del-row':''}">
     <td class="code-cell">${sanitizeHTML(t.codigo)}</td>
@@ -3574,6 +3628,7 @@ function renderTickets(){
         `<button class="act-btn" style="background:#1B3A6B;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600" onclick="tomarTicket('${t.codigo}')">Tomar</button>`:
         (t.resp===session.nombre&&t.estado!=='cerrado'?`<span style="font-size:9px;color:#1A7A4A;font-weight:600">✓ Tuyo</span>`:'')}
       ${per.edit&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openTicket('${t.codigo}')">✎</button>`:''}
+      ${!per.edit?`<button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver detalle y seguimiento">👁</button>`:''}
       ${per.delete&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openDelete('ticket','${t.codigo}')" style="color:var(--red)">×</button>`:''}
     </td></tr>`).join('');
 }
@@ -3581,7 +3636,7 @@ function renderTickets(){
 function renderKanban(){
   ['abierto','progreso','revision','cerrado'].forEach(col=>{
     const items=tickets.filter(t=>t.estado===col);document.getElementById('kc-'+col).textContent=items.length;
-    document.getElementById('k-'+col).innerHTML=items.length?items.map(t=>`<div class="k-card">
+    document.getElementById('k-'+col).innerHTML=items.length?items.map(t=>`<div class="k-card" style="cursor:pointer" onclick="openTicket('${t.codigo}',${!((PERMS[session.rol]||{}).edit)})" title="Ver detalle y seguimiento">
       <div class="code-cell" style="font-size:9px;margin-bottom:3px">${t.codigo}</div>
       <div class="k-card-t">${t.titulo}</div>
       <div class="k-card-m"><span>${t.activoNombre&&t.activoNombre!=='—'?t.activoNombre:t.proy||'—'}</span><span class="badge s-${t.prior}" style="font-size:9px">${t.prior}</span></div>
@@ -3591,7 +3646,7 @@ function renderKanban(){
       </div>
       <div class="k-prog"><div class="k-pf" style="width:${t.avance||0}%"></div></div>
       ${(col!=='cerrado'&&col!=='eliminado'&&['admin','tecnico'].includes(session.rol)&&t.resp!==session.nombre)?
-        `<div style="margin-top:6px"><button onclick="tomarTicket('${t.codigo}')" style="width:100%;background:#1B3A6B;color:#fff;border:none;border-radius:4px;padding:4px;font-size:10px;font-weight:600;cursor:pointer">▶ Tomar este ticket</button></div>`:
+        `<div style="margin-top:6px"><button onclick="event.stopPropagation();tomarTicket('${t.codigo}')" style="width:100%;background:#1B3A6B;color:#fff;border:none;border-radius:4px;padding:4px;font-size:10px;font-weight:600;cursor:pointer">▶ Tomar este ticket</button></div>`:
         (t.resp===session.nombre&&col!=='cerrado'?`<div style="margin-top:4px;font-size:9px;color:#1A7A4A;font-weight:600;text-align:center">✓ Asignado a ti</div>`:'')}
     </div>`).join(''):'<div style="font-size:11px;color:var(--text3);text-align:center;padding:12px 0">Vacío</div>';
   });
