@@ -221,7 +221,17 @@ function checkReportLimit(){
   _reportLimiter.count++;_saveLimit();return null;
 }
 const API="https://script.google.com/macros/s/AKfycbxSA74xU_zCdMuS6GFwbwWcYwW0JxyzlPgb08TWaJPyu8AxthZVzuY9tYbwK6oXxFPU/exec"
-const API_TOKEN="SAGAE-DDAB838CDF2A9BDE7EDB2FF38669F09C";;
+const API_TOKEN="SAGAE-7F2A9C41E8B6D053A1C4F9082EB37A65";
+function _obtenerDeviceId(){
+  try{
+    let id = localStorage.getItem('sagae_portal_device');
+    if(!id){
+      id = 'dev_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
+      localStorage.setItem('sagae_portal_device', id);
+    }
+    return id;
+  }catch(e){ return 'anon'; }
+}
 let prioridad="normal";
 let departamentos=[], espacios=[];
 
@@ -285,13 +295,8 @@ function genCode(n){return"TKT-"+String(n+1).padStart(4,"0");}
 function ts(){return new Date().toLocaleString("es-PA",{dateStyle:"short",timeStyle:"short"});}
 function showError(msg){const el=document.getElementById("msg-error");el.textContent=msg;el.classList.add("show");el.scrollIntoView({behavior:"smooth",block:"center"});}
 function hideError(){document.getElementById("msg-error").classList.remove("show");}
-async function getCantTickets(){
-  for(let i=0;i<3;i++){
-    try{const r=await fetch(API+"?sheet=tickets&t="+Date.now(),{mode:"cors"});if(!r.ok)continue;const d=await r.json();if(Array.isArray(d))return d.length;}
-    catch(e){if(i===2)return 0;await new Promise(res=>setTimeout(res,500));}
-  }
-  return 0;
-}
+// NOTA: el código del ticket ahora lo genera el servidor (crear_ticket_publico)
+// — ya no se necesita contar tickets ni generar un código provisional aquí.
 function subirFotoPortal(){
   const input = document.createElement('input');
   input.type   = 'file';
@@ -311,7 +316,7 @@ function subirFotoPortal(){
       const base64data = base64full.split(',')[1];
       const resp = await fetch(API, {
         method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify({ sheet:null, action:'uploadFoto', payload:{ base64:base64data, mimeType:file.type, nombreArchivo:file.name, modulo:'Tickets', codigoRegistro:'', _apiToken:API_TOKEN }})
+        body: JSON.stringify({ sheet:null, action:'uploadFoto', payload:{ base64:base64data, mimeType:file.type, nombreArchivo:file.name, modulo:'Tickets', codigoRegistro:'', _apiToken:API_TOKEN, origen:'portal' }})
       });
       const data = await resp.json();
       if(data && data.url){
@@ -359,27 +364,32 @@ async function enviarReporte(){
   const btnText=document.getElementById("btn-text");
   btn.disabled=true;spinner.style.display="block";btnText.textContent="Enviando reporte...";
   try{
-    // Código provisional único por timestamp+random — el servidor asigna el real via LockService
-    const _sfx = Date.now().toString(36).toUpperCase().slice(-4)
-               + Math.random().toString(36).toUpperCase().slice(2,4);
-    const codigo = 'TKT-P' + _sfx;
     const ubicacion=document.getElementById("f-ubicacion").value.trim()||"—";
     const ticket={
-      id:codigo,codigo,titulo,activoId:"",activoNombre:"—",resp:"Sin asignar",
-      tipo,prior,estado:"abierto",avance:0,dead:"—",proy:depto,
+      titulo,activoId:"",activoNombre:"—",
+      tipo,prior,
       desc:`${desc}\n\n--- Reportado por: ${nombre} (${correo}) | Ubicación: ${ubicacion} | Departamento: ${depto} ---`,
       foto: document.getElementById('f-foto-url').value.trim() || '---',
-      historial:JSON.stringify([{tipo:"Creación",desc:`Reportado por ${nombre} (${correo}) desde el Portal de Reportes SAGAE. Dpto: ${depto}. Ubicación: ${ubicacion}.`,fecha:ts(),usuario:nombre,color:"green"}]),
-      fechaCreacion:ts(),reportadoPor:nombre,correoReportador:correo,
-      _apiToken:API_TOKEN
+      reportadoPor:nombre, correoReportador:correo,
+      deviceId:_obtenerDeviceId()
     };
-    // Usar cors para detectar errores del servidor
-    // POST siempre con no-cors — Apps Script no soporta CORS preflight en POST
-    await fetch(API,{method:"POST",mode:"no-cors",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({sheet:"tickets",action:"insert",payload:ticket})});
+    // Llamada legible (no no-cors): necesitamos saber si el servidor
+    // aceptó el ticket o si aplicó el límite de tasa.
+    const resp = await fetch(API,{
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({sheet:null,action:"crear_ticket_publico",payload:{...ticket,_apiToken:API_TOKEN}}),
+      signal: AbortSignal.timeout(15000)
+    });
+    const data = await resp.json();
+    if(!data || data.ok!==true){
+      window._enviandoPortal = false;
+      btn.disabled=false;spinner.style.display="none";btnText.textContent="Enviar reporte";
+      showError(data && data.message ? data.message : "No se pudo enviar el reporte. Intenta de nuevo en unos minutos.");
+      return;
+    }
+    const codigo = data.codigo;
     const insertOk = true;
-    await fetch(API,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({sheet:"auditoria",action:"insert",payload:{ts:ts(),usuario:nombre,nombre,rol:"reportador",accion:"CREAR",tipo:"Ticket",codigo,detalle:`Reporte externo Portal Público SAGAE. Correo: ${correo}. Dpto: ${depto}`,_apiToken:API_TOKEN}})});
     // Ocultar form ANTES de liberar el flag para evitar que un clic rápido lo reactive
     document.getElementById("form-card").style.display="none";
     document.getElementById("success-screen").classList.add("show");
