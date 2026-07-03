@@ -946,7 +946,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 // CONFIG
 // ══════════════════════════════════════════════════════════════════
 const API = "https://script.google.com/macros/s/AKfycbxSA74xU_zCdMuS6GFwbwWcYwW0JxyzlPgb08TWaJPyu8AxthZVzuY9tYbwK6oXxFPU/exec";
-const API_TOKEN = "SAGAE-DDAB838CDF2A9BDE7EDB2FF38669F09C"; // ← token secreto
+const API_TOKEN = "SAGAE-7F2A9C41E8B6D053A1C4F9082EB37A65"; // gate mínimo — la autorización real es la sesión
 const CACHE_KEY = "sagae_mobile_cache";
 const TIPO_ICON = {
   Computadora:"🖥️", Laptop:"💻", Tablet:"📱", Móvil:"📱", Monitor:"🖥️",
@@ -1230,34 +1230,11 @@ function filtrarMantenimientos(tipo){
 // ════════════════════════════════════════════════════════════════
 // HASH SEGURO — SHA-256 con salt (Web Crypto API)
 // ════════════════════════════════════════════════════════════════
-async function hashPassSeguro(password){
-  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
-  const saltHex   = Array.from(saltBytes).map(b=>b.toString(16).padStart(2,'0')).join('');
-  const encoder   = new TextEncoder();
-  const data      = encoder.encode(saltHex + password);
-  const hashBuf   = await crypto.subtle.digest('SHA-256', data);
-  const hashHex   = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  return 'S2$' + saltHex + '$' + hashHex;
-}
-async function verificarPassword(inputPassword, storedHash){
-  if(!storedHash) return false;
-  if(storedHash.startsWith('S2$')){
-    const parts   = storedHash.split('$');
-    if(parts.length!==3) return false;
-    const saltHex = parts[1];
-    const encoder = new TextEncoder();
-    const data    = encoder.encode(saltHex + inputPassword);
-    const hashBuf = await crypto.subtle.digest('SHA-256', data);
-    const hashHex = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-    return hashHex === parts[2];
-  }
-  return storedHash === hashPassLegacy(inputPassword) || storedHash === inputPassword;
-}
-function hashPassLegacy(p){
-  let h=0;for(let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;}
-  return 'H'+Math.abs(h).toString(16);
-}
-function hashPass(p){ return hashPassLegacy(p); }
+// ════════════════════════════════════════════════════════════════
+// NOTA DE SEGURIDAD: el hashing/verificación de contraseñas ya NO
+// ocurre en este cliente — vive en SAGAE_apps_script.js. Este cliente
+// solo envía la contraseña en texto plano por HTTPS.
+// ════════════════════════════════════════════════════════════════
 function initials(n){if(!n)return"?";const p=n.trim().split(" ");return(p[0][0]+(p[1]?p[1][0]:"")).toUpperCase();}
 function togglePass(id,btn){const el=document.getElementById(id);el.type=el.type==="password"?"text":"password";btn.textContent=el.type==="password"?"👁":"🙈";}
 function parseHist(v){if(Array.isArray(v))return v;if(typeof v==="string"&&v.startsWith("["))try{return JSON.parse(v);}catch(e){}return[];}
@@ -1275,14 +1252,46 @@ function setSyncStatus(ok){
   d.className="sync-indicator"+(ok?"":" err");
 }
 
-// Cache local
-function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({tickets,activos,usuarios,ts:Date.now()}));}catch(e){}}
-function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c){tickets=c.tickets||[];activos=c.activos||[];usuarios=c.usuarios||[];cntTickets=tickets.length;return true;}}catch(e){}return false;}
+// Cache local — YA NO se guarda "usuarios" (contenía passHash en versiones
+// anteriores). Solo se cachean datos operativos no sensibles.
+function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({tickets,activos,ts:Date.now()}));}catch(e){}}
+function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c){tickets=c.tickets||[];activos=c.activos||[];cntTickets=tickets.length;return true;}}catch(e){}return false;}
 
 // ── API ─────────────────────────────────────────────────────────
 async function apiGet(sheet){
-  try{const r=await fetch(API+"?sheet="+sheet,{mode:"cors"});if(!r.ok)return[];const d=await r.json();return Array.isArray(d)?d:[];}
+  try{
+    const tok = (typeof session!=='undefined' && session && session.token) ? '&session='+encodeURIComponent(session.token) : '';
+    const r=await fetch(API+"?sheet="+sheet+tok,{mode:"cors"});
+    if(!r.ok)return[];
+    const d=await r.json();
+    if(d && d.ok===false && d.error==='SESSION_INVALID'){ _sesionExpiradaMobile(); return []; }
+    return Array.isArray(d)?d:[];
+  }
   catch(e){return null;}
+}
+
+// Llamada legible (no no-cors) para login/sesión/cierre de sesión —
+// mismo patrón CORS-safelisted que ya usa uploadFoto en este archivo.
+async function apiPostLegible(sheet, action, payload){
+  const securePayload = {...(payload||{}), _apiToken: API_TOKEN};
+  const resp = await fetch(API, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({sheet, action, payload: securePayload}),
+    signal: AbortSignal.timeout(15000)
+  });
+  return await resp.json();
+}
+
+function _sesionExpiradaMobile(){
+  if(typeof session==='undefined' || !session) return;
+  session=null;
+  clearInterval(window._sesionCheck);
+  clearTimeout(_inactivityTimer);
+  document.getElementById("app").classList.remove("visible");
+  document.getElementById("login-screen").style.display="flex";
+  const err=document.getElementById("login-err");
+  if(err){err.textContent="⏱ Tu sesión expiró o se inició en otro dispositivo.";err.style.display="block";}
 }
 // ── COLA DE REINTENTOS MOBILE ────────────────────────────────
 const _mobQueue   = [];
@@ -1306,7 +1315,7 @@ setInterval(()=>{ if(_mobOnline && _mobQueue.length>0) _flushMobQueue(); }, 3000
 
 function apiPost(sheet,action,payload){
   try{
-    const securePayload = {...(payload||{}), _apiToken: API_TOKEN};
+    const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _sessionToken: (typeof session!=='undefined'&&session)?session.token:null};
     const body = JSON.stringify({sheet,action,payload:securePayload});
     if(!_mobOnline){
       _mobQueue.push({body}); setSyncStatus(false); return Promise.resolve(true);
@@ -1340,7 +1349,6 @@ async function loadData(){
   const fromCache = loadCache();
   const splash = document.getElementById("splash");
 
-  // Mostrar mensaje de estado en el splash
   const addMsg = (txt)=>{
     let msg = document.getElementById("splash-msg");
     if(!msg){
@@ -1352,65 +1360,64 @@ async function loadData(){
     msg.textContent = txt;
   };
 
-  // Si hay caché, mostrar login de inmediato y sincronizar en background
+  // Datos operativos NO sensibles se pueden precargar para acelerar la UI
+  // percibida, pero "usuarios" ya no se toca aquí — requiere sesión y solo
+  // lo usa el rol admin, se carga después del login si hace falta.
   if(fromCache){
     addMsg("Cargando desde caché...");
-    // Sincronizar en background sin bloquear
     setTimeout(async()=>{
       try{
-        const [rawT,rawA,rawU,rawDep,rawEsp,rawPer]=await Promise.all([
+        const [rawT,rawA,rawDep,rawEsp,rawPer]=await Promise.all([
           apiGetTimeout("tickets"),
           apiGetTimeout("activos"),
-          apiGetTimeout("usuarios"),
           apiGetTimeout("departamentos"),
           apiGetTimeout("espacios"),
           apiGetTimeout("personas")
         ]);
         if(rawT)tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));
         if(rawA)activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));
-        if(rawU)usuarios=rawU.map(r=>({...r}));
         if(rawDep)departamentos=rawDep.map(r=>({...r}));
         if(rawEsp)espacios=rawEsp.map(r=>({...r}));
         if(rawPer)personas=rawPer.map(r=>({...r}));
-        if(rawT||rawA||rawU){
+        if(rawT||rawA){
           saveCache();cntTickets=tickets.length;
           setSyncStatus(true);
           document.getElementById("offline-banner").classList.remove("show");
-          // Refrescar UI si ya está logueado
           if(session){renderDashboard();renderTickets();renderActivos();renderReportes();}
         }
       }catch(e){setSyncStatus(false);}
     },500);
-    return; // Salir inmediatamente para mostrar login
+    return;
   }
 
-  // Sin caché — intentar cargar con timeout
-  addMsg("Conectando a Google Sheets...");
+  addMsg("Listo para iniciar sesión...");
+  // Sin caché — la carga real de datos operativos ocurre DESPUÉS del login,
+  // porque casi todas las hojas ahora requieren sesión válida.
+  setSyncStatus(true);
+}
+
+// Carga los datos operativos DESPUÉS de tener sesión (llamado desde doLogin)
+async function cargarDatosPostLogin(){
   try{
-    const [rawT,rawA,rawU,rawDep,rawEsp,rawPer]=await Promise.all([
+    const [rawT,rawA,rawDep,rawEsp,rawPer]=await Promise.all([
       apiGetTimeout("tickets",10000),
       apiGetTimeout("activos",10000),
-      apiGetTimeout("usuarios",10000),
       apiGetTimeout("departamentos",10000),
       apiGetTimeout("espacios",10000),
       apiGetTimeout("personas",10000)
     ]);
     if(rawT){tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));cntTickets=tickets.length;}
     if(rawA){activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));}
-    if(rawU){usuarios=rawU.map(r=>({...r}));}
     if(rawDep){departamentos=rawDep.map(r=>({...r}));}
     if(rawEsp){espacios=rawEsp.map(r=>({...r}));}
     if(rawPer){personas=rawPer.map(r=>({...r}));}
-    if(!usuarios.length){
-      addMsg("Sin datos. Verifica tu conexión.");
-      throw new Error("Sin datos del servidor");
-    }
     saveCache();setSyncStatus(true);
     document.getElementById("offline-banner").classList.remove("show");
+    return true;
   }catch(e){
     setSyncStatus(false);
     document.getElementById("offline-banner").classList.add("show");
-    if(!usuarios.length) throw e;
+    return false;
   }
 }
 
@@ -1441,50 +1448,73 @@ async function initApp(){
 // Rate limiting — máximo 5 intentos, bloqueo 5 minutos
 const _loginAttempts = {count:0, blockedUntil:0};
 async function doLogin(){
+  const ahora = Date.now();
+  if(_loginAttempts.blockedUntil > ahora){
+    const mins = Math.ceil((_loginAttempts.blockedUntil - ahora)/60000);
+    const err=document.getElementById("login-err");
+    err.textContent=`⛔ Demasiados intentos fallidos. Espera ${mins} minuto${mins>1?'s':''}.`;
+    err.style.display="block";
+    return;
+  }
   const u=document.getElementById("l-user").value.trim();
   const p=document.getElementById("l-pass").value;
   const err=document.getElementById("login-err");
   err.style.display="none";
   if(!u||!p){err.textContent="Ingresa usuario y contraseña.";err.style.display="block";return;}
-  const usuario=usuarios.find(x=>x.username===u&&x.estado!=="inactivo");
-  const passOk = usuario && await verificarPassword(p, usuario.passHash||usuario.pass||'');
-  if(passOk && usuario.passHash && !usuario.passHash.startsWith('S2$')){
-    usuario.passHash = await hashPassSeguro(p);
-    apiPost('usuarios','update',usuario);
+
+  let resp;
+  try{
+    resp = await apiPostLegible(null,'procesarLogin',{username:u,password:p});
+  }catch(e){
+    err.textContent="⚠ No se pudo contactar al servidor. Verifica tu conexión.";
+    err.style.display="block";
+    return;
   }
-  if(!passOk){err.textContent=usuario?"Contraseña incorrecta.":"Usuario no encontrado o inactivo.";err.style.display="block";return;}
-  // Técnicos, admins e inventario pueden usar la app móvil
-  if(!["tecnico","admin","inventario"].includes(usuario.rol)){
+
+  if(!resp || !resp.ok){
+    if(resp && resp.error==='BLOCKED'){
+      err.textContent='⛔ '+(resp.message||'Demasiados intentos fallidos. Espera 5 minutos.');
+    }else{
+      _loginAttempts.count++;
+      if(_loginAttempts.count>=5){
+        _loginAttempts.blockedUntil = Date.now()+5*60*1000;
+        _loginAttempts.count=0;
+        err.textContent="⛔ 5 intentos fallidos. Espera 5 minutos.";
+      }else{
+        err.textContent=`Usuario o contraseña incorrectos. Intento ${_loginAttempts.count}/5.`;
+      }
+    }
+    err.style.display="block";
+    return;
+  }
+  _loginAttempts.count=0;_loginAttempts.blockedUntil=0;
+
+  if(!["tecnico","admin","inventario"].includes(resp.rol)){
     err.textContent="Esta app es para técnicos e inventario. Usa la versión web para tu rol.";
-    err.style.display="block";return;
+    err.style.display="block";
+    // Cerrar la sesión que ya se creó en el servidor, ya que este cliente no la usará
+    apiPostLegible(null,'cerrar_sesion',{_sessionToken:resp.token}).catch(()=>{});
+    return;
   }
-  session={username:u,nombre:usuario.nombre,rol:usuario.rol,data:usuario};
+
+  session={username:resp.username, nombre:resp.nombre, rol:resp.rol, token:resp.token};
   mostrarBotonEscaner();
-  mostrarBotonEscaner();
-  apiPost("auditoria","insert",{ts:ts(),usuario:u,nombre:usuario.nombre,rol:usuario.rol,accion:"LOGIN",tipo:"Sistema",codigo:"MOBILE",detalle:"Acceso desde app móvil SAGAE"});
-  // Verificar si debe cambiar contraseña
-  const mustChange = usuario.mustChange === true || usuario.mustChange === "true" || usuario.mustChange === "TRUE";
+  apiPost("auditoria","insert",{ts:ts(),usuario:u,nombre:resp.nombre,rol:resp.rol,accion:"LOGIN",tipo:"Sistema",codigo:"MOBILE",detalle:"Acceso desde app móvil SAGAE"});
+
+  const mustChange = resp.mustChange===true || resp.mustChange==='true' || resp.mustChange==='TRUE';
   if(mustChange){
     document.getElementById("login-screen").style.display="none";
     document.getElementById("force-pass-screen").style.display="flex";
     return;
   }
-  // Token de sesión única — generado ANTES de mostrar la app
-  const _tok = Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
-  session.token = _tok;
-  // Escribir token en Sheets y luego mostrar la app
-  fetch(API, {
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({sheet:'usuarios', action:'update', payload:{...usuario, ultimoAcceso:ts(), sessionToken:_tok}})
-  }).finally(()=>{
-    iniciarControlSesionUnicaMobile();
-  });
+
+  await cargarDatosPostLogin();
+  iniciarControlSesionUnicaMobile();
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
-  document.getElementById("top-avatar").textContent=initials(usuario.nombre);
-  document.getElementById("um-name").textContent=usuario.nombre;
-  document.getElementById("um-role").textContent=usuario.rol==="admin"?"Administrador":"Técnico";
+  document.getElementById("top-avatar").textContent=initials(resp.nombre);
+  document.getElementById("um-name").textContent=resp.nombre;
+  document.getElementById("um-role").textContent=resp.rol==="admin"?"Administrador":"Técnico";
   resetInactivityTimer();
   renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();
   iniciarPollingMobile(); pedirPermisosNotifMobile();
@@ -1612,7 +1642,7 @@ async function apiPostConRespuesta(sheet, action, payload){
   }
   // POST con no-cors (Apps Script no soporta CORS preflight en POST)
   try{
-    const securePayload = {...(payload||{}), _apiToken: API_TOKEN};
+    const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _sessionToken: (typeof session!=='undefined'&&session)?session.token:null};
     await fetch(API, {
       method: 'POST',
       mode: 'no-cors',
@@ -2160,42 +2190,29 @@ function iniciarControlSesionUnicaMobile(){
   window._sesionCheck = setInterval(async()=>{
     if(!session||!session.token) return;
     try{
-      const r = await fetch(API+'?sheet=usuarios&t='+Date.now(), {mode:'cors'});
-      if(!r.ok) return;
-      const raw = await r.json();
-      if(!Array.isArray(raw)) return;
-      const uRemoto = raw.find(x=>String(x.username||'').toLowerCase()===session.username.toLowerCase());
-      if(!uRemoto) return;
-      const tokenRemoto = String(uRemoto.sessionToken||'').trim();
-      const tokenLocal  = String(session.token||'').trim();
-      if(tokenRemoto && tokenLocal && tokenRemoto !== tokenLocal){
-        clearInterval(window._sesionCheck);
-        clearTimeout(_inactivityTimer);
-        // Overlay de aviso mobile
-        const ov = document.createElement('div');
-        ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;';
-        ov.innerHTML='<div style="background:#fff;border-radius:16px;padding:28px 24px;text-align:center;max-width:320px">' +
-          '<div style="font-size:44px;margin-bottom:10px">⛔</div>' +
-          '<div style="font-size:17px;font-weight:700;color:#1B3A6B;margin-bottom:8px">Sesión cerrada</div>' +
-          '<div style="font-size:13px;color:#555;line-height:1.5">Tu usuario inició sesión en otro dispositivo. Por seguridad esta sesión fue cerrada.</div></div>';
-        document.body.appendChild(ov);
-        setTimeout(doLogout, 3000);
-      }
+      const r = await apiPostLegible(null,'session_check',{_sessionToken:session.token});
+      if(r && r.ok) return;
+      clearInterval(window._sesionCheck);
+      clearTimeout(_inactivityTimer);
+      const ov = document.createElement('div');
+      ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;';
+      ov.innerHTML='<div style="background:#fff;border-radius:16px;padding:28px 24px;text-align:center;max-width:320px">' +
+        '<div style="font-size:44px;margin-bottom:10px">⛔</div>' +
+        '<div style="font-size:17px;font-weight:700;color:#1B3A6B;margin-bottom:8px">Sesión cerrada</div>' +
+        '<div style="font-size:13px;color:#555;line-height:1.5">Tu usuario inició sesión en otro dispositivo, o la sesión expiró. Por seguridad fue cerrada.</div></div>';
+      document.body.appendChild(ov);
+      setTimeout(()=>{ov.remove();doLogout();}, 3000);
     }catch(e){}
-  }, 30 * 1000); // cada 30 segundos
+  }, 30 * 1000);
 }
 
 function doLogout(){
-  // Limpiar token de sesión única en Sheets
-  if(session){
-    const uObj = usuarios.find(x=>x.username===session.username);
-    if(uObj){ uObj.sessionToken=''; apiPost('usuarios','update',uObj); }
+  if(session && session.token){
+    apiPostLegible(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
   }
-  // Detener polling de sesión única y timer de inactividad
   clearInterval(window._sesionCheck);
   clearTimeout(_inactivityTimer);
   detenerPollingMobile();
-  // Registrar en auditoría
   if(session){
     apiPost("auditoria","insert",{
       ts:ts(), usuario:session.username, nombre:session.nombre,
@@ -2203,20 +2220,14 @@ function doLogout(){
       codigo:"MOBILE", detalle:"Cierre de sesión desde app móvil"
     });
   }
-  // Limpiar sesión
   session = null;
-  // Ocultar botones del topbar
-  
-  // Mostrar login
+  usuarios=[];activos=[];tickets=[];departamentos=[];espacios=[];personas=[];
   document.getElementById("app").classList.remove("visible");
   document.getElementById("login-screen").style.display="flex";
-  // Limpiar campos
   document.getElementById("l-user").value="";
   document.getElementById("l-pass").value="";
   document.getElementById("login-err").style.display="none";
-  // Reset avatar
   document.getElementById("top-avatar").textContent="?";
-  // Volver al dashboard para la próxima sesión
   goScreen("dashboard", document.getElementById("nav-dashboard"));
 }
 
@@ -2254,32 +2265,21 @@ async function saveForcePass(){
   err.style.display="none";
   if(!p1||p1.length<8){err.textContent="La contraseña debe tener mínimo 8 caracteres.";err.style.display="block";return;}
   if(p1!==p2){err.textContent="Las contraseñas no coinciden.";err.style.display="block";return;}
-  // Guardar nueva contraseña
-  const usuario=session.data;
-  usuario.passHash=await hashPassSeguro(p1);
-  usuario.mustChange=false;
-  usuario.ultimoAcceso=ts();
-  await apiPost("usuarios","update",usuario);
-  // Actualizar en memoria
-  const idx=usuarios.findIndex(x=>x.username===session.username);
-  if(idx>=0){usuarios[idx]=usuario;}
-  session.data=usuario;
+  // La contraseña viaja en texto plano solo por HTTPS; se hashea en el
+  // servidor. El cliente nunca calcula ni ve un passHash.
+  await apiPost("usuarios","update",{username:session.username, passwordPlano:p1, mustChange:false, ultimoAcceso:ts()});
   await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Usuario",codigo:session.username,detalle:"Cambio de contraseña forzado al primer acceso — App Móvil"});
-  saveCache();
-  // Mostrar la app
+
+  await cargarDatosPostLogin();
   document.getElementById("force-pass-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
   document.getElementById("top-avatar-btn").textContent=initials(session.nombre);
   document.getElementById("top-avatar-btn").style.display="flex";
   document.getElementById("um-name").textContent=session.nombre;
   document.getElementById("um-role").textContent=session.rol==="admin"?"Administrador":"Técnico";
-  
+
   renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();resetInactivityTimer();iniciarControlSesionUnicaMobile();
   showToast("¡Contraseña creada exitosamente! ✓","success");
-  // Token de sesión única
-  const _tok = Date.now().toString(36) + Math.random().toString(36).slice(2);
-  session.token = _tok;
-  apiPost("usuarios","update",{...usuario, ultimoAcceso:ts(), sessionToken:_tok});
 }
 
 // ── ONLINE / OFFLINE ──────────────────────────────────────────
@@ -2295,8 +2295,8 @@ window.addEventListener("offline",()=>{
 
 // ── SERVICE WORKER ────────────────────────────────────────────
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=1.5").then(reg=>{
-    console.log("[SAGAE] SW registrado v1.5:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=1.6").then(reg=>{
+    console.log("[SAGAE] SW registrado v1.6:", reg.scope);
 
     // Detectar cuando hay un nuevo SW esperando (actualización disponible)
     reg.addEventListener("updatefound", ()=>{
@@ -2745,7 +2745,8 @@ function abrirSubidaFotoMobile(){
             nombreArchivo:   file.name,
             modulo:          'Activos',
             codigoRegistro:  '',
-            _apiToken:       API_TOKEN
+            _apiToken:       API_TOKEN,
+            _sessionToken:   session ? session.token : null
           }
         })
       });
