@@ -744,6 +744,7 @@ tbody tr.clickable{cursor:pointer;}
   <div class="login-card">
     <div class="login-logo">SAGAE</div>
     <div class="login-sub">Sistema de Activos y Gestión Administrativa Educativa</div>
+    <div class="login-sub" id="login-institucion" style="font-weight:600;opacity:.85"></div>
     <div class="sheets-badge"><span class="sdot"></span> Conectado a Google Sheets</div>
     <div class="login-err" id="login-err"></div>
     <div class="f-row"><div class="f-lbl">Usuario</div><input class="f-inp" id="l-user" placeholder="Tu nombre de usuario" onkeydown="if(event.key==='Enter')doLogin()"></div>
@@ -1980,19 +1981,37 @@ async function apiGet(sheet){
   }
 }
 
-// Llamada legible (no no-cors) para acciones que necesitan leer la
-// respuesta del servidor: login, verificación de sesión, cierre de
-// sesión y creación pública de tickets. Usa Content-Type text/plain
-// (CORS-safelisted) para evitar el preflight que Apps Script no soporta.
-async function apiPostLegible(sheet, action, payload){
-  const securePayload = {...(payload||{}), _apiToken: API_TOKEN};
-  const resp = await fetch(API, {
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({sheet, action, payload: securePayload}),
-    signal: AbortSignal.timeout(15000)
-  });
-  return await resp.json();
+function _generarRequestId(){
+  return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+}
+
+// Google Apps Script NO agrega encabezados CORS a las respuestas de
+// POST (sí lo hace en GET) — confirmado en pruebas reales. Por eso este
+// patrón dispara el POST "a ciegas" (modo no-cors, sin poder leer la
+// respuesta) y luego pregunta el resultado real con un GET, que sí es
+// legible. El servidor guarda el resultado bajo el mismo _requestId
+// durante 60 segundos (ver enviarRespuesta_ en el backend).
+async function apiPostAsync(sheet, action, payload, timeoutMs=12000){
+  const requestId = _generarRequestId();
+  const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
+  fetch(API, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({sheet, action, payload: securePayload})
+  }).catch(()=>{});
+
+  const inicio = Date.now();
+  while(Date.now()-inicio < timeoutMs){
+    await new Promise(r=>setTimeout(r,350));
+    try{
+      const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(), {mode:'cors'});
+      if(r.ok){
+        const d = await r.json();
+        if(d && !d.pending) return d;
+      }
+    }catch(e){ /* seguir intentando hasta agotar el tiempo */ }
+  }
+  return {ok:false, error:'TIMEOUT', message:'El servidor tardó demasiado en responder. Intenta de nuevo.'};
 }
 
 function _sesionExpirada(){
@@ -2200,6 +2219,18 @@ function activarModoEscaneo(){
 function mostrarPantallaLogin(){
   document.getElementById('loading-overlay').style.display='none';
   document.getElementById('login-screen').style.display='flex';
+  cargarNombreInstitucion();
+}
+
+async function cargarNombreInstitucion(){
+  const el = document.getElementById('login-institucion');
+  try{
+    const r = await fetch(API+"?action=config&t="+Date.now(), {mode:"cors"});
+    const d = await r.json();
+    const nombre = (d && d.ok && d.nombreInstitucion) ? d.nombreInstitucion : '';
+    if(el) el.textContent = nombre;
+    if(nombre) document.title = 'SAGAE — ' + nombre;
+  }catch(e){ /* si falla, se deja el título genérico de SAGAE */ }
 }
 
 async function loadFromSheets(){
@@ -2273,7 +2304,7 @@ async function doLogin(){
   // El cliente nunca ve ni calcula passHash de nadie.
   let resp;
   try{
-    resp = await apiPostLegible(null,'procesarLogin',{username:u,password:p});
+    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
   }catch(e){
     ll.style.display='none';
     err.textContent='⚠ No se pudo contactar al servidor. Verifica tu conexión.';
@@ -2293,7 +2324,7 @@ async function doLogin(){
     if(!cargado){
       // Si falla la carga de datos, no dejamos a la persona a medias:
       // cerramos la sesión recién creada y la devolvemos al login.
-      apiPostLegible(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
+      apiPostAsync(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
       session=null;
       document.getElementById('login-screen').style.display='flex';
       err.textContent='⚠ No se pudieron cargar los datos. Intenta de nuevo.';
@@ -2335,7 +2366,7 @@ async function doLogin(){
 
 function doLogout(){
   if(session && session.token){
-    apiPostLegible(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
+    apiPostAsync(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
   }
   audit('LOGOUT','Sistema','—','Cierre de sesión');session=null;activoActual=null;
   clearTimeout(_inactivityTimer);
@@ -3213,7 +3244,7 @@ function iniciarControlSesionUnica(){
   _sessionCheckInterval = setInterval(async()=>{
     if(!session || !session.token) return;
     try{
-      const r = await apiPostLegible(null,'session_check',{_sessionToken:session.token});
+      const r = await apiPostAsync(null,'session_check',{_sessionToken:session.token});
       if(r && r.ok) return; // sesión sigue válida, nada que hacer
       clearInterval(_sessionCheckInterval);
       clearTimeout(_inactivityTimer);
@@ -5088,7 +5119,7 @@ function descargarPlantillaActivos(){
     const HEADERS = ['codigo','nombre','tipo','estado','marca','modelo','serial','ubicacion','asignado','depto','compra','garantia','valor','vida','obs'];
     const LABELS  = ['CÓDIGO','NOMBRE *','TIPO *','ESTADO *','MARCA','MODELO','SERIAL / N° SERIE','UBICACIÓN','ASIGNADO A','DEPARTAMENTO','FECHA COMPRA','GARANTÍA HASTA','VALOR ($)','VIDA ÚTIL (años)','OBSERVACIONES'];
     const HINTS   = ['Dejar VACÍO\n(auto-asignado)','Nombre descriptivo\ndel activo','Usar desplegable','Usar desplegable','Marca del fabricante','Modelo específico','Número de serie del equipo','Dónde está el equipo','Persona responsable','Área o departamento','Formato: DD/MM/AAAA','Formato: DD/MM/AAAA','Solo número (ej: 375)','Años (ej: 5)','Notas adicionales'];
-    const EJEMPLO = ['','PCALABROBO01','Laptop','activo','HP','15-fd0012nr','2A-D0-46-8D-47-66','ROBOTIC LAB','Docentes Informática','Informática','21/03/2026','21/03/2027',375,5,'Equipo nuevo en perfectas condiciones'];
+    const EJEMPLO = ['','LABROBO01','Laptop','activo','HP','15-fd0012nr','2A-D0-46-8D-47-66','LAB DE ROBÓTICA','Docentes Informática','Informática','21/03/2026','21/03/2027',375,5,'Equipo nuevo en perfectas condiciones'];
     const WIDTHS  = [14,28,16,14,16,22,22,22,24,20,16,16,14,12,32];
 
     // Fila 1: banner
@@ -6044,27 +6075,17 @@ async function _subirArchivoADrive(file, targetInputId, modulo){
     const base64 = await _fileToBase64(file);
     const base64data = base64.split(',')[1];
 
-    // CORRECCION CRITICA: usar fetch directo (NO apiPost) para poder leer
-    // la respuesta JSON con la URL de Drive. apiPost usa no-cors y no
-    // permite leer el body de respuesta, por lo que result.url nunca llega.
-    const resp = await fetch(API, {
-      method:  'POST',
-      headers: {'Content-Type': 'text/plain;charset=utf-8'},
-      body: JSON.stringify({
-        sheet:   null,
-        action:  'uploadFoto',
-        payload: {
-          base64:          base64data,
-          mimeType:        file.type,
-          nombreArchivo:   file.name,
-          modulo:          modulo,
-          codigoRegistro:  '',
-          _apiToken:       API_TOKEN
-        }
-      })
-    });
-
-    const result = await resp.json();
+    // Antes esto intentaba leer la respuesta de un POST directo — no
+    // funciona en Apps Script (no agrega encabezados CORS a POST).
+    // Usamos el mismo patrón POST-ciego + GET-resultado que login/sesión.
+    const result = await apiPostAsync(null,'uploadFoto',{
+      base64:          base64data,
+      mimeType:        file.type,
+      nombreArchivo:   file.name,
+      modulo:          modulo,
+      codigoRegistro:  '',
+      _sessionToken:   session ? session.token : null
+    }, 25000); // las fotos pueden tardar más que una acción normal
 
     if(result && result.url){
       const inp = document.getElementById(targetInputId);
