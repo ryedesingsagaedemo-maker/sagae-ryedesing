@@ -1,3 +1,91 @@
+
+SAGAE RYE DESIGN
+
+1783105634898_image.png
+
+
+
+¿Cómo puedo ayudarle hoy?
+
+Diferencias en archivos adjuntos del proyecto
+Último mensaje hace 5 minutos
+Falta de visibilidad en el tracking de tickets
+Último mensaje ayer
+Confusión entre departamento y área en el portal
+Último mensaje hace 4 días
+Carga automática de departamentos en portal de reportes
+Último mensaje hace 4 días
+Portal de reportes no carga foto
+Último mensaje 27 jun
+Memoria
+Solo tú
+Purpose & context SAGAE (Sistema de Activos y Gestión Administrativa Educativa) is an institutional asset and ticket management system built by SAGAE as sole product owner and deployer, without a technical team. Claude serves as a full professional development team covering security, privacy (Panama's Ley 81 de 2019), testing, documentation, and implementation guidance. Architecture: Backend: SAGAEappsscript.js — Google Apps Script web app connected to Google Sheets Frontend (3 clients): Admin panel (index.html), mobile technician app (SAGAEindexmobile.html), public reporting portal (SAGAEportalreportes.html) Supporting files: manifest.json, sw.js Hosting: Frontends on GitHub Pages; backend deployed as Apps Script web app Data layer: Google Sheets as database, with catalog sheets for departamentos and espacios The institution name is configurable per installation via a Script Property (NOMBREINSTITUCION), exposed through a public config action in doGet — all hardcoded references to specific institutions have been removed (marca blanca). --- Current state Authentication & security redesign (completed, pending end-to-end human testing): Server-side session management via CacheService with 30-minute sliding TTL Password hashing moved exclusively to server (hashPassSeguro / verificarPassword using SHA-256 with salt) PERMSSERVER matrix enforcing role-based access control on every write operation New actions: procesarLogin, sessioncheck, cerrarsesion, crearticketpublico Rate limiting on the public portal (server-side, 20 tickets per 5-minute window) passHash and sessionToken stripped from all API responses All client-side password hashing functions removed from all three frontends CORS workaround (blind POST + GET polling pattern): Confirmed limitation: Google Apps Script doPost responses do not include Access-Control-Allow-Origin headers, making them unreadable by browser fetch() in cors mode Solution: client sends POST in no-cors mode with a requestId; server caches result under that ID for 60 seconds via CacheService; client polls a public GET action (resultado) to retrieve response Applied to: procesarLogin, sessioncheck, cerrarsesion, crearticket_publico, uploadFoto across all three frontends Photo upload (resolved): Root cause was CORS preflight triggered by Content-Type: application/json; fixed by switching to text/plain;charset=utf-8 (CORS-safelisted, avoids preflight) For portal-originated tickets: photo input is locked read-only in admin panel and mobile app (detected via esTicketDePortal() pattern); only a "👁 Ver" button is shown; secondary guard inside abrirDrivePicker() prevents DOM bypass Ticket visibility & UI (completed): Ticket history (historial de seguimiento) now rendered in admin panel modal "Abiertos" tab aggregates all non-closed states (not just literal estado='abierto') Read-only view mode (eye button 👁) for roles without edit permissions Clickable Kanban cards Portal form fields (completed): "Departamento / Área" and "Ubicación" converted from free-text to dynamic <select> elements, fed from live backend catalogs, with ubicaciones filtering based on selected departamento Pending items: End-to-end human testing of full authentication redesign before production deployment XSS sanitization in openTicketSheet (mobile app) Confirmation of five specific legal compliance points under Panama's Ley 81 de 2019 with local legal counsel (personal data in audit history, data retention, etc.) --- On the horizon Legal counsel review of Panama's Ley 81 de 2019 compliance points (cannot be resolved by Claude — must be flagged and referred) Production deployment and live validation of the authentication redesign Potential additional role or permission refinements as real-world usage reveals gaps --- Key learnings & principles Never assume legal compliance: Always flag what requires local legal counsel review; never assert a requirement is met CORS on Apps Script is a hard constraint: doPost responses are browser-unreadable in cors mode; the blind POST + GET polling pattern is the confirmed workaround Apps Script redeployment discipline: Changes only take effect when a new version is created within the existing deployment — "new deployment" changes the /exec URL and must be avoided Security was entirely client-side before redesign: Previous architecture had no server-side RBAC, exposed password hashes to unauthenticated callers, and relied on a single static hardcoded API token — a complete redesign was chosen over patching GitHub Pages .nojekyll: Standard configuration file for SPAs using "Deploy from a branch" pipeline; not application code .nojekyll root cause: Claude was honest that the actual build error log was never obtained, so the causal link to the two failed deployments could not be definitively confirmed --- Approach & patterns SAGAE manually uploads updated files to both GitHub Pages and the Claude.ai project knowledge section to keep the working copy current; Claude has read-only access to project files When only one file changes, all 6 system files must still be delivered together in a single zip, alongside implementation guides in PDF and Word (.docx) format Every session must produce: (1) corrected file zip, (2) step-by-step implementation guide in execution order covering all manual actions outside the chat (GitHub uploads, Apps Script deployment, Script Properties config, etc.), delivered as PDF and .docx — never as markdown SAGAE challenges explanations that conflict with observed behavior and expects honest acknowledgment of uncertainty over confident-sounding guesses Decisions must be documented with clear reasoning --- Tools & resources Backend: Google Apps Script + Google Sheets (CacheService, PropertiesService) Frontend hosting: GitHub Pages (static, "Deploy from a branch" pipeline) File delivery: Zip archives containing all 6 system files + implementation guides in PDF and .docx Legal reference: Panama's Ley 81 de 2019 (data privacy — compliance points must be referred to local legal counsel) Claude.ai project: Used as working file repository (read-only for Claude; SAGAE manually updates files after each session)
+
+Última actualización hace 16 horas
+
+Instrucciones
+Actúa como un equipo profesional de desarrollo de software en fase de construcción de un producto comercial para Panamá. Tu tarea es orientar el análisis, diseño, programación, pruebas, documentación y preparación para publicación del sistema, asegurando calidad, seguridad, privacidad y cumplimiento con la normativa panameña aplicable, especialmente en tratamiento de datos personales y medidas de protección de la información. Mientras el programa sigue en desarrollo, revisa cada funcionalidad para identificar riesgos legales, de seguridad y de experiencia de usuario. Propón buenas prácticas de arquitectura, validaciones, control de accesos, manejo de errores, cifrado cuando aplique, registro de eventos, pruebas funcionales y pruebas de seguridad antes de liberar cualquier versión. Si alguna decisión técnica puede afectar el cumplimiento legal o la protección del usuario final, señala el riesgo y recomienda revisión adicional. No des por cumplido ningún requisito legal sin verificarlo con asesoría jurídica local; en su lugar, deja constancia de qué debe confirmarse antes del lanzamiento. SIEMPRE DEBES ENTREGAR TODOS LOS ARCHIVOS QUE COMPONEN EL PROGRAMA, LA INSTRUCCIÓN DE QEU HACER CON CADA ARCHIVO SEGÚN EL CAMBIO REALZIADO Y EL ORDEN EN QUE SE DEBE EJECUTAR. TAMBÍEN ENTREGAR DOCUMENTACIÓN PARA IMPLEMENTACIÓN DEL PROGRAMA EN CADA SESIÓN O CAMBIO QUE SE HAGA.
+
+Archivos
+11% de la capacidad del proyecto utilizada
+Modo de búsqueda
+
+GUIA_IMPLEMENTACION_2026-07-04_galeria_fotos_tickets.docx
+82 líneas
+
+docx
+
+
+
+index.html
+6,959 líneas
+
+html
+
+
+
+SAGAE_index_mobile.html
+2,921 líneas
+
+html
+
+
+
+SAGAE_portal_reportes.html
+494 líneas
+
+html
+
+
+
+SAGAE_apps_script.js
+1,681 líneas
+
+js
+
+
+
+manifest.json
+62 líneas
+
+json
+
+
+
+sw.js
+155 líneas
+
+js
+
+
+GUIA_IMPLEMENTACION_20260704_galeria_fotos_tickets.pdf
+pdf
+
+
+
+SAGAE_portal_reportes.html
+
+
 <head>
 <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; connect-src *; font-src * data:;">
@@ -89,20 +177,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 </style>
 </head>
 <body>
-
+ 
 <div class="header">
   <div class="header-logo">SAGAE</div>
   <div class="header-divider"></div>
   <div class="header-title">Portal de Reportes</div>
   <div class="header-badge" id="badge-institucion">Cargando…</div>
 </div>
-
+ 
 <div class="hero">
   <div class="hero-icon">🛠️</div>
   <div class="hero-title">¿Tienes un problema técnico?</div>
   <div class="hero-sub">Reporta aquí tu incidencia o solicitud. El equipo de soporte recibirá una notificación inmediata y atenderá tu caso lo antes posible.</div>
 </div>
-
+ 
 <div class="container">
   <div class="form-card" id="form-card">
     <div class="form-card-header">
@@ -173,16 +261,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <input type="hidden" id="f-prior" value="normal">
       </div>
       <div class="form-group">
-        <label class="form-label">Foto del problema (opcional)</label>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input class="form-input" id="f-foto-url" placeholder="Se llenara al subir la foto..." readonly style="flex:1;font-size:12px;color:#666;cursor:default;">
-          <button type="button" id="btn-foto" onclick="subirFotoPortal()"
-            style="white-space:nowrap;padding:10px 16px;background:var(--navy-l);border:1.5px solid var(--navy);border-radius:var(--r-md);color:var(--navy-d);font-size:13px;font-weight:700;cursor:pointer;">
-            Adjuntar foto
-          </button>
-        </div>
-        <div id="foto-preview" style="display:none;margin-top:8px;font-size:12px;color:var(--navy-d);background:var(--navy-l);padding:8px 12px;border-radius:8px;border-left:3px solid var(--navy);"></div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px;">Puedes adjuntar una foto desde tu camara o galeria. Maximo 10MB. Formatos: JPG, PNG, GIF.</div>
+        <label class="form-label">Fotos del problema (opcional, hasta 5)</label>
+        <div id="fotos-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+        <button type="button" id="btn-foto" onclick="subirFotoPortal()"
+          style="white-space:nowrap;padding:10px 16px;background:var(--navy-l);border:1.5px solid var(--navy);border-radius:var(--r-md);color:var(--navy-d);font-size:13px;font-weight:700;cursor:pointer;">
+          Adjuntar foto
+        </button>
+        <div id="fotos-limite-note" style="display:none;font-size:11px;color:var(--text3);margin-top:6px;">Ya adjuntaste el máximo de 5 fotos.</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">Puedes adjuntar hasta 5 fotos desde tu camara o galeria. Maximo 10MB cada una. Formatos: JPG, PNG, GIF.</div>
       </div>
       <button class="btn-submit" id="btn-submit" onclick="enviarReporte()">
         <span id="btn-text">📤 Enviar reporte al equipo técnico</span>
@@ -190,7 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       </button>
     </div>
   </div>
-
+ 
   <div id="success-screen">
     <div class="success-icon">✅</div>
     <div class="success-title">¡Reporte enviado exitosamente!</div>
@@ -200,11 +286,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <button class="btn-nuevo" onclick="nuevoReporte()">+ Reportar otro problema</button>
   </div>
 </div>
-
+ 
 <div class="footer">
   <p>Sistema gestionado por <strong>SAGAE</strong> · Desarrollado por <strong>RYE Design</strong> · <span id="footer-institucion">tu institución</span></p>
 </div>
-
+ 
 <script>
 // Rate limiter persistido en sessionStorage — sobrevive recarga de página
 const _reportLimiter = (()=>{
@@ -234,11 +320,11 @@ function _obtenerDeviceId(){
 }
 let prioridad="normal";
 let departamentos=[], espacios=[];
-
+ 
 function _generarRequestId(){
   return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);
 }
-
+ 
 // Google Apps Script NO agrega encabezados CORS a las respuestas de
 // POST (sí lo hace en GET) — confirmado en pruebas reales. Este patrón
 // dispara el POST "a ciegas" (no-cors) y sondea el resultado con GET.
@@ -250,7 +336,7 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({sheet, action, payload: securePayload})
   }).catch(()=>{});
-
+ 
   const inicio = Date.now();
   while(Date.now()-inicio < timeoutMs){
     await new Promise(r=>setTimeout(r,350));
@@ -264,7 +350,7 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
   }
   return {ok:false, error:'TIMEOUT', message:'El servidor tardó demasiado en responder. Intenta de nuevo.'};
 }
-
+ 
 async function apiGetTimeout(sheet,ms=10000){
   try{
     const ctrl=new AbortController();
@@ -276,7 +362,7 @@ async function apiGetTimeout(sheet,ms=10000){
     return Array.isArray(d)?d:null;
   }catch(e){ return null; }
 }
-
+ 
 function poblarUbicacionesPortal(depto){
   const selUbic=document.getElementById("f-ubicacion");
   if(!selUbic) return;
@@ -287,11 +373,11 @@ function poblarUbicacionesPortal(depto){
   selUbic.innerHTML = '<option value="">— Selecciona la ubicación —</option>' +
     filtradas.map(e=>`<option value="${e.nombre}">${e.nombre}</option>`).join('');
 }
-
+ 
 function onChangeDeptoPortal(depto){
   poblarUbicacionesPortal(depto);
 }
-
+ 
 async function cargarCatalogosPortal(){
   try{
     const [rawDep, rawEsp] = await Promise.all([
@@ -328,7 +414,7 @@ async function cargarNombreInstitucion(){
 }
 cargarNombreInstitucion();
 cargarCatalogosPortal();
-
+ 
 function selectPriority(p){
   prioridad=p;
   ["normal","importante","urgente"].forEach(opt=>{
@@ -344,7 +430,29 @@ function showError(msg){const el=document.getElementById("msg-error");el.textCon
 function hideError(){document.getElementById("msg-error").classList.remove("show");}
 // NOTA: el código del ticket ahora lo genera el servidor (crear_ticket_publico)
 // — ya no se necesita contar tickets ni generar un código provisional aquí.
+let _fotosPortalActuales = [];
+ 
+function _renderGaleriaFotosPortal(){
+  const list = document.getElementById('fotos-list');
+  list.innerHTML = _fotosPortalActuales.length ? _fotosPortalActuales.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;background:var(--navy-l);border-left:3px solid var(--navy);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--navy-d);">
+      <div style="flex:1;min-width:0">
+        📷 <a href="${f.url}" target="_blank" style="color:var(--navy-d);font-weight:700">Ver foto ↗</a>
+        ${f.nota?' — '+f.nota:''}
+      </div>
+      <button type="button" onclick="quitarFotoPortal(${i})" style="background:none;border:none;color:var(--navy-d);cursor:pointer;font-size:14px;">🗑</button>
+    </div>`).join('') : '';
+  document.getElementById('fotos-limite-note').style.display = _fotosPortalActuales.length>=5 ? 'block' : 'none';
+  document.getElementById('btn-foto').style.display = _fotosPortalActuales.length>=5 ? 'none' : '';
+}
+ 
+function quitarFotoPortal(index){
+  _fotosPortalActuales.splice(index,1);
+  _renderGaleriaFotosPortal();
+}
+ 
 function subirFotoPortal(){
+  if(_fotosPortalActuales.length >= 5){ showError('Ya adjuntaste el máximo de 5 fotos.'); return; }
   const input = document.createElement('input');
   input.type   = 'file';
   input.accept = 'image/*';
@@ -368,17 +476,16 @@ function subirFotoPortal(){
         modulo:'Tickets', codigoRegistro:'', origen:'portal', deviceId:_obtenerDeviceId()
       }, 25000);
       if(data && data.url){
-        document.getElementById('f-foto-url').value = data.url;
-        const prev = document.getElementById('foto-preview');
-        prev.style.display = 'block';
-        prev.innerHTML = 'Foto adjunta: <strong>'+file.name+'</strong> &mdash; <a href="'+data.url+'" target="_blank" style="color:var(--navy-d)">Ver foto</a>';
+        const nota = prompt('Nota corta para esta foto (opcional):','') || '';
+        _fotosPortalActuales.push({url:data.url, nota:nota.trim().slice(0,200)});
+        _renderGaleriaFotosPortal();
       } else { showError('No se pudo subir la foto: '+(data?.error||'sin respuesta')); }
     } catch(e){ showError('Error al subir la foto: '+e.message); }
     finally { if(btn){ btn.disabled=false; btn.textContent='Adjuntar foto'; } }
   };
   input.click();
 }
-
+ 
 async function enviarReporte(){
   hideError();
   const nombre=document.getElementById("f-nombre").value.trim();
@@ -417,7 +524,7 @@ async function enviarReporte(){
       titulo,activoId:"",activoNombre:"—",
       tipo,prior,
       desc:`${desc}\n\n--- Reportado por: ${nombre} (${correo}) | Ubicación: ${ubicacion} | Departamento: ${depto} ---`,
-      foto: document.getElementById('f-foto-url').value.trim() || '---',
+      fotos: _fotosPortalActuales,
       reportadoPor:nombre, correoReportador:correo,
       deviceId:_obtenerDeviceId()
     };
@@ -457,9 +564,10 @@ async function enviarReporte(){
 function nuevoReporte(){
   document.getElementById("form-card").style.display="block";
   document.getElementById("success-screen").classList.remove("show");
-  ["f-nombre","f-correo","f-depto","f-ubicacion","f-titulo","f-desc","f-foto-url"].forEach(id=>document.getElementById(id).value="");
+  ["f-nombre","f-correo","f-depto","f-ubicacion","f-titulo","f-desc"].forEach(id=>document.getElementById(id).value="");
   poblarUbicacionesPortal("");
-  const fp=document.getElementById("foto-preview"); if(fp){fp.style.display="none";fp.innerHTML="";}
+  _fotosPortalActuales = [];
+  _renderGaleriaFotosPortal();
   document.getElementById("f-tipo").value="";
   selectPriority("normal");
   const btn=document.getElementById("btn-submit");
@@ -471,3 +579,4 @@ function nuevoReporte(){
 </script>
 </body>
 </html>
+ 
