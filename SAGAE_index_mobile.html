@@ -384,6 +384,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="login-logo">SAGAE</div>
     <div class="login-badge">Módulo Técnico</div>
     <p class="login-title">Sistema de Activos y Gestión Administrativa Educativa</p>
+    <p class="login-title" id="login-institucion" style="font-weight:700;opacity:.9"></p>
     <div class="conn-badge"><span class="conn-dot"></span> Conectado a Google Sheets</div>
     <div class="login-err" id="login-err"></div>
     <div class="f-row">
@@ -1272,15 +1273,44 @@ async function apiGet(sheet){
 
 // Llamada legible (no no-cors) para login/sesión/cierre de sesión —
 // mismo patrón CORS-safelisted que ya usa uploadFoto en este archivo.
-async function apiPostLegible(sheet, action, payload){
-  const securePayload = {...(payload||{}), _apiToken: API_TOKEN};
-  const resp = await fetch(API, {
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({sheet, action, payload: securePayload}),
-    signal: AbortSignal.timeout(15000)
-  });
-  return await resp.json();
+function _generarRequestId(){
+  return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+}
+
+// Google Apps Script NO agrega encabezados CORS a las respuestas de
+// POST (sí lo hace en GET) — confirmado en pruebas reales. Este patrón
+// dispara el POST "a ciegas" (no-cors) y sondea el resultado con GET.
+async function apiPostAsync(sheet, action, payload, timeoutMs=12000){
+  const requestId = _generarRequestId();
+  const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
+  fetch(API, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({sheet, action, payload: securePayload})
+  }).catch(()=>{});
+
+  const inicio = Date.now();
+  while(Date.now()-inicio < timeoutMs){
+    await new Promise(r=>setTimeout(r,350));
+    try{
+      const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(), {mode:'cors'});
+      if(r.ok){
+        const d = await r.json();
+        if(d && !d.pending) return d;
+      }
+    }catch(e){ /* seguir intentando */ }
+  }
+  return {ok:false, error:'TIMEOUT', message:'El servidor tardó demasiado en responder. Intenta de nuevo.'};
+}
+
+async function cargarNombreInstitucion(){
+  const el = document.getElementById('login-institucion');
+  try{
+    const r = await fetch(API+"?action=config&t="+Date.now(), {mode:"cors"});
+    const d = await r.json();
+    const nombre = (d && d.ok && d.nombreInstitucion) ? d.nombreInstitucion : '';
+    if(el) el.textContent = nombre;
+  }catch(e){ /* si falla, se deja el título genérico de SAGAE */ }
 }
 
 function _sesionExpiradaMobile(){
@@ -1423,6 +1453,7 @@ async function cargarDatosPostLogin(){
 
 // ── LOGIN ────────────────────────────────────────────────────────
 async function initApp(){
+  cargarNombreInstitucion();
   // Timeout global de seguridad — máximo 12 segundos antes de mostrar login
   const safetyTimer = setTimeout(()=>{
     console.warn("Timeout de seguridad activado");
@@ -1464,7 +1495,7 @@ async function doLogin(){
 
   let resp;
   try{
-    resp = await apiPostLegible(null,'procesarLogin',{username:u,password:p});
+    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
   }catch(e){
     err.textContent="⚠ No se pudo contactar al servidor. Verifica tu conexión.";
     err.style.display="block";
@@ -1493,7 +1524,7 @@ async function doLogin(){
     err.textContent="Esta app es para técnicos e inventario. Usa la versión web para tu rol.";
     err.style.display="block";
     // Cerrar la sesión que ya se creó en el servidor, ya que este cliente no la usará
-    apiPostLegible(null,'cerrar_sesion',{_sessionToken:resp.token}).catch(()=>{});
+    apiPostAsync(null,'cerrar_sesion',{_sessionToken:resp.token}).catch(()=>{});
     return;
   }
 
@@ -2190,7 +2221,7 @@ function iniciarControlSesionUnicaMobile(){
   window._sesionCheck = setInterval(async()=>{
     if(!session||!session.token) return;
     try{
-      const r = await apiPostLegible(null,'session_check',{_sessionToken:session.token});
+      const r = await apiPostAsync(null,'session_check',{_sessionToken:session.token});
       if(r && r.ok) return;
       clearInterval(window._sesionCheck);
       clearTimeout(_inactivityTimer);
@@ -2208,7 +2239,7 @@ function iniciarControlSesionUnicaMobile(){
 
 function doLogout(){
   if(session && session.token){
-    apiPostLegible(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
+    apiPostAsync(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
   }
   clearInterval(window._sesionCheck);
   clearTimeout(_inactivityTimer);
@@ -2732,25 +2763,16 @@ function abrirSubidaFotoMobile(){
       });
       const base64data = base64full.split(',')[1];
 
-      // Enviar al Apps Script
-      const resp = await fetch(API, {
-        method: 'POST',
-        headers: {'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify({
-          sheet:   null,
-          action:  'uploadFoto',
-          payload: {
-            base64:          base64data,
-            mimeType:        file.type,
-            nombreArchivo:   file.name,
-            modulo:          'Activos',
-            codigoRegistro:  '',
-            _apiToken:       API_TOKEN,
-            _sessionToken:   session ? session.token : null
-          }
-        })
-      });
-      const data = await resp.json();
+      // Antes esto leía la respuesta de un POST directo — no funciona en
+      // Apps Script. Usamos el patrón POST-ciego + GET-resultado.
+      const data = await apiPostAsync(null,'uploadFoto',{
+        base64:          base64data,
+        mimeType:        file.type,
+        nombreArchivo:   file.name,
+        modulo:          'Activos',
+        codigoRegistro:  '',
+        _sessionToken:   session ? session.token : null
+      }, 25000);
 
       if(data && data.url){
         const inp  = document.getElementById('mob-ea-foto');
