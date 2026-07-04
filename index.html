@@ -1,3 +1,92 @@
+
+SAGAE RYE DESIGN
+
+1783105634898_image.png
+
+
+
+¿Cómo puedo ayudarle hoy?
+
+Diferencias en archivos adjuntos del proyecto
+Último mensaje hace 4 minutos
+Falta de visibilidad en el tracking de tickets
+Último mensaje ayer
+Confusión entre departamento y área en el portal
+Último mensaje hace 4 días
+Carga automática de departamentos en portal de reportes
+Último mensaje hace 4 días
+Portal de reportes no carga foto
+Último mensaje 27 jun
+Memoria
+Solo tú
+Purpose & context SAGAE (Sistema de Activos y Gestión Administrativa Educativa) is an institutional asset and ticket management system built by SAGAE as sole product owner and deployer, without a technical team. Claude serves as a full professional development team covering security, privacy (Panama's Ley 81 de 2019), testing, documentation, and implementation guidance. Architecture: Backend: SAGAEappsscript.js — Google Apps Script web app connected to Google Sheets Frontend (3 clients): Admin panel (index.html), mobile technician app (SAGAEindexmobile.html), public reporting portal (SAGAEportalreportes.html) Supporting files: manifest.json, sw.js Hosting: Frontends on GitHub Pages; backend deployed as Apps Script web app Data layer: Google Sheets as database, with catalog sheets for departamentos and espacios The institution name is configurable per installation via a Script Property (NOMBREINSTITUCION), exposed through a public config action in doGet — all hardcoded references to specific institutions have been removed (marca blanca). --- Current state Authentication & security redesign (completed, pending end-to-end human testing): Server-side session management via CacheService with 30-minute sliding TTL Password hashing moved exclusively to server (hashPassSeguro / verificarPassword using SHA-256 with salt) PERMSSERVER matrix enforcing role-based access control on every write operation New actions: procesarLogin, sessioncheck, cerrarsesion, crearticketpublico Rate limiting on the public portal (server-side, 20 tickets per 5-minute window) passHash and sessionToken stripped from all API responses All client-side password hashing functions removed from all three frontends CORS workaround (blind POST + GET polling pattern): Confirmed limitation: Google Apps Script doPost responses do not include Access-Control-Allow-Origin headers, making them unreadable by browser fetch() in cors mode Solution: client sends POST in no-cors mode with a requestId; server caches result under that ID for 60 seconds via CacheService; client polls a public GET action (resultado) to retrieve response Applied to: procesarLogin, sessioncheck, cerrarsesion, crearticket_publico, uploadFoto across all three frontends Photo upload (resolved): Root cause was CORS preflight triggered by Content-Type: application/json; fixed by switching to text/plain;charset=utf-8 (CORS-safelisted, avoids preflight) For portal-originated tickets: photo input is locked read-only in admin panel and mobile app (detected via esTicketDePortal() pattern); only a "👁 Ver" button is shown; secondary guard inside abrirDrivePicker() prevents DOM bypass Ticket visibility & UI (completed): Ticket history (historial de seguimiento) now rendered in admin panel modal "Abiertos" tab aggregates all non-closed states (not just literal estado='abierto') Read-only view mode (eye button 👁) for roles without edit permissions Clickable Kanban cards Portal form fields (completed): "Departamento / Área" and "Ubicación" converted from free-text to dynamic <select> elements, fed from live backend catalogs, with ubicaciones filtering based on selected departamento Pending items: End-to-end human testing of full authentication redesign before production deployment XSS sanitization in openTicketSheet (mobile app) Confirmation of five specific legal compliance points under Panama's Ley 81 de 2019 with local legal counsel (personal data in audit history, data retention, etc.) --- On the horizon Legal counsel review of Panama's Ley 81 de 2019 compliance points (cannot be resolved by Claude — must be flagged and referred) Production deployment and live validation of the authentication redesign Potential additional role or permission refinements as real-world usage reveals gaps --- Key learnings & principles Never assume legal compliance: Always flag what requires local legal counsel review; never assert a requirement is met CORS on Apps Script is a hard constraint: doPost responses are browser-unreadable in cors mode; the blind POST + GET polling pattern is the confirmed workaround Apps Script redeployment discipline: Changes only take effect when a new version is created within the existing deployment — "new deployment" changes the /exec URL and must be avoided Security was entirely client-side before redesign: Previous architecture had no server-side RBAC, exposed password hashes to unauthenticated callers, and relied on a single static hardcoded API token — a complete redesign was chosen over patching GitHub Pages .nojekyll: Standard configuration file for SPAs using "Deploy from a branch" pipeline; not application code .nojekyll root cause: Claude was honest that the actual build error log was never obtained, so the causal link to the two failed deployments could not be definitively confirmed --- Approach & patterns SAGAE manually uploads updated files to both GitHub Pages and the Claude.ai project knowledge section to keep the working copy current; Claude has read-only access to project files When only one file changes, all 6 system files must still be delivered together in a single zip, alongside implementation guides in PDF and Word (.docx) format Every session must produce: (1) corrected file zip, (2) step-by-step implementation guide in execution order covering all manual actions outside the chat (GitHub uploads, Apps Script deployment, Script Properties config, etc.), delivered as PDF and .docx — never as markdown SAGAE challenges explanations that conflict with observed behavior and expects honest acknowledgment of uncertainty over confident-sounding guesses Decisions must be documented with clear reasoning --- Tools & resources Backend: Google Apps Script + Google Sheets (CacheService, PropertiesService) Frontend hosting: GitHub Pages (static, "Deploy from a branch" pipeline) File delivery: Zip archives containing all 6 system files + implementation guides in PDF and .docx Legal reference: Panama's Ley 81 de 2019 (data privacy — compliance points must be referred to local legal counsel) Claude.ai project: Used as working file repository (read-only for Claude; SAGAE manually updates files after each session)
+
+Última actualización hace 16 horas
+
+Instrucciones
+Actúa como un equipo profesional de desarrollo de software en fase de construcción de un producto comercial para Panamá. Tu tarea es orientar el análisis, diseño, programación, pruebas, documentación y preparación para publicación del sistema, asegurando calidad, seguridad, privacidad y cumplimiento con la normativa panameña aplicable, especialmente en tratamiento de datos personales y medidas de protección de la información. Mientras el programa sigue en desarrollo, revisa cada funcionalidad para identificar riesgos legales, de seguridad y de experiencia de usuario. Propón buenas prácticas de arquitectura, validaciones, control de accesos, manejo de errores, cifrado cuando aplique, registro de eventos, pruebas funcionales y pruebas de seguridad antes de liberar cualquier versión. Si alguna decisión técnica puede afectar el cumplimiento legal o la protección del usuario final, señala el riesgo y recomienda revisión adicional. No des por cumplido ningún requisito legal sin verificarlo con asesoría jurídica local; en su lugar, deja constancia de qué debe confirmarse antes del lanzamiento. SIEMPRE DEBES ENTREGAR TODOS LOS ARCHIVOS QUE COMPONEN EL PROGRAMA, LA INSTRUCCIÓN DE QEU HACER CON CADA ARCHIVO SEGÚN EL CAMBIO REALZIADO Y EL ORDEN EN QUE SE DEBE EJECUTAR. TAMBÍEN ENTREGAR DOCUMENTACIÓN PARA IMPLEMENTACIÓN DEL PROGRAMA EN CADA SESIÓN O CAMBIO QUE SE HAGA.
+
+Archivos
+11% de la capacidad del proyecto utilizada
+Modo de búsqueda
+
+GUIA_IMPLEMENTACION_2026-07-04_galeria_fotos_tickets.docx
+82 líneas
+
+docx
+
+
+
+index.html
+6,959 líneas
+
+html
+
+
+
+SAGAE_index_mobile.html
+2,921 líneas
+
+html
+
+
+
+SAGAE_portal_reportes.html
+494 líneas
+
+html
+
+
+
+SAGAE_apps_script.js
+1,681 líneas
+
+js
+
+
+
+manifest.json
+62 líneas
+
+json
+
+
+
+sw.js
+155 líneas
+
+js
+
+
+GUIA_IMPLEMENTACION_20260704_galeria_fotos_tickets.pdf
+pdf
+
+
+
+index.html
+
+
+El resaltado de sintaxis se ha deshabilitado debido al tamaño del código.
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1689,27 +1778,19 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div class="f-row"><div class="f-lbl">Descripción</div><input class="f-inp" id="et-desc" placeholder="Detalle completo..."></div>
   <div class="f-row">
-    <div class="f-lbl">📎 Foto o documento adjunto
-      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Evidencia del problema o solución</span>
+    <div class="f-lbl">📎 Fotos del ticket (seguimiento)
+      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Hasta 5 fotos — quedan asociadas a la fecha y usuario que las subió</span>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input class="f-inp" id="et-foto" placeholder="https://drive.google.com/..." style="flex:1;">
-      <button type="button" class="btn" id="et-foto-btn" onclick="abrirDrivePicker('et-foto')"
-        style="white-space:nowrap;padding:8px 12px;font-size:12px;">
-        📂 Subir
-      </button>
-      <button type="button" class="btn" id="et-foto-ver-btn" onclick="window.open(document.getElementById('et-foto').value,'_blank')"
-        style="display:none;white-space:nowrap;padding:8px 12px;font-size:12px;">
-        👁 Ver
-      </button>
-    </div>
-    <div id="et-foto-locked-note" style="display:none;margin-top:6px;font-size:11px;color:var(--text3);">
-      🔒 Este archivo fue adjuntado por quien generó el reporte y no puede reemplazarse, para preservar la integridad de la solicitud.
-    </div>
-    <div id="et-foto-preview" style="display:none;margin-top:6px;font-size:11px;color:var(--navy);
-      background:var(--blue-l);padding:6px 10px;border-radius:6px;border-left:3px solid var(--navy);">
+    <div id="et-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+    <button type="button" class="btn" id="et-fotos-add-btn" onclick="agregarFotoTicketAdmin()"
+      style="white-space:nowrap;padding:8px 12px;font-size:12px;">
+      📂 Agregar foto
+    </button>
+    <div id="et-fotos-limite-note" style="display:none;margin-top:6px;font-size:11px;color:var(--text3);">
+      Se alcanzó el máximo de 5 fotos para este ticket.
     </div>
   </div>
+  <input type="hidden" id="et-fotos-data" value="[]">
   <div class="f-row" id="et-hist-wrap" style="display:none;">
     <div class="sec-title">Historial de seguimiento (<span id="et-hist-count">0</span> eventos)</div>
     <div id="et-hist-list" style="max-height:240px;overflow-y:auto;padding-right:4px;"></div>
@@ -2350,7 +2431,15 @@ async function doLogin(){
     ll.style.display='none';
     if(resp && resp.error==='BLOCKED'){
       err.textContent='⛔ '+(resp.message||'Demasiados intentos fallidos. Espera 5 minutos.');
-    }else{
+    }else if(resp && (resp.error==='TIMEOUT' || resp.error==='NETWORK')){
+      // No es un fallo de credenciales — no debe acusar a la contraseña
+      // ni contar como intento fallido, porque nunca se llegó a verificar.
+      err.textContent='⚠ '+(resp.message||'No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.');
+    }else if(resp && resp.error==='MISSING_FIELDS'){
+      err.textContent='Ingresa usuario y contraseña.';
+    }else if(resp && resp.error==='INVALID_CREDENTIALS'){
+      // Este es el ÚNICO caso que realmente significa "clave equivocada"
+      // y el único que debe contar como intento fallido.
       _loginAttempts.count++;
       if(_loginAttempts.count >= 5){
         _loginAttempts.blockedUntil = Date.now() + 5*60*1000;
@@ -2359,6 +2448,12 @@ async function doLogin(){
       } else {
         err.textContent=`Usuario o contraseña incorrectos. Intento ${_loginAttempts.count}/5.`;
       }
+    }else{
+      // Cualquier otro código de error es INESPERADO (bug de servidor,
+      // hoja mal formada, etc.) — NO es un problema de credenciales y
+      // NO debe contarse como intento fallido. Se muestra tal cual para
+      // poder diagnosticarlo, en vez de ocultarlo detrás de "clave incorrecta".
+      err.textContent='⚠ Error inesperado del servidor: '+(resp && resp.error ? resp.error : 'sin detalle')+'. Repórtalo para revisión.';
     }
     err.style.display='block';
   }
@@ -2903,7 +2998,7 @@ async function tomarTicket(codigo){
 }
 
 // Campos del formulario de ticket que deben bloquearse en modo solo-lectura
-const ET_CAMPOS_FORM=['et-titulo','et-activo','et-resp','et-tipo','et-prior','et-estado','et-avance','et-dead','et-proy','et-desc','et-foto'];
+const ET_CAMPOS_FORM=['et-titulo','et-activo','et-resp','et-tipo','et-prior','et-estado','et-avance','et-dead','et-proy','et-desc'];
 
 function renderTicketHistorial(t){
   const wrap=document.getElementById('et-hist-wrap'),list=document.getElementById('et-hist-list'),count=document.getElementById('et-hist-count');
@@ -2947,13 +3042,13 @@ function openTicket(id,forceReadOnly){
     document.getElementById('et-resp').value=t.resp||''; // selectdocument.getElementById('et-tipo').value=t.tipo||'incidencia';
     document.getElementById('et-prior').value=t.prior||'importante';document.getElementById('et-estado').value=t.estado||'abierto';
     document.getElementById('et-avance').value=t.avance||0;document.getElementById('et-dead').value=t.dead!=='—'?t.dead:'';
-    document.getElementById('et-proy').value=t.proy!=='—'?t.proy:'';document.getElementById('et-desc').value=t.desc||'';const _etf=document.getElementById('et-foto');if(_etf)_etf.value=t.foto!=='—'?t.foto||'':'';
-    _aplicarBloqueoFotoTicket(t);
+    document.getElementById('et-proy').value=t.proy!=='—'?t.proy:'';document.getElementById('et-desc').value=t.desc||'';
+    _renderGaleriaFotosAdmin(t.fotos);
     renderTicketHistorial(t);
   }else{
     ['et-titulo','et-proy','et-desc'].forEach(i=>document.getElementById(i).value=''); document.getElementById('et-resp').value='';
-    document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';const _etFoto=document.getElementById('et-foto');if(_etFoto)_etFoto.value='';
-    _aplicarBloqueoFotoTicket(null);
+    document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';
+    _renderGaleriaFotosAdmin([]);
     document.getElementById('et-hist-wrap').style.display='none';
   }
   // Bloquear/desbloquear los campos del formulario según el modo
@@ -2963,35 +3058,99 @@ function openTicket(id,forceReadOnly){
     el.style.background=readOnly?'#F1F5F9':'';
     el.style.cursor=readOnly?'not-allowed':'';
   });
-  document.getElementById('et-foto-btn').style.display=readOnly?'none':(document.getElementById('et-foto-btn').style.display);
+  document.getElementById('et-fotos-add-btn').style.display=readOnly?'none':'';
   document.getElementById('mod-ticket').classList.add('open');
 }
 
-// Un ticket viene del Portal de Reportes cuando su descripción incluye la marca
-// "Reportado por: Nombre (correo)" que el portal agrega automáticamente al crearlo.
-// (misma convención que usa el backend, ver SAGAE_apps_script.js)
-function esTicketDePortal(t){
-  if(!t || !t.desc) return false;
-  return /Reportado por:[^(]*\([^)@]+@[^)]+\)/i.test(t.desc);
+// ══════════════════════════════════════════════════════════════════
+// GALERÍA DE FOTOS DEL TICKET — hasta 5 fotos, con nota y seguimiento
+// ══════════════════════════════════════════════════════════════════
+let _etFotosActuales = [];
+
+// Una foto individual queda bloqueada (no se puede quitar) si la subió
+// alguien reportando desde el Portal Público — preserva la evidencia
+// original. Fotos agregadas por técnicos/admin sí se pueden quitar.
+function _fotoEstaBloqueada(foto){
+  return foto && foto.usuario === 'Portal público';
 }
 
-// Si el ticket fue creado desde el Portal de Reportes y ya tiene un adjunto,
-// el campo de foto se bloquea: ni el técnico ni el administrador pueden
-// reemplazarlo, solo verlo. Esto preserva la integridad de la evidencia
-// original aportada por quien reportó el problema. Si el ticket fue creado
-// internamente (por un técnico o admin), el campo permanece editable.
-function _aplicarBloqueoFotoTicket(t){
-  const input  = document.getElementById('et-foto');
-  const btnSub = document.getElementById('et-foto-btn');
-  const btnVer = document.getElementById('et-foto-ver-btn');
-  const nota   = document.getElementById('et-foto-locked-note');
-  const bloqueado = t && esTicketDePortal(t) && t.foto && t.foto!=='—';
-  if(input) input.readOnly = !!bloqueado;
-  if(input) input.dataset.locked = bloqueado ? 'true' : 'false';
-  if(btnSub) btnSub.style.display = bloqueado ? 'none' : '';
-  if(btnVer) btnVer.style.display = bloqueado ? '' : 'none';
-  if(nota) nota.style.display = bloqueado ? 'block' : 'none';
+function _renderGaleriaFotosAdmin(fotosRaw){
+  let fotos = fotosRaw;
+  if(typeof fotos === 'string'){ try{ fotos = JSON.parse(fotos); }catch(e){ fotos = []; } }
+  if(!Array.isArray(fotos)) fotos = [];
+  _etFotosActuales = fotos;
+  const readOnly = document.getElementById('et-save-btn').style.display === 'none';
+  const list = document.getElementById('et-fotos-list');
+  list.innerHTML = fotos.length ? fotos.map((f,i)=>{
+    const bloqueada = _fotoEstaBloqueada(f);
+    return `<div style="display:flex;align-items:center;gap:8px;background:var(--blue-l);border-left:3px solid var(--navy);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--navy);">
+      <div style="flex:1;min-width:0">
+        ${bloqueada?'🔒 ':'📷 '}<a href="${f.url}" target="_blank" style="color:var(--navy);font-weight:600">Ver foto ↗</a>
+        ${f.nota?' — '+sanitizeHTML(f.nota):''}
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${sanitizeHTML(f.fecha||'')}${f.usuario?' · '+sanitizeHTML(f.usuario):''}${f.estado?' · '+sanitizeHTML(f.estado):''}</div>
+      </div>
+      ${(!readOnly && !bloqueada)?`<button type="button" class="btn" onclick="quitarFotoTicketAdmin(${i})" style="padding:4px 8px;font-size:11px;white-space:nowrap;">🗑</button>`:''}
+    </div>`;
+  }).join('') : '<div style="font-size:11px;color:var(--text3);">Sin fotos todavía.</div>';
+  document.getElementById('et-fotos-limite-note').style.display = fotos.length>=5 ? 'block' : 'none';
+  const addBtn = document.getElementById('et-fotos-add-btn');
+  if(addBtn) addBtn.style.display = (fotos.length>=5 || readOnly) ? 'none' : '';
 }
+
+function quitarFotoTicketAdmin(index){
+  if(_fotoEstaBloqueada(_etFotosActuales[index])) return; // defensa extra, el botón ya no debería estar visible
+  _etFotosActuales.splice(index,1);
+  _renderGaleriaFotosAdmin(_etFotosActuales);
+}
+
+function agregarFotoTicketAdmin(){
+  if(_etFotosActuales.length >= 5){ showToast('Ya hay 5 fotos en este ticket, el máximo permitido.','error'); return; }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*,application/pdf';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async () => {
+    const file = input.files[0];
+    document.body.removeChild(input);
+    if(!file) return;
+    if(file.size > 10*1024*1024){ showToast('El archivo no puede superar 10MB','error'); return; }
+
+    const btn = document.getElementById('et-fotos-add-btn');
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
+    try{
+      const base64full = await new Promise((res,rej)=>{
+        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(file);
+      });
+      const base64data = base64full.split(',')[1];
+      const data = await apiPostAsync(null,'uploadFoto',{
+        base64:base64data, mimeType:file.type, nombreArchivo:file.name,
+        modulo:'Tickets', codigoRegistro: document.getElementById('et-id').value||'',
+        _sessionToken: session?session.token:null
+      }, 25000);
+      if(data && data.url){
+        const nota = prompt('Nota corta para esta foto (opcional):','') || '';
+        _etFotosActuales.push({
+          url:data.url, fecha:ts(), usuario:session.nombre,
+          estado:document.getElementById('et-estado').value||'', nota:nota.trim().slice(0,200)
+        });
+        _renderGaleriaFotosAdmin(_etFotosActuales);
+        showToast('Foto agregada ✓','success');
+      }else{
+        showToast('No se pudo subir la foto: '+(data?.error||'sin respuesta'),'error');
+      }
+    }catch(e){
+      showToast('Error al subir la foto: '+e.message,'error');
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='📂 Agregar foto'; }
+    }
+  };
+  input.click();
+}
+
+// NOTA: la protección de integridad para fotos del Portal Público ahora
+// se aplica por-foto dentro de _fotoEstaBloqueada() / _renderGaleriaFotosAdmin(),
+// ver la sección "GALERÍA DE FOTOS DEL TICKET" más arriba.
 
 async function saveTicket(){
   // Defensa en profundidad: si el rol activo no tiene permiso de edición, se bloquea
@@ -3010,7 +3169,7 @@ async function saveTicket(){
     if(t.titulo!==titulo)cambios.push(`Título:"${t.titulo}"→"${titulo}"`);if(t.resp!==nResp)cambios.push(`Responsable:"${t.resp}"→"${nResp}"`);
     t.titulo=titulo;t.resp=nResp;t.tipo=document.getElementById('et-tipo').value;t.prior=document.getElementById('et-prior').value;
     t.estado=document.getElementById('et-estado').value;t.avance=Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0));
-    t.dead=document.getElementById('et-dead').value||'—';t.proy=document.getElementById('et-proy').value.trim()||'—';t.desc=document.getElementById('et-desc').value.trim();t.foto=document.getElementById('et-foto')?.value.trim()||t.foto||'—';
+    t.dead=document.getElementById('et-dead').value||'—';t.proy=document.getElementById('et-proy').value.trim()||'—';t.desc=document.getElementById('et-desc').value.trim();t.fotos=JSON.stringify(_etFotosActuales);t.foto=_etFotosActuales.length?_etFotosActuales[0].url:'—';
     const det=`Motivo: ${motivo}. ${cambios.length?'Cambios: '+cambios.join('; '):''}`;
     t.historial=t.historial||[];
     // Evento de historial detallado — visible para técnicos, consultores y usuario
@@ -3048,7 +3207,7 @@ async function saveTicket(){
     cntTickets = cntReal + 1;
     const aId=document.getElementById('et-activo').value;
     const aNom=aId?(activos.find(a=>a.codigo===aId)||{nombre:'—'}).nombre:'—';
-    const t={id:code,codigo:code,titulo,activoId:aId||'',activoNombre:aNom,resp:document.getElementById('et-resp').value||'—',tipo:document.getElementById('et-tipo').value,prior:document.getElementById('et-prior').value,estado:document.getElementById('et-estado').value,avance:Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0)),dead:document.getElementById('et-dead').value||'—',proy:document.getElementById('et-proy').value.trim()||'—',desc:document.getElementById('et-desc').value.trim(),foto:document.getElementById('et-foto')?.value.trim()||'—',historial:[{tipo:'Creación',desc:'Creado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
+    const t={id:code,codigo:code,titulo,activoId:aId||'',activoNombre:aNom,resp:document.getElementById('et-resp').value||'—',tipo:document.getElementById('et-tipo').value,prior:document.getElementById('et-prior').value,estado:document.getElementById('et-estado').value,avance:Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0)),dead:document.getElementById('et-dead').value||'—',proy:document.getElementById('et-proy').value.trim()||'—',desc:document.getElementById('et-desc').value.trim(),fotos:JSON.stringify(_etFotosActuales),foto:_etFotosActuales.length?_etFotosActuales[0].url:'—',historial:[{tipo:'Creación',desc:'Creado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
     tickets.push(t);
     if(aId){const act=activos.find(a=>a.codigo===aId);if(act){act.historial=act.historial||[];act.historial.push({tipo:'Ticket vinculado',desc:code+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});await apiPost('activos','update',act);if(t.tipo==='mantenimiento')act.estado='mantenimiento';}}
     const insertOk = await apiPost('tickets','insert',t);
