@@ -94,7 +94,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
   <div class="header-logo">SAGAE</div>
   <div class="header-divider"></div>
   <div class="header-title">Portal de Reportes</div>
-  <div class="header-badge">Centro Educativo PCA</div>
+  <div class="header-badge" id="badge-institucion">Cargando…</div>
 </div>
 
 <div class="hero">
@@ -202,7 +202,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 </div>
 
 <div class="footer">
-  <p>Sistema gestionado por <strong>SAGAE</strong> · Desarrollado por <strong>RYE Design</strong> · Centro Educativo PCA</p>
+  <p>Sistema gestionado por <strong>SAGAE</strong> · Desarrollado por <strong>RYE Design</strong> · <span id="footer-institucion">tu institución</span></p>
 </div>
 
 <script>
@@ -234,6 +234,36 @@ function _obtenerDeviceId(){
 }
 let prioridad="normal";
 let departamentos=[], espacios=[];
+
+function _generarRequestId(){
+  return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+}
+
+// Google Apps Script NO agrega encabezados CORS a las respuestas de
+// POST (sí lo hace en GET) — confirmado en pruebas reales. Este patrón
+// dispara el POST "a ciegas" (no-cors) y sondea el resultado con GET.
+async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
+  const requestId = _generarRequestId();
+  const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
+  fetch(API, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({sheet, action, payload: securePayload})
+  }).catch(()=>{});
+
+  const inicio = Date.now();
+  while(Date.now()-inicio < timeoutMs){
+    await new Promise(r=>setTimeout(r,350));
+    try{
+      const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(), {mode:'cors'});
+      if(r.ok){
+        const d = await r.json();
+        if(d && !d.pending) return d;
+      }
+    }catch(e){ /* seguir intentando */ }
+  }
+  return {ok:false, error:'TIMEOUT', message:'El servidor tardó demasiado en responder. Intenta de nuevo.'};
+}
 
 async function apiGetTimeout(sheet,ms=10000){
   try{
@@ -280,6 +310,23 @@ async function cargarCatalogosPortal(){
     showError("No se pudieron cargar los departamentos. Recarga la página o contacta a soporte.");
   }
 }
+async function cargarNombreInstitucion(){
+  const badge = document.getElementById('badge-institucion');
+  const footer = document.getElementById('footer-institucion');
+  try{
+    const r = await fetch(API+"?action=config&t="+Date.now(), {mode:"cors"});
+    const d = await r.json();
+    const nombre = (d && d.ok && d.nombreInstitucion) ? d.nombreInstitucion : 'tu institución';
+    if(badge) badge.textContent = nombre;
+    if(footer) footer.textContent = nombre;
+    document.title = 'SAGAE — ' + nombre;
+  }catch(e){
+    // Si falla, dejamos un texto neutro — nunca un nombre de otra institución
+    if(badge) badge.textContent = 'Portal de Reportes';
+    if(footer) footer.textContent = '';
+  }
+}
+cargarNombreInstitucion();
 cargarCatalogosPortal();
 
 function selectPriority(p){
@@ -314,11 +361,12 @@ function subirFotoPortal(){
     try {
       const base64full = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error')); r.readAsDataURL(file); });
       const base64data = base64full.split(',')[1];
-      const resp = await fetch(API, {
-        method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify({ sheet:null, action:'uploadFoto', payload:{ base64:base64data, mimeType:file.type, nombreArchivo:file.name, modulo:'Tickets', codigoRegistro:'', _apiToken:API_TOKEN, origen:'portal' }})
-      });
-      const data = await resp.json();
+      // Antes esto leía la respuesta de un POST directo — no funciona en
+      // Apps Script. Usamos el patrón POST-ciego + GET-resultado.
+      const data = await apiPostAsync(null,'uploadFoto',{
+        base64:base64data, mimeType:file.type, nombreArchivo:file.name,
+        modulo:'Tickets', codigoRegistro:'', origen:'portal', deviceId:_obtenerDeviceId()
+      }, 25000);
       if(data && data.url){
         document.getElementById('f-foto-url').value = data.url;
         const prev = document.getElementById('foto-preview');
@@ -373,15 +421,10 @@ async function enviarReporte(){
       reportadoPor:nombre, correoReportador:correo,
       deviceId:_obtenerDeviceId()
     };
-    // Llamada legible (no no-cors): necesitamos saber si el servidor
-    // aceptó el ticket o si aplicó el límite de tasa.
-    const resp = await fetch(API,{
-      method:"POST",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({sheet:null,action:"crear_ticket_publico",payload:{...ticket,_apiToken:API_TOKEN}}),
-      signal: AbortSignal.timeout(15000)
-    });
-    const data = await resp.json();
+    // Antes esto leía la respuesta de un POST directo — no funciona en
+    // Apps Script (no agrega encabezados CORS a las respuestas POST).
+    // Usamos el mismo patrón POST-ciego + GET-resultado que el resto del sistema.
+    const data = await apiPostAsync(null,"crear_ticket_publico",ticket);
     if(!data || data.ok!==true){
       window._enviandoPortal = false;
       btn.disabled=false;spinner.style.display="none";btnText.textContent="Enviar reporte";
