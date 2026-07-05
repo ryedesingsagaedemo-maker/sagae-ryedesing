@@ -1765,12 +1765,13 @@ async function tomarTicket(codigo, e){
 function renderTickets(){
   const list = document.getElementById("tickets-list");
   if(!list) return;
+  // Todos los roles ven todos los tickets (consistente con el panel web) —
+  // ocultar tickets asignados a otro técnico generaba el riesgo de que un
+  // ticket quedara sin seguimiento si su responsable no estaba disponible.
   let data = tickets.filter(t => t.estado !== "eliminado");
-  // Técnicos ven solo los suyos + sin asignar; admins y consultores ven todos
-  if(session?.rol === "tecnico") data = data.filter(t => t.resp === session.nombre || t.resp === "—" || t.resp === "Sin asignar" || !t.resp || t.resp.trim() === "");
   if(filtroTkt !== "todos") data = data.filter(t => t.estado === filtroTkt);
   if(!data.length){
-    list.innerHTML = `<div class="empty"><div class="empty-icon">🎫</div><div class="empty-title">${filtroTkt==="todos"?"Sin tickets asignados":"Sin tickets en este estado"}</div></div>`;
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🎫</div><div class="empty-title">${filtroTkt==="todos"?"Sin tickets todavía":"Sin tickets en este estado"}</div></div>`;
     return;
   }
   list.innerHTML = data.map(t => tktCardHTML(t)).join("");
