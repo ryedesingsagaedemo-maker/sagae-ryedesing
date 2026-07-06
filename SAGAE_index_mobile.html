@@ -460,7 +460,13 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
           <div class="metric-l">Cerrados hoy</div>
         </div>
       </div>
-      <div class="section-title">Mis tickets pendientes</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 6px;gap:8px;flex-wrap:wrap;">
+        <div class="section-title" id="dash-tkt-title" style="padding:0;">Mis tickets pendientes</div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="filter-btn active" id="dash-tab-mios" onclick="setDashVista('mios')" style="padding:5px 11px;font-size:11px;">Mis pendientes</button>
+          <button class="filter-btn" id="dash-tab-todos" onclick="setDashVista('todos')" style="padding:5px 11px;font-size:11px;">Todos los abiertos</button>
+        </div>
+      </div>
       <div id="dash-tickets-list"></div>
       <div class="section-title">Próximos deadlines</div>
       <div id="dash-deadlines"></div>
@@ -1610,6 +1616,21 @@ function goScreen(name, el){
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
+// Estado del interruptor del Dashboard: 'mios' (solo mis pendientes) o
+// 'todos' (todos los tickets abiertos, sin importar el responsable) —
+// pensado para el técnico que trabaja principalmente en campo y necesita
+// ver rápido qué hay disponible, sin salir del Inicio.
+let dashVistaTickets = 'mios';
+
+function setDashVista(v){
+  dashVistaTickets = v;
+  const bMios = document.getElementById('dash-tab-mios');
+  const bTodos = document.getElementById('dash-tab-todos');
+  if(bMios)  bMios.classList.toggle('active', v==='mios');
+  if(bTodos) bTodos.classList.toggle('active', v==='todos');
+  renderDashboard();
+}
+
 function renderDashboard(){
   const nombre=session?.nombre?.split(" ")[0]||"";
   const hora=new Date().getHours();
@@ -1628,11 +1649,24 @@ function renderDashboard(){
   document.getElementById("m-progreso").textContent=enProgreso.length;
   document.getElementById("m-cerrados").textContent=cerradosHoy.length;
 
-  // Mis tickets pendientes
+  // Mis tickets pendientes / Todos los tickets abiertos (según el interruptor)
   const listEl=document.getElementById("dash-tickets-list");
-  const pending=misTkt.slice(0,5);
-  if(!pending.length){listEl.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">¡Sin tickets pendientes!</div></div>`;return;}
-  listEl.innerHTML=pending.map(t=>tktCardHTML(t)).join("");
+  const titleEl=document.getElementById("dash-tkt-title");
+  const abiertos=tickets.filter(t=>['abierto','progreso','revision'].includes(t.estado));
+  const fuente = dashVistaTickets==='todos' ? abiertos : misTkt;
+  const rango={urgente:0,importante:1,normal:2};
+  const ordenados = fuente.slice().sort((a,b)=>(rango[a.prior]??3)-(rango[b.prior]??3));
+  const pending = ordenados.slice(0, dashVistaTickets==='todos'?8:5);
+  if(titleEl){
+    titleEl.textContent = dashVistaTickets==='todos'
+      ? `Todos los tickets abiertos (${abiertos.length})`
+      : 'Mis tickets pendientes';
+  }
+  if(!pending.length){
+    listEl.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">${dashVistaTickets==='todos'?'¡No hay tickets abiertos!':'¡Sin tickets pendientes!'}</div></div>`;
+  } else {
+    listEl.innerHTML=pending.map(t=>tktCardHTML(t)).join("");
+  }
 
   // Deadlines próximos
   const dl=document.getElementById("dash-deadlines");
