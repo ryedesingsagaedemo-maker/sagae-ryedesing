@@ -2,7 +2,7 @@
   "name": "SAGAE — Sistema de Activos y Gestión Administrativa Educativa",
   "short_name": "SAGAE Técnico",
   "description": "Portal móvil para técnicos de soporte — RYE Design",
-  "start_url": "./index.html",
+  "start_url": "./SAGAE_index_mobile.html",
   "display": "standalone",
   "background_color": "#1B3A6B",
   "theme_color": "#1B3A6B",
@@ -47,14 +47,14 @@
       "name": "Mis Tickets",
       "short_name": "Tickets",
       "description": "Ver mis tickets asignados",
-      "url": "./index.html#tickets",
+      "url": "./SAGAE_index_mobile.html#tickets",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     },
     {
       "name": "Inventario",
       "short_name": "Inventario",
       "description": "Consultar inventario de activos",
-      "url": "./index.html#inventario",
+      "url": "./SAGAE_index_mobile.html#inventario",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     }
   ]
