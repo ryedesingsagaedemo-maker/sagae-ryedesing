@@ -1842,6 +1842,64 @@ let espacios=[];
 let pendingDelete={type:null,id:null};
 
 function ts(){return new Date().toLocaleString('es-PA',{dateStyle:'short',timeStyle:'short'});}
+
+// ── PARSEO ROBUSTO DE FECHAS DE REGISTRO (corrección filtro de reportes) ──
+// El sistema ha guardado fechaCreacion / fecha de historial en DOS formatos
+// distintos según el origen del registro:
+//  1) Cliente (ts()): "MM/DD/YY, h:mm a. m./p. m." (formato que produce el
+//     motor JS del navegador para el locale 'es-PA', en orden mes/día).
+//  2) Servidor (Apps Script, tickets creados desde el portal público):
+//     "yyyy-MM-dd HH:mm:ss" (formato ISO).
+// El filtro de fechas anterior comparaba estos valores como texto plano
+// (">=" / "<=") contra un valor "yyyy-MM-dd" del <input type="date">, lo
+// cual solo puede funcionar quando el dato ya está en formato ISO. Con el
+// formato de cliente, la comparación de texto no tiene ningún sentido y
+// el filtro no devolvía resultados fiables. Esta función normaliza ambos
+// formatos a un objeto Date real para que la comparación sea correcta
+// sin importar el origen del registro.
+function parseFechaRegistro(str){
+  if(!str) return null;
+  const s = String(str).trim();
+  // Formato ISO del servidor: "yyyy-MM-dd HH:mm:ss" o "yyyy-MM-dd"
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if(m){
+    const d = new Date(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+    return isNaN(d) ? null : d;
+  }
+  // Formato de cliente: "MM/DD/YY, h:mm a. m./p. m." (o variantes sin coma/espacios)
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if(m){
+    const mm = parseInt(m[1],10), dd = parseInt(m[2],10);
+    let yy = parseInt(m[3],10); if(yy < 100) yy += 2000;
+    let hh = 0, min = 0;
+    const th = s.match(/(\d{1,2}):(\d{2})\s*([ap])\.?\s*m\.?/i);
+    if(th){
+      hh = parseInt(th[1],10) % 12;
+      if(/p/i.test(th[3])) hh += 12;
+      min = parseInt(th[2],10);
+    }
+    const d = new Date(yy, mm-1, dd, hh, min);
+    return isNaN(d) ? null : d;
+  }
+  // Último recurso: dejar que el motor lo intente interpretar
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+// Compara una fecha de registro contra un rango "desde"/"hasta" (yyyy-MM-dd
+// provenientes de <input type="date">), inclusive en ambos extremos.
+function fechaEnRango(fechaRegistro, desdeISO, hastaISO){
+  const f = parseFechaRegistro(fechaRegistro);
+  if(!f) return !desdeISO && !hastaISO; // sin fecha registrada: solo pasa si no hay filtro
+  if(desdeISO){
+    const d = new Date(desdeISO+'T00:00:00');
+    if(f < d) return false;
+  }
+  if(hastaISO){
+    const h = new Date(hastaISO+'T23:59:59');
+    if(f > h) return false;
+  }
+  return true;
+}
 function genCode(pre,n){return pre+'-'+String(n+1).padStart(4,'0');}
 function parseHist(v){if(Array.isArray(v))return v;if(typeof v==='string'&&v.startsWith('['))try{return JSON.parse(v);}catch(e){}return[];}
 function initials(n){if(!n)return '?';const p=n.trim().split(' ');return(p[0][0]+(p[1]?p[1][0]:'')).toUpperCase();}
@@ -4497,8 +4555,7 @@ function repTickets(el, ts){
   const area=document.getElementById('fil-area')?.value||'';
   const tipoTkt=document.getElementById('fil-tipo-tkt')?.value||'';
   let lista=tickets.filter(t=>t.estado!=='eliminado');
-  if(desde) lista=lista.filter(t=>t.fechaCreacion&&t.fechaCreacion>=desde);
-  if(hasta) lista=lista.filter(t=>t.fechaCreacion&&t.fechaCreacion<=hasta);
+  if(desde||hasta) lista=lista.filter(t=>fechaEnRango(t.fechaCreacion,desde,hasta));
   if(resp) lista=lista.filter(t=>t.resp===resp);
   if(tipoTkt) lista=lista.filter(t=>t.tipo===tipoTkt);
   // Filtrar por área — busca activos del área y filtra tickets vinculados a esos activos
@@ -4679,13 +4736,12 @@ function repMantenimientos(el, ts){
     // Filtrar por área si está seleccionada
     if(areaMant && (a.depto||'Sin departamento')!==areaMant) return;
     (a.historial||[]).filter(h=>['Preventivo','Correctivo','Actualización','Limpieza','Reparación','Inspección','Entrada a Mantenimiento','Salida de Mantenimiento'].includes(h.tipo)).forEach(h=>{
-      if(desde&&h.fecha&&h.fecha<desde)return;
-      if(hasta&&h.fecha&&h.fecha>hasta)return;
+      if((desde||hasta)&&!fechaEnRango(h.fecha,desde,hasta))return;
       if(tipoMant&&h.tipo!==tipoMant)return;
       todos.push({...h,activoCodigo:a.codigo,activoNombre:a.nombre,activoTipo:a.tipo,activoDepto:a.depto||'—'});
     });
   });
-  todos.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  todos.sort((a,b)=>(parseFechaRegistro(b.fecha)||0)-(parseFechaRegistro(a.fecha)||0));
   const costTotal=todos.reduce((s,m)=>s+(parseFloat(m.costo)||0),0);
   const porTipo={};todos.forEach(m=>{porTipo[m.tipo]=(porTipo[m.tipo]||0)+1;});
   repDatosActuales=todos;
