@@ -828,6 +828,39 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <label class="form-label">Descripción</label>
       <textarea class="form-textarea" id="mt-desc" placeholder="Detalle del problema..."></textarea>
     </div>
+    <!-- Solicitud de piezas / repuestos — mismo flujo de compras que Mantenimiento,
+         ahora disponible directamente al reportar o dar seguimiento a un ticket -->
+    <div class="form-group" style="background:var(--gold-l);border-radius:var(--r-md);padding:12px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="mt-necesita-piezas" onchange="toggleMobPiezasTicket(this.checked)" style="width:18px;height:18px;accent-color:var(--navy)">
+        <span style="font-size:13px;font-weight:700;color:var(--navy)">🛒 Necesito piezas / repuestos de compras</span>
+      </label>
+      <div id="mt-piezas-form" style="display:none;margin-top:12px">
+        <div class="form-group">
+          <label class="form-label">Piezas necesarias *</label>
+          <textarea class="form-textarea" id="mt-piezas-desc" rows="2" placeholder="Ej: 1 disco SSD 256GB..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Urgencia</label>
+          <select class="form-select" id="mt-piezas-urgencia">
+            <option value="normal">🟢 Normal</option>
+            <option value="importante">🟡 Importante</option>
+            <option value="urgente">🔴 Urgente</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo del encargado de compras *</label>
+          <input class="form-input" type="email" id="mt-piezas-email" placeholder="compras@colegio.edu">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Presupuesto estimado (opcional)</label>
+          <input class="form-input" type="number" id="mt-piezas-presupuesto" placeholder="0.00">
+        </div>
+        <div style="font-size:11px;color:var(--text3);">La solicitud quedará registrada en el historial de este ticket
+          ${''/* nota dinámica sobre el activo se agrega por JS si aplica */}
+          <span id="mt-piezas-nota-activo"></span> y se notificará por correo al encargado de compras.</div>
+      </div>
+    </div>
     <div class="form-group">
       <label class="form-label">Fotos del ticket (seguimiento)</label>
       <div id="mt-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
@@ -1823,6 +1856,7 @@ function openTicketSheet(codigo){
       <button class="action-btn" onclick="quickEstado('${t.codigo}')"><span class="action-icon">🔄</span><span>Estado</span></button>
       <button class="action-btn" onclick="quickAvance('${t.codigo}')"><span class="action-icon">📊</span><span>Avance</span></button>
       <button class="action-btn" onclick="quickEdit('${t.codigo}')"><span class="action-icon">✏️</span><span>Editar</span></button>
+      <button class="action-btn" onclick="quickPiezas('${t.codigo}')"><span class="action-icon">🛒</span><span>Piezas</span></button>
     </div>
     <div class="det-field"><div class="det-field-label">Responsable</div><div class="det-field-val">${t.resp||"—"}</div></div>
     <div class="det-field"><div class="det-field-label">Prioridad</div><div class="det-field-val"><span class="badge b-${t.prior}">${t.prior}</span></div></div>
@@ -1958,6 +1992,7 @@ function quickEstado(codigo){
   document.getElementById("mt-dead").value=t.dead!=="—"?t.dead||"":"";
   document.getElementById("mt-desc").value=t.desc||"";
   _renderGaleriaFotosMobile(t.fotos, false);
+  _resetMobPiezasTicket();
   document.getElementById("mt-motivo-wrap").style.display="block";
   document.getElementById("mt-motivo").value="";
   document.getElementById("mt-save-btn").textContent="Guardar cambios";
@@ -1981,6 +2016,7 @@ function quickAvance(codigo){
   document.getElementById("mt-dead").value=t.dead!=="—"?t.dead||"":"";
   document.getElementById("mt-desc").value=t.desc||"";
   _renderGaleriaFotosMobile(t.fotos, false);
+  _resetMobPiezasTicket();
   document.getElementById("mt-motivo-wrap").style.display="block";
   document.getElementById("mt-motivo").value="";
   document.getElementById("mt-save-btn").textContent="Guardar cambios";
@@ -1991,6 +2027,19 @@ function quickAvance(codigo){
 function quickEdit(codigo){
   closeSheet();
   openEditTicket(codigo);
+}
+
+// Acceso rápido desde el detalle del ticket: abre el mismo formulario de
+// edición, pero con la sección de "Solicitar piezas" ya expandida y con
+// foco, para no obligar al técnico a buscarla entre el resto de campos.
+function quickPiezas(codigo){
+  closeSheet();
+  openEditTicket(codigo);
+  setTimeout(()=>{
+    const chk = document.getElementById("mt-necesita-piezas");
+    if(chk){ chk.checked = true; toggleMobPiezasTicket(true); }
+    document.getElementById("mt-piezas-desc")?.focus();
+  }, 250);
 }
 
 // ── NUEVO / EDITAR TICKET ─────────────────────────────────────
@@ -2006,6 +2055,8 @@ function openNuevoTicket(){
   document.getElementById("mt-dead").value="";
   document.getElementById("mt-desc").value="";
   _renderGaleriaFotosMobile([], false);
+  _resetMobPiezasTicket();
+  document.getElementById("mt-piezas-nota-activo").textContent="";
   document.getElementById("mt-motivo-wrap").style.display="none";
   document.getElementById("mt-save-btn").textContent="Crear ticket";
   // Poblar activos
@@ -2041,6 +2092,8 @@ function openEditTicket(codigo){
   document.getElementById("mt-dead").value=t.dead&&t.dead!=="—"?t.dead:"";
   document.getElementById("mt-desc").value=t.desc||"";
   _renderGaleriaFotosMobile(t.fotos, false);
+  _resetMobPiezasTicket();
+  { const notaAct = document.getElementById("mt-piezas-nota-activo"); if(notaAct) notaAct.textContent = t.activoId ? ' y también en la hoja de vida del activo vinculado ('+t.activoId+')' : ''; }
   document.getElementById("mt-motivo-wrap").style.display="block";
   document.getElementById("mt-motivo").value="";
   document.getElementById("mt-save-btn").textContent="Guardar cambios";
@@ -2051,9 +2104,46 @@ function openEditTicket(codigo){
   document.getElementById("modal-ticket").classList.add("open");
 }
 
+// Lee y valida el bloque de "solicitud de piezas" del formulario de Ticket.
+// Devuelve null si el técnico no marcó la casilla. Si la marcó pero faltan
+// datos obligatorios, muestra el toast de error y devuelve `undefined`
+// (distinto de null) para que el llamador detenga el guardado.
+function _leerSolicitudPiezasTicket(){
+  const chk = document.getElementById("mt-necesita-piezas");
+  if(!chk || !chk.checked) return null;
+  const piezasDesc = document.getElementById("mt-piezas-desc")?.value.trim();
+  const emailCompras = document.getElementById("mt-piezas-email")?.value.trim();
+  const urgencia = document.getElementById("mt-piezas-urgencia")?.value || "normal";
+  const presupuesto = parseFloat(document.getElementById("mt-piezas-presupuesto")?.value)||0;
+  if(!piezasDesc){ showToast("Describe las piezas necesarias","error"); return undefined; }
+  if(!emailCompras){ showToast("El correo del encargado de compras es obligatorio","error"); return undefined; }
+  return {
+    tipo: "Solicitud de Compra",
+    desc: `Piezas: ${piezasDesc}. Urgencia: ${urgencia}. Presupuesto: $${presupuesto||"TBD"}. Solicita: ${session.nombre}. Email: ${emailCompras}.`,
+    fecha: ts(), usuario: session.nombre, tec: session.nombre,
+    piezas: piezasDesc, urgencia, presupuesto, emailCompras,
+    estado: "pendiente", color: "red"
+  };
+}
+
+// Si el ticket tiene un activo vinculado, replica la solicitud de piezas en
+// la hoja de vida de ese activo — así el backend dispara automáticamente
+// el correo a compras (misma lógica ya usada por Mantenimiento) y el
+// historial del equipo queda completo.
+async function _propagarSolicitudPiezasAlActivo(activoId, entry){
+  if(!activoId) return;
+  const a = activos.find(x=>x.codigo===activoId);
+  if(!a) return;
+  a.historial = a.historial || [];
+  a.historial.push({...entry});
+  await apiPost("activos","update",a);
+}
+
 async function saveTicket(){
   const titulo=document.getElementById("mt-titulo").value.trim();
   if(!titulo){showToast("El título es obligatorio","error");return;}
+  const solicitudPiezas = _leerSolicitudPiezasTicket();
+  if(solicitudPiezas === undefined) return; // faltan datos obligatorios de piezas
   const editId=document.getElementById("mt-id").value;
   const isEdit=editId!=="";
   if(isEdit){
@@ -2086,9 +2176,11 @@ async function saveTicket(){
       desc: 'Motivo: '+motivo+'.'+(eventosM.length?' | '+eventosM.join(' · '):''),
       fecha:ts(), usuario:session.nombre, color:colorM
     });
+    if(solicitudPiezas) t.historial.push(solicitudPiezas);
     await apiPost("tickets","update",t);
-    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Ticket",codigo:t.codigo,detalle:`Motivo: ${motivo} | App Móvil`});
-    showToast("Ticket actualizado ✓","success");
+    if(solicitudPiezas) await _propagarSolicitudPiezasAlActivo(t.activoId, solicitudPiezas);
+    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Ticket",codigo:t.codigo,detalle:`Motivo: ${motivo}${solicitudPiezas?" | Solicitud de compra":""} | App Móvil`});
+    showToast("Ticket actualizado"+(solicitudPiezas?" + solicitud de compra":"")+" ✓","success");
   } else {
     // Protección anti-doble-submit
     if(window._savingTicket){ showToast('Ya hay un ticket guardándose, espera...',''); return; }
@@ -2108,12 +2200,15 @@ async function saveTicket(){
     const aId=document.getElementById("mt-activo").value;
     const aNom=aId?(activos.find(a=>a.codigo===aId)||{nombre:"—"}).nombre:"—";
     const respSelected = document.getElementById("mt-resp")?.value || session.nombre;
-    const t={id:code,codigo:code,titulo,activoId:aId||"",activoNombre:aNom,resp:respSelected,tipo:document.getElementById("mt-tipo").value,prior:document.getElementById("mt-prior").value,estado:document.getElementById("mt-estado").value,avance:parseInt(document.getElementById("mt-avance").value)||0,dead:document.getElementById("mt-dead").value||"—",proy:"—",desc:document.getElementById("mt-desc").value.trim(),foto:_mtFotosActuales.length?_mtFotosActuales[0].url:"—",fotos:JSON.stringify(_mtFotosActuales),historial:[{tipo:"Creación",desc:"Creado desde app móvil por "+session.nombre,fecha:ts(),usuario:session.nombre,color:"green"}],fechaCreacion:ts()};
+    const histInicial=[{tipo:"Creación",desc:"Creado desde app móvil por "+session.nombre,fecha:ts(),usuario:session.nombre,color:"green"}];
+    if(solicitudPiezas) histInicial.push(solicitudPiezas);
+    const t={id:code,codigo:code,titulo,activoId:aId||"",activoNombre:aNom,resp:respSelected,tipo:document.getElementById("mt-tipo").value,prior:document.getElementById("mt-prior").value,estado:document.getElementById("mt-estado").value,avance:parseInt(document.getElementById("mt-avance").value)||0,dead:document.getElementById("mt-dead").value||"—",proy:"—",desc:document.getElementById("mt-desc").value.trim(),foto:_mtFotosActuales.length?_mtFotosActuales[0].url:"—",fotos:JSON.stringify(_mtFotosActuales),historial:histInicial,fechaCreacion:ts()};
     tickets.push(t);
     const _tOkM = await apiPost("tickets","insert",t);
+    if(solicitudPiezas) await _propagarSolicitudPiezasAlActivo(t.activoId, solicitudPiezas);
     window._savingTicket = false;
-    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"CREAR",tipo:"Ticket",codigo:code,detalle:"Creado desde app móvil: "+titulo});
-    showToast("Ticket creado ✓","success");
+    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"CREAR",tipo:"Ticket",codigo:code,detalle:"Creado desde app móvil: "+titulo+(solicitudPiezas?" | Solicitud de compra":"")});
+    showToast("Ticket creado"+(solicitudPiezas?" + solicitud de compra":"")+" ✓","success");
   }
   saveCache();
   closeModal();
@@ -2209,6 +2304,21 @@ function openMantActivo(){
 
 function toggleMobPiezas(checked){
   document.getElementById("mob-piezas-form").style.display=checked?"block":"none";
+}
+
+// Toggle de la solicitud de piezas dentro del formulario de Ticket
+function toggleMobPiezasTicket(checked){
+  const f = document.getElementById("mt-piezas-form");
+  if(f) f.style.display = checked?"block":"none";
+}
+function _resetMobPiezasTicket(){
+  const chk = document.getElementById("mt-necesita-piezas");
+  if(chk) chk.checked = false;
+  toggleMobPiezasTicket(false);
+  ["mt-piezas-desc","mt-piezas-email","mt-piezas-presupuesto"].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value="";
+  });
+  const u = document.getElementById("mt-piezas-urgencia"); if(u) u.value="normal";
 }
 
 function mostrarBotonEscaner(){
@@ -2430,7 +2540,7 @@ window.addEventListener("offline",()=>{
 
 // ── SERVICE WORKER ────────────────────────────────────────────
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=1.6").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=1.7").then(reg=>{
     console.log("[SAGAE] SW registrado v1.6:", reg.scope);
 
     // Detectar cuando hay un nuevo SW esperando (actualización disponible)
@@ -2583,6 +2693,13 @@ async function _ejecutarPollMob(){
       if(!ant) return false;
       return ant.estado!==t.estado || ant.resp!==t.resp || ant.avance!==t.avance;
     });
+    // Capturar ANTES de sobreescribir `tickets`: tickets donde YO era el
+    // responsable y alguien más me lo quitó (lo tomó otro técnico).
+    const meQuitaronTicket = ticketsNuevos.filter(t=>{
+      const ant = tickets.find(x=>x.codigo===t.codigo);
+      return ant && ant.resp===session.nombre && t.resp!==session.nombre
+             && t.resp && t.resp!=='—' && t.resp!=='Sin asignar';
+    });
 
     // Actualizar memoria
     tickets = ticketsNuevos;
@@ -2633,6 +2750,28 @@ async function _ejecutarPollMob(){
       misCambios.forEach(t=>{
         showToast('🔄 '+t.codigo+' actualizado: '+t.estado, '');
       });
+
+    }
+
+    // ── AVISO: otro técnico me quitó un ticket que yo tenía ──────────
+    // El correo (notificarCambioResponsable, backend) ya se envía, pero
+    // un técnico en campo no siempre revisa su correo al instante. Este
+    // aviso en la app (toast + notificación nativa + vibración distinta)
+    // le informa de inmediato en el celular, sin depender del email.
+    if(meQuitaronTicket.length > 0 && session.rol!=='admin'){
+      meQuitaronTicket.forEach(t=>{
+        showToast('⚠ '+t.resp+' tomó tu ticket '+t.codigo, 'error');
+        if('Notification' in window && Notification.permission==='granted'){
+          try{
+            new Notification('SAGAE — Ticket reasignado', {
+              body: t.codigo+': '+t.titulo+' — ahora lo atiende '+t.resp,
+              icon:'icons/icon-192.png', badge:'icons/icon-96.png',
+              tag:'reasignado-'+t.codigo
+            });
+          }catch(e){}
+        }
+      });
+      if(navigator.vibrate) navigator.vibrate([120,60,120,60,250]);
     }
 
     setSyncStatus(true);
