@@ -1,4 +1,4 @@
-<!DOCTYPE html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1789,8 +1789,17 @@ tbody tr.clickable{cursor:pointer;}
 <!-- MODAL MANTENIMIENTO -->
 <div class="modal-bg" id="mod-mant"><div class="modal" style="max-width:480px;">
   <div class="modal-title"><span>Registrar mantenimiento</span><button class="modal-close" onclick="closeModals()">✕</button></div>
-  <div class="f-row"><div class="f-lbl">Tipo</div><select class="f-inp f-sel" id="mm-tipo"><option>Preventivo</option><option>Correctivo</option><option>Actualización</option><option>Limpieza</option><option>Reparación</option><option>Inspección</option></select></div>
+  <div class="f-row"><div class="f-lbl">Tipo</div><select class="f-inp f-sel" id="mm-tipo"><option>Entrega de equipo</option><option>Preventivo</option><option>Correctivo</option><option>Daño reportado</option><option>Actualización</option><option>Limpieza</option><option>Reparación</option><option>Inspección</option></select></div>
   <div class="f-row"><div class="f-lbl">Descripción *</div><input class="f-inp" id="mm-desc" placeholder="¿Qué se realizó o qué problema tiene?"></div>
+  <!-- ── FOTOS DE ESTE EVENTO — constancia visual (entrega, daño, etc.) ── -->
+  <div class="f-row" style="background:#F8F5EC;border-radius:8px;padding:10px;border:1px solid #E7DFC6">
+    <div class="f-lbl" style="color:var(--navy);font-weight:700">📷 Fotos de este evento
+      <span style="font-size:10px;font-weight:400;color:#666;display:block;margin-top:2px">Hasta 3 fotos — quedan asociadas a este evento específico (ej: estado del equipo al entregarlo, o la falla reportada)</span>
+    </div>
+    <div id="mm-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin:8px 0;"></div>
+    <div id="mm-fotos-limite-note" style="display:none;font-size:10px;color:var(--text3);margin-bottom:6px;">Máximo de 3 fotos por evento alcanzado.</div>
+    <button type="button" class="btn" id="mm-fotos-add-btn" onclick="agregarFotoMantenimiento()">📂 Agregar foto</button>
+  </div>
   <div class="f-row" id="mm-row-email-resp" style="background:#EBF1FF;border-radius:6px;padding:8px;margin-bottom:2px">
     <div class="f-lbl" style="color:var(--navy);font-weight:700">📧 Correo del responsable del equipo
       <span style="font-size:10px;font-weight:400;color:#666;display:block;margin-top:2px">Opcional — para notificarle que su equipo está en IT</span>
@@ -2597,6 +2606,7 @@ function renderTopbarBtns(p){
   }
   if(p==='detalle'&&activoActual){
     if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openActivo(activoActual.codigo)" style="margin-right:6px">✎ Editar</button><button class="btn" onclick="openMant()" style="margin-right:6px">+ Mantenimiento</button>';
+    c.innerHTML+='<button class="btn" onclick="imprimirExpedienteActivo(activoActual.codigo)" style="margin-right:6px" title="Historial completo con fotos, listo para imprimir o guardar como PDF">📄 Expediente</button>';
     if(per.delete&&activoActual.estado!=='eliminado')c.innerHTML+='<button class="btn btn-warn" onclick="openDelete(\'activo\',activoActual.codigo)">Eliminar</button>';
   }
 }
@@ -3223,6 +3233,76 @@ function agregarFotoTicketAdmin(){
 // se aplica por-foto dentro de _fotoEstaBloqueada() / _renderGaleriaFotosAdmin(),
 // ver la sección "GALERÍA DE FOTOS DEL TICKET" más arriba.
 
+// ══════════════════════════════════════════════════════════════════
+// FOTOS POR EVENTO DE MANTENIMIENTO — hasta 3 fotos, asociadas al
+// evento específico que se está registrando (entrega, daño, etc.), no
+// al activo en general. Mismo mecanismo de subida que en tickets.
+// ══════════════════════════════════════════════════════════════════
+let _mmFotosActuales = [];
+
+function _renderGaleriaFotosMant(){
+  const list = document.getElementById('mm-fotos-list');
+  if(!list) return;
+  list.innerHTML = _mmFotosActuales.length ? _mmFotosActuales.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#FFF9EC;border-left:3px solid #B8960C;border-radius:6px;padding:6px 10px;font-size:11px;color:#7A5C0A;">
+      <div style="flex:1;min-width:0">
+        📷 <a href="${f.url}" target="_blank" style="color:#7A5C0A;font-weight:600">Ver foto ↗</a>
+        ${f.nota?' — '+sanitizeHTML(f.nota):''}
+      </div>
+      <button type="button" class="btn" onclick="quitarFotoMantenimiento(${i})" style="padding:4px 8px;font-size:11px;white-space:nowrap;">🗑</button>
+    </div>`).join('') : '<div style="font-size:11px;color:var(--text3);">Sin fotos todavía.</div>';
+  document.getElementById('mm-fotos-limite-note').style.display = _mmFotosActuales.length>=3 ? 'block' : 'none';
+  const addBtn = document.getElementById('mm-fotos-add-btn');
+  if(addBtn) addBtn.style.display = _mmFotosActuales.length>=3 ? 'none' : '';
+}
+
+function quitarFotoMantenimiento(index){
+  _mmFotosActuales.splice(index,1);
+  _renderGaleriaFotosMant();
+}
+
+function agregarFotoMantenimiento(){
+  if(_mmFotosActuales.length >= 3){ showToast('Ya hay 3 fotos en este evento, el máximo permitido.','error'); return; }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async () => {
+    const file = input.files[0];
+    document.body.removeChild(input);
+    if(!file) return;
+    if(file.size > 10*1024*1024){ showToast('El archivo no puede superar 10MB','error'); return; }
+
+    const btn = document.getElementById('mm-fotos-add-btn');
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
+    try{
+      const base64full = await new Promise((res,rej)=>{
+        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(file);
+      });
+      const base64data = base64full.split(',')[1];
+      const data = await apiPostAsync(null,'uploadFoto',{
+        base64:base64data, mimeType:file.type, nombreArchivo:file.name,
+        modulo:'Activos', codigoRegistro: activoActual?.codigo||'',
+        _sessionToken: session?session.token:null
+      }, 25000);
+      if(data && data.url){
+        const nota = prompt('Nota corta para esta foto (opcional):','') || '';
+        _mmFotosActuales.push({ url:data.url, fecha:ts(), usuario:session.nombre, nota:nota.trim().slice(0,200) });
+        _renderGaleriaFotosMant();
+        showToast('Foto agregada ✓','success');
+      }else{
+        showToast('No se pudo subir la foto: '+(data?.error||'sin respuesta'),'error');
+      }
+    }catch(e){
+      showToast('Error al subir la foto: '+e.message,'error');
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='📂 Agregar foto'; }
+    }
+  };
+  input.click();
+}
+
 async function saveTicket(){
   // Defensa en profundidad: si el rol activo no tiene permiso de edición, se bloquea
   // el guardado aunque el botón esté oculto y aunque alguien manipule el formulario.
@@ -3351,6 +3431,10 @@ function openMant(){
     emailField.value = emailAsig || emailEspCalc || '';
   }
   document.getElementById('mod-mant').classList.add('open');
+  // Resetear fotos del evento — son propias de CADA registro, no se
+  // arrastran del anterior
+  _mmFotosActuales = [];
+  _renderGaleriaFotosMant();
 }
 async function toggleSolicitudPiezas(checked){
   document.getElementById('mm-piezas-form').style.display = checked ? 'block' : 'none';
@@ -3371,6 +3455,7 @@ async function saveMant(){
     costo:    parseFloat(document.getElementById('mm-costo').value) || 0,
     usuario:  session.nombre,
     emailResp,
+    fotos:    _mmFotosActuales.length ? _mmFotosActuales : undefined,
     color:    'amber'
   };
 
@@ -3422,6 +3507,8 @@ async function saveMant(){
   const mmTec = document.getElementById('mm-tec'); if(mmTec) mmTec.value='';
   const chk = document.getElementById('mm-necesita-piezas');
   if(chk){ chk.checked=false; toggleSolicitudPiezas(false); }
+  _mmFotosActuales = [];
+  _renderGaleriaFotosMant();
 
   closeModals();
   showDetalle(activoActual.codigo);
@@ -4440,7 +4527,9 @@ function cambiarReporte(tipo){
       </select>
       <select class="f-sel" id="fil-tipo-mant" onchange="generarReporte()" style="max-width:180px">
         <option value="">Todos los tipos</option>
+        <option>Entrega de equipo</option>
         <option>Preventivo</option><option>Correctivo</option>
+        <option>Daño reportado</option>
         <option>Actualización</option><option>Limpieza</option>
         <option>Reparación</option><option>Inspección</option>
         <option>Entrada a Mantenimiento</option><option>Salida de Mantenimiento</option>
@@ -4861,7 +4950,7 @@ function repMantenimientos(el, ts){
   activos.forEach(a=>{
     // Filtrar por área si está seleccionada
     if(areaMant && (a.depto||'Sin departamento')!==areaMant) return;
-    (a.historial||[]).filter(h=>['Preventivo','Correctivo','Actualización','Limpieza','Reparación','Inspección','Entrada a Mantenimiento','Salida de Mantenimiento'].includes(h.tipo)).forEach(h=>{
+    (a.historial||[]).filter(h=>['Entrega de equipo','Preventivo','Correctivo','Daño reportado','Actualización','Limpieza','Reparación','Inspección','Entrada a Mantenimiento','Salida de Mantenimiento'].includes(h.tipo)).forEach(h=>{
       if((desde||hasta)&&!fechaEnRango(h.fecha,desde,hasta))return;
       if(tipoMant&&h.tipo!==tipoMant)return;
       todos.push({...h,activoCodigo:a.codigo,activoNombre:a.nombre,activoTipo:a.tipo,activoDepto:a.depto||'—'});
@@ -5005,26 +5094,35 @@ function exportCSV(){
 // ya usan los reportes y las etiquetas (clase en <body> + @media print).
 const COLOR_DOT={green:'#3B6D11',red:'#B91C1C',blue:'#1B3A6B',yellow:'#BA7517',gray:'#6B7280'};
 
-// Las fotos se guardan con la URL del VISOR de Drive
-// ("https://drive.google.com/file/d/ID/view?usp=sharing"), que abre bien
-// en una pestaña nueva pero NO se puede usar como src de una <img> — un
-// navegador no la renderiza como imagen. Este helper la convierte al
-// formato de Drive que sí se puede incrustar directamente, siempre que
-// el archivo esté compartido como "cualquiera con el enlace" (que es
-// como ya se suben, ver subirFotoADrive en el backend).
-function _driveUrlToImg(url){
-  if(!url) return url;
-  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if(!m) return url; // no es un link de Drive reconocido, se usa tal cual
-  return 'https://drive.google.com/uc?export=view&id='+m[1];
-}
+// NOTA: se intentó una conversión de URL de Drive para incrustar fotos
+// directamente como <img src>, pero Google restringe ese método según
+// el archivo/cuenta (confirmado en pruebas reales). Se reemplazó por el
+// endpoint "fotoBase64" del backend — ver imprimirExpedienteTicket.
 
-function imprimirExpedienteTicket(codigo){
+async function imprimirExpedienteTicket(codigo){
   const t = tickets.find(x=>x.codigo===codigo);
   if(!t){ showToast('No se encontró el ticket.','error'); return; }
 
   const historial = Array.isArray(t.historial) ? t.historial : parseHist(t.historial);
   const fotos = parseHist(t.fotos); // fotos se guarda como string JSON, igual que historial
+
+  if(fotos.length) showToast('Preparando expediente (cargando '+fotos.length+' foto'+(fotos.length>1?'s':'')+')...','');
+
+  // Obtener cada foto en base64 directamente del backend, que sí tiene
+  // acceso autorizado al archivo (lo creó el propio script). Esto evita
+  // por completo depender de un enlace público de Drive incrustado como
+  // <img src>, que Google puede bloquear según el archivo o la cuenta —
+  // como se confirmó al ver el aviso de "no se pudo cargar" en la prueba.
+  const fotosConDatos = await Promise.all(fotos.map(async f=>{
+    const m = (f.url||'').match(/\/d\/([a-zA-Z0-9_-]+)/) || (f.url||'').match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if(!m) return {...f, dataUrl:null};
+    try{
+      const r = await fetch(API+'?action=fotoBase64&fileId='+m[1]+'&session='+encodeURIComponent(session.token));
+      const j = await r.json();
+      if(j && j.ok) return {...f, dataUrl:'data:'+j.mime+';base64,'+j.data};
+      return {...f, dataUrl:null};
+    }catch(e){ return {...f, dataUrl:null}; }
+  }));
 
   // Unificar historial + fotos en una sola lista, cada elemento con su
   // fecha real (Date) para poder ordenarlos cronológicamente juntos.
@@ -5037,12 +5135,12 @@ function imprimirExpedienteTicket(codigo){
       foto: null
     });
   });
-  fotos.forEach((f,i)=>{
+  fotosConDatos.forEach((f,i)=>{
     eventos.push({
       _fecha: parseFechaRegistro(f.fecha),
       tipo: '📷 Foto adjunta', desc: f.nota||'', fecha: f.fecha||'',
       usuario: f.usuario||'—', color: '#7C3AED',
-      foto: _driveUrlToImg(f.url), fotoOriginal: f.url
+      foto: f.dataUrl, fotoOriginal: f.url
     });
   });
   eventos.sort((a,b)=>(a._fecha||0)-(b._fecha||0));
@@ -5080,13 +5178,11 @@ function imprimirExpedienteTicket(codigo){
   document.title = 'Expediente ' + t.codigo + ' — SAGAE';
   document.body.classList.add('printing-expediente');
 
-  // ── ESPERAR A QUE LAS FOTOS TERMINEN DE CARGAR ANTES DE IMPRIMIR ──
-  // Las fotos vienen de Google Drive (carga externa, no instantánea). Si
-  // se dispara window.print() de inmediato, el navegador "fotografía" el
-  // documento en el estado en que estaba en ese momento — con las
-  // imágenes aún a medio cargar, ni mostrando la foto ni el aviso de
-  // error, sino un espacio prácticamente vacío. Por eso antes se veía
-  // el documento sin las fotos incluso cuando la URL ya estaba corregida.
+  // ── SEGURIDAD ADICIONAL: confirmar que las imágenes (ya embebidas como
+  // datos, no como enlaces externos) están listas antes de imprimir. Con
+  // datos embebidos esto se resuelve casi al instante; se deja como red
+  // de seguridad por si el navegador tarda en decodificar una imagen
+  // grande.
   const areaImgs = Array.from(document.querySelectorAll('#print-expediente-area img'));
   const esperarImagenes = areaImgs.map(img=>new Promise(resolve=>{
     if(img.complete){ resolve(); return; } // ya resuelta (cargada o ya falló)
@@ -5100,14 +5196,100 @@ function imprimirExpedienteTicket(codigo){
     setTimeout(resolve, 10000); // límite de seguridad por si Drive tarda demasiado
   }));
 
-  showToast('Preparando expediente'+(areaImgs.length?` (cargando ${areaImgs.length} foto${areaImgs.length>1?'s':''})`:'')+'...','');
-
   Promise.all(esperarImagenes).then(()=>{
     setTimeout(()=>{
       window.print();
       setTimeout(()=>{
         document.body.classList.remove('printing-expediente');
         document.title = orig;
+      }, 500);
+    }, 150);
+  });
+}
+
+// ── EXPEDIENTE COMPLETO DE ACTIVO ───────────────────────────────────
+// Equivalente al expediente de ticket, pero para la vida completa de un
+// equipo: desde la entrega (con foto de constancia del estado inicial)
+// hasta cualquier daño o mantenimiento posterior, cada uno con sus
+// propias fotos. Pensado para servir como respaldo documentado de "todo
+// lo que ese equipo ha vivido".
+async function imprimirExpedienteActivo(codigo){
+  const a = activos.find(x=>x.codigo===codigo);
+  if(!a){ showToast('No se encontró el activo.','error'); return; }
+
+  const historial = Array.isArray(a.historial) ? a.historial : parseHist(a.historial);
+  const totalFotos = historial.reduce((n,h)=>n+((Array.isArray(h.fotos)?h.fotos:parseHist(h.fotos)).length),0);
+  if(totalFotos) showToast('Preparando expediente (cargando '+totalFotos+' foto'+(totalFotos>1?'s':'')+')...','');
+
+  // Cada evento del historial puede traer sus propias fotos (por ejemplo,
+  // la foto de constancia al entregar el equipo, o la foto del daño
+  // reportado). Se obtienen todas en base64 desde el backend, igual que
+  // en el expediente de ticket.
+  const eventosConFotos = await Promise.all(historial.map(async h=>{
+    const fotosRaw = Array.isArray(h.fotos) ? h.fotos : parseHist(h.fotos);
+    const fotos = await Promise.all(fotosRaw.map(async f=>{
+      const m = (f.url||'').match(/\/d\/([a-zA-Z0-9_-]+)/) || (f.url||'').match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if(!m) return {...f, dataUrl:null};
+      try{
+        const r = await fetch(API+'?action=fotoBase64&fileId='+m[1]+'&session='+encodeURIComponent(session.token));
+        const j = await r.json();
+        return j && j.ok ? {...f, dataUrl:'data:'+j.mime+';base64,'+j.data} : {...f, dataUrl:null};
+      }catch(e){ return {...f, dataUrl:null}; }
+    }));
+    return {...h, _fotosConDatos: fotos};
+  }));
+  eventosConFotos.sort((x,y)=>(parseFechaRegistro(x.fecha)||0)-(parseFechaRegistro(y.fecha)||0));
+
+  const itemsHTML = eventosConFotos.length ? eventosConFotos.map(h=>`
+    <div class="exp-item">
+      <div class="exp-item-dot" style="background:${COLOR_DOT[h.color]||COLOR_DOT.gray}"></div>
+      <div class="exp-item-body">
+        <div class="exp-item-tipo">${sanitizeHTML(h.tipo||'Evento')}</div>
+        <div class="exp-item-meta">${sanitizeHTML(h.fecha||'')} · ${sanitizeHTML(h.usuario||h.tec||'—')}</div>
+        ${h.desc?`<div class="exp-item-desc">${sanitizeHTML(h.desc)}</div>`:''}
+        ${(h._fotosConDatos||[]).map(f=>
+          f.dataUrl
+            ? `<img class="exp-item-foto" src="${f.dataUrl}">${f.nota?`<div style="font-size:8pt;color:#666;margin-top:1mm">${sanitizeHTML(f.nota)}</div>`:''}`
+            : `<div style="font-size:8pt;color:#B91C1C;">⚠ Una foto de este evento no se pudo cargar. Ábrela directamente: <a href="${f.url}">${f.url}</a></div>`
+        ).join('')}
+      </div>
+    </div>`).join('') : '<div style="padding:6mm 0;color:#888;font-size:9pt">Sin eventos registrados.</div>';
+
+  document.getElementById('print-expediente-area').innerHTML = `
+    <div class="exp-header">
+      <div class="exp-title">Expediente de activo — ${sanitizeHTML(a.codigo)}</div>
+      <div class="exp-meta-grid">
+        <div><b>Nombre:</b> ${sanitizeHTML(a.nombre||'—')}</div>
+        <div><b>Tipo:</b> ${sanitizeHTML(a.tipo||'—')}</div>
+        <div><b>Marca / Modelo:</b> ${sanitizeHTML((a.marca||'—')+' '+(a.modelo||''))}</div>
+        <div><b>Serial:</b> ${sanitizeHTML(a.serial||'—')}</div>
+        <div><b>Asignado a:</b> ${sanitizeHTML(a.asignado||'Sin asignar')}</div>
+        <div><b>Ubicación:</b> ${sanitizeHTML(a.ubicacion||'—')}</div>
+        <div><b>Estado actual:</b> ${sanitizeHTML(a.estado||'—')}</div>
+        <div><b>Departamento:</b> ${sanitizeHTML(a.depto||'—')}</div>
+      </div>
+    </div>
+    <div class="exp-timeline">${itemsHTML}</div>
+    <div class="exp-footer">Expediente generado el ${ts()} por ${sanitizeHTML(session.nombre)} desde SAGAE. Documento de uso interno.</div>
+  `;
+
+  const origA = document.title;
+  document.title = 'Expediente ' + a.codigo + ' — SAGAE';
+  document.body.classList.add('printing-expediente');
+
+  const areaImgsA = Array.from(document.querySelectorAll('#print-expediente-area img'));
+  const esperarImagenesA = areaImgsA.map(img=>new Promise(resolve=>{
+    if(img.complete){ resolve(); return; }
+    img.addEventListener('load', resolve, {once:true});
+    img.addEventListener('error', resolve, {once:true});
+    setTimeout(resolve, 10000);
+  }));
+  Promise.all(esperarImagenesA).then(()=>{
+    setTimeout(()=>{
+      window.print();
+      setTimeout(()=>{
+        document.body.classList.remove('printing-expediente');
+        document.title = origA;
       }, 500);
     }, 150);
   });
