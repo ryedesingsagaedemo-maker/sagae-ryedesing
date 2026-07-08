@@ -3408,6 +3408,21 @@ function iniciarControlSesionUnica(){
     try{
       const r = await apiPostAsync(null,'session_check',{_sessionToken:session.token});
       if(r && r.ok) return; // sesión sigue válida, nada que hacer
+      // ── NO cerrar sesión por una simple falla de red o timeout ──────
+      // Antes, cualquier resultado que no fuera "ok:true" se trataba como
+      // sesión inválida — incluyendo cuando el servidor simplemente no
+      // respondió a tiempo (mismo tipo de demora ocasional de Apps
+      // Script ya visto en login/carga de datos). Eso expulsaba a
+      // personas que seguían trabajando activamente, sin ninguna sesión
+      // duplicada ni inactividad real de por medio. Solo se cierra la
+      // sesión cuando el servidor CONFIRMA explícitamente que ya no es
+      // válida (SESSION_INVALID) — cualquier otro caso (timeout, error
+      // de red, respuesta inesperada) se ignora y se reintenta en el
+      // siguiente ciclo, 30 segundos después.
+      if(!(r && r.error === 'SESSION_INVALID')){
+        console.warn('[SAGAE] session_check sin confirmación del servidor (posible timeout) — se reintentará, no se cierra la sesión.');
+        return;
+      }
       clearInterval(_sessionCheckInterval);
       clearTimeout(_inactivityTimer);
       const overlay = document.createElement('div');
