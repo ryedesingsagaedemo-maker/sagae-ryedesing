@@ -2010,14 +2010,22 @@ function _updateQueueBadge(){
     badge.style.display='none';
   }
 }
-async function apiGet(sheet){
+// Devuelve el arreglo de datos normalmente. Si la petición falla o expira
+// por tiempo, devuelve un arreglo vacío CON una marca (_failed=true) para
+// que quien llama pueda distinguir "no hay datos" de "no se pudo cargar" —
+// antes ambos casos se veían idénticos en pantalla (ceros/"Sin datos"),
+// lo cual confundía una falla de red con una ausencia real de información.
+async function apiGet(sheet, intento=1){
   try{
     const controller = new AbortController();
-    const timer = setTimeout(()=>controller.abort(), 15000);
+    const timer = setTimeout(()=>controller.abort(), 25000);
     const tok = session && session.token ? '&session='+encodeURIComponent(session.token) : '';
     const r = await fetch(API+'?sheet='+sheet+tok, {mode:'cors', signal:controller.signal});
     clearTimeout(timer);
-    if(!r.ok) return [];
+    if(!r.ok){
+      if(intento < 2) return apiGet(sheet, intento+1);
+      const fallo=[]; fallo._failed=true; return fallo;
+    }
     const d = await r.json();
     if(d && d.ok===false && d.error==='SESSION_INVALID'){
       _sesionExpirada();
@@ -2026,8 +2034,13 @@ async function apiGet(sheet){
     return Array.isArray(d) ? d : [];
   }
   catch(e){
-    if(e.name==='AbortError') console.warn('Timeout cargando '+sheet);
-    return [];
+    if(e.name==='AbortError') console.warn('Timeout cargando '+sheet+' (intento '+intento+')');
+    // Reintento automático único: los "cold starts" de Apps Script a veces
+    // tardan más que el tiempo límite en el primer intento, pero responden
+    // normalmente al segundo. Esto evita mostrar un dashboard vacío por
+    // una demora puntual del servidor.
+    if(intento < 2) return apiGet(sheet, intento+1);
+    const fallo=[]; fallo._failed=true; return fallo;
   }
 }
 
@@ -2041,7 +2054,7 @@ function _generarRequestId(){
 // respuesta) y luego pregunta el resultado real con un GET, que sí es
 // legible. El servidor guarda el resultado bajo el mismo _requestId
 // durante 60 segundos (ver enviarRespuesta_ en el backend).
-async function apiPostAsync(sheet, action, payload, timeoutMs=12000){
+async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
   const requestId = _generarRequestId();
   const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
   fetch(API, {
@@ -2318,9 +2331,24 @@ async function loadFromSheets(){
   if(typeof buildDataLists === 'function') buildDataLists();
   // NOTA: No se crea admin automáticamente para evitar duplicados
   // Si no hay usuarios, mostrar aviso y dejar entrar igual
-  ls.textContent=`✅ ${activos.length} activos · ${tickets.length} tickets`;
-  lt.textContent='¡Sistema listo!';
-  setSyncStatus(true,'Conectado a Google Sheets');
+
+  // ── AVISO DE CARGA PARCIAL ──────────────────────────────────────
+  // apiGet ya reintenta una vez automáticamente por hoja. Si aun así
+  // alguna quedó marcada como fallida, es una falla real de conexión,
+  // no "no hay datos" — hay que decírselo a la persona en vez de dejar
+  // que vea un dashboard en ceros pensando que esa es la realidad.
+  const hojasFallidas = [];
+  if(rawA._failed)   hojasFallidas.push('Activos');
+  if(rawT._failed)   hojasFallidas.push('Tickets');
+  if(rawAud._failed) hojasFallidas.push('Auditoría');
+  if(hojasFallidas.length){
+    setSyncStatus(false, '⚠ No se pudo cargar: '+hojasFallidas.join(', ')+'. Toca para reintentar.');
+    setTimeout(()=>showToast('⚠ Algunos datos no cargaron ('+hojasFallidas.join(', ')+'). Usa el botón de sincronizar para reintentar.', 'error'), 800);
+  } else {
+    ls.textContent=`✅ ${activos.length} activos · ${tickets.length} tickets`;
+    lt.textContent='¡Sistema listo!';
+    setSyncStatus(true,'Conectado a Google Sheets');
+  }
   return true;
   }catch(err){
     console.error('Error cargando datos:',err);
@@ -2355,6 +2383,12 @@ async function doLogin(){
   let resp;
   try{
     resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
+    // Reintento automático y silencioso si fue por tiempo agotado (típico
+    // de un "cold start" de Apps Script) — el usuario no necesita ver el
+    // error ni volver a escribir su contraseña por una demora puntual.
+    if(resp && resp.error==='TIMEOUT'){
+      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
+    }
   }catch(e){
     ll.style.display='none';
     err.textContent='⚠ No se pudo contactar al servidor. Verifica tu conexión.';
