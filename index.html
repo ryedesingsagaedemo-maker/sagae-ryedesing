@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -5079,13 +5079,38 @@ function imprimirExpedienteTicket(codigo){
   const orig = document.title;
   document.title = 'Expediente ' + t.codigo + ' — SAGAE';
   document.body.classList.add('printing-expediente');
-  setTimeout(()=>{
-    window.print();
+
+  // ── ESPERAR A QUE LAS FOTOS TERMINEN DE CARGAR ANTES DE IMPRIMIR ──
+  // Las fotos vienen de Google Drive (carga externa, no instantánea). Si
+  // se dispara window.print() de inmediato, el navegador "fotografía" el
+  // documento en el estado en que estaba en ese momento — con las
+  // imágenes aún a medio cargar, ni mostrando la foto ni el aviso de
+  // error, sino un espacio prácticamente vacío. Por eso antes se veía
+  // el documento sin las fotos incluso cuando la URL ya estaba corregida.
+  const areaImgs = Array.from(document.querySelectorAll('#print-expediente-area img'));
+  const esperarImagenes = areaImgs.map(img=>new Promise(resolve=>{
+    if(img.complete){ resolve(); return; } // ya resuelta (cargada o ya falló)
+    img.addEventListener('load', resolve, {once:true});
+    img.addEventListener('error', ()=>{
+      // Dispara el aviso de respaldo ya definido en el onerror inline
+      // y resuelve de todas formas, para no bloquear la impresión
+      // indefinidamente si una sola foto falla.
+      resolve();
+    }, {once:true});
+    setTimeout(resolve, 10000); // límite de seguridad por si Drive tarda demasiado
+  }));
+
+  showToast('Preparando expediente'+(areaImgs.length?` (cargando ${areaImgs.length} foto${areaImgs.length>1?'s':''})`:'')+'...','');
+
+  Promise.all(esperarImagenes).then(()=>{
     setTimeout(()=>{
-      document.body.classList.remove('printing-expediente');
-      document.title = orig;
-    }, 500);
-  }, 100);
+      window.print();
+      setTimeout(()=>{
+        document.body.classList.remove('printing-expediente');
+        document.title = orig;
+      }, 500);
+    }, 150);
+  });
 }
 
 // ── EXPORTAR PDF (PRINT) ───────────────────────────────────────────
