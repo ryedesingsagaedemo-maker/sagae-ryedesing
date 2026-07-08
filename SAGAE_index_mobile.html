@@ -2505,6 +2505,13 @@ function iniciarControlSesionUnicaMobile(){
     try{
       const r = await apiPostAsync(null,'session_check',{_sessionToken:session.token});
       if(r && r.ok) return;
+      // No cerrar sesión por un simple timeout/error de red — solo cuando
+      // el servidor confirma explícitamente SESSION_INVALID. Ver la nota
+      // equivalente en index.html para el detalle de por qué.
+      if(!(r && r.error === 'SESSION_INVALID')){
+        console.warn('[SAGAE] session_check sin confirmación del servidor — se reintentará.');
+        return;
+      }
       clearInterval(window._sesionCheck);
       clearTimeout(_inactivityTimer);
       const ov = document.createElement('div');
