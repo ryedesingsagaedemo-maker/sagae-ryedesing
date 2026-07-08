@@ -466,6 +466,34 @@ tbody tr.clickable{cursor:pointer;}
   }
 }
 
+/* ── EXPEDIENTE COMPLETO DE TICKET — historial + fotos en una sola línea de tiempo ── */
+@media print{
+  @page{ size: letter portrait; margin: 14mm 16mm; }
+  body.printing-expediente *{ visibility:hidden!important; }
+  body.printing-expediente #print-expediente-area,
+  body.printing-expediente #print-expediente-area *{ visibility:visible!important; }
+  body.printing-expediente #print-expediente-area{
+    position:fixed!important; top:0!important; left:0!important;
+    width:100%!important; margin:0!important; padding:0!important;
+    background:#fff!important; display:block!important;
+    font-family:Arial,Helvetica,sans-serif!important; color:#111!important;
+  }
+  .exp-header{border:0.5mm solid #1B3A6B;border-radius:3mm;padding:5mm 6mm;margin-bottom:6mm;background:#E8F0FB;break-inside:avoid;}
+  .exp-title{font-size:15pt;font-weight:700;color:#1B3A6B;margin-bottom:2mm;}
+  .exp-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5mm 6mm;font-size:9pt;}
+  .exp-meta-grid b{color:#1B3A6B;}
+  .exp-timeline{margin-top:2mm;}
+  .exp-item{display:flex;gap:4mm;padding:3mm 0;border-bottom:0.2mm solid #ddd;break-inside:avoid;}
+  .exp-item-dot{width:4mm;height:4mm;border-radius:50%;margin-top:1.5mm;flex-shrink:0;}
+  .exp-item-body{flex:1;}
+  .exp-item-tipo{font-size:9.5pt;font-weight:700;}
+  .exp-item-meta{font-size:8pt;color:#666;margin-bottom:1mm;}
+  .exp-item-desc{font-size:9pt;color:#222;white-space:pre-wrap;}
+  .exp-item-foto{margin-top:2mm;max-width:120mm;max-height:80mm;border:0.3mm solid #999;border-radius:2mm;}
+  .exp-footer{margin-top:6mm;font-size:7.5pt;color:#888;border-top:0.3mm solid #ccc;padding-top:3mm;}
+}
+#print-expediente-area{display:none;}
+
 /* ── IMPRESIÓN DE REPORTES — Landscape, bordes por página ────────── */
 @media print{
 
@@ -1668,7 +1696,7 @@ tbody tr.clickable{cursor:pointer;}
 
 <!-- MODAL TICKET -->
 <div class="modal-bg" id="mod-ticket"><div class="modal">
-  <div class="modal-title"><span id="mod-ticket-title">Nuevo ticket</span><button class="modal-close" onclick="closeModals()">✕</button></div>
+  <div class="modal-title"><span id="mod-ticket-title">Nuevo ticket</span><button id="et-expediente-btn" class="btn" style="display:none;font-size:11px;padding:4px 10px;margin-left:8px;" onclick="imprimirExpedienteTicket(document.getElementById('et-id').value)">📄 Expediente</button><button class="modal-close" onclick="closeModals()">✕</button></div>
   <input type="hidden" id="et-id">
   <div class="f-row"><div class="f-lbl">Título *</div><input class="f-inp" id="et-titulo" placeholder="Describe el problema o tarea..."></div>
   <div class="f-2">
@@ -1811,6 +1839,9 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div class="modal-actions"><button class="btn" onclick="closeModals()">Cancelar</button><button class="btn btn-p" onclick="saveMant()">Registrar</button></div>
 </div></div>
+
+<!-- Contenedor del expediente completo de ticket (historial + fotos combinados) — solo se usa para impresión/PDF -->
+<div id="print-expediente-area"></div>
 
 </div>
 <script>
@@ -3028,6 +3059,7 @@ function openTicket(id,forceReadOnly){
   // permiso, la función también rechaza abrir en modo edición si el rol no puede editar.
   const readOnly=isEdit&&(!!forceReadOnly||!per.edit);
   document.getElementById('mod-ticket-title').textContent=isEdit?(readOnly?'Detalle del ticket':'Editar ticket'):'Nuevo ticket';
+  document.getElementById('et-expediente-btn').style.display=isEdit?'inline-block':'none';
   document.getElementById('et-save-btn').textContent=isEdit?'Guardar cambios':'Guardar ticket';
   document.getElementById('et-save-btn').style.display=readOnly?'none':'';
   document.getElementById('et-motivo-wrap').style.display=(isEdit&&!readOnly)?'block':'none';
@@ -3829,6 +3861,7 @@ function renderTickets(){
         `<button class="act-btn" style="background:#1B3A6B;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600" onclick="tomarTicket('${t.codigo}')">Tomar</button>`:
         (t.resp===session.nombre&&t.estado!=='cerrado'?`<span style="font-size:9px;color:#1A7A4A;font-weight:600">✓ Tuyo</span>`:'')}
       <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial y trazabilidad (solo lectura)">👁</button>
+      <button class="act-btn" onclick="imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo (historial + fotos, para imprimir o guardar como PDF)">📄</button>
       ${per.edit&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openTicket('${t.codigo}')" title="Editar">✎</button>`:''}
       ${per.delete&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openDelete('ticket','${t.codigo}')" style="color:var(--red)">×</button>`:''}
     </td></tr>`).join('');
@@ -3839,6 +3872,7 @@ function renderKanban(){
     const items=tickets.filter(t=>t.estado===col);document.getElementById('kc-'+col).textContent=items.length;
     document.getElementById('k-'+col).innerHTML=items.length?items.map(t=>`<div class="k-card" style="cursor:pointer;position:relative" onclick="openTicket('${t.codigo}',true)" title="Ver historial y trazabilidad (solo lectura)">
       ${((PERMS[session.rol]||{}).edit)?`<button onclick="event.stopPropagation();openTicket('${t.codigo}')" title="Editar" style="position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px">✎</button>`:''}
+      <button onclick="event.stopPropagation();imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo" style="position:absolute;top:6px;right:${((PERMS[session.rol]||{}).edit)?'24':'6'}px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px">📄</button>
       <div class="code-cell" style="font-size:9px;margin-bottom:3px">${t.codigo}</div>
       <div class="k-card-t">${t.titulo}</div>
       <div class="k-card-m"><span>${t.activoNombre&&t.activoNombre!=='—'?t.activoNombre:t.proy||'—'}</span><span class="badge s-${t.prior}" style="font-size:9px">${t.prior}</span></div>
@@ -4665,10 +4699,11 @@ function repTickets(el, ts){
           <td><span class="badge s-${t.estado}">${t.estado}</span></td>
           <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${t.avance||0}%"></div></div><span class="prog-t">${t.avance||0}%</span></div></td>
           <td style="font-size:10px;color:var(--text3)">${renderDead(t.dead)}</td>
-          <td style="text-align:center">
+          <td style="text-align:center;white-space:nowrap">
             <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial completo (${(t.historial||[]).length} eventos)">
               👁 ${(t.historial||[]).length}
             </button>
+            <button class="act-btn" onclick="imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo (historial + fotos)">📄</button>
           </td>
         </tr>`).join('')}</tbody>
       </table></div>
@@ -4929,6 +4964,83 @@ function exportCSV(){
   const a=document.createElement('a');
   a.href=url;a.download=`SAGAE_${tipo}_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();URL.revokeObjectURL(url);
+}
+
+// ── EXPEDIENTE COMPLETO DE TICKET ───────────────────────────────────
+// Combina el historial de seguimiento y las fotos adjuntas en UNA sola
+// línea de tiempo cronológica (en vez de dos listas separadas), pensado
+// para servir como evidencia documentada: auditorías, reclamos, casos
+// disciplinarios, etc. Reutiliza el mismo mecanismo de impresión que
+// ya usan los reportes y las etiquetas (clase en <body> + @media print).
+const COLOR_DOT={green:'#3B6D11',red:'#B91C1C',blue:'#1B3A6B',yellow:'#BA7517',gray:'#6B7280'};
+
+function imprimirExpedienteTicket(codigo){
+  const t = tickets.find(x=>x.codigo===codigo);
+  if(!t){ showToast('No se encontró el ticket.','error'); return; }
+
+  const historial = Array.isArray(t.historial) ? t.historial : parseHist(t.historial);
+  const fotos = parseHist(t.fotos); // fotos se guarda como string JSON, igual que historial
+
+  // Unificar historial + fotos en una sola lista, cada elemento con su
+  // fecha real (Date) para poder ordenarlos cronológicamente juntos.
+  const eventos = [];
+  historial.forEach(h=>{
+    eventos.push({
+      _fecha: parseFechaRegistro(h.fecha),
+      tipo: h.tipo||'Evento', desc: h.desc||'', fecha: h.fecha||'',
+      usuario: h.usuario||h.tec||'—', color: COLOR_DOT[h.color]||COLOR_DOT.gray,
+      foto: null
+    });
+  });
+  fotos.forEach((f,i)=>{
+    eventos.push({
+      _fecha: parseFechaRegistro(f.fecha),
+      tipo: '📷 Foto adjunta', desc: f.nota||'', fecha: f.fecha||'',
+      usuario: f.usuario||'—', color: '#7C3AED',
+      foto: f.url
+    });
+  });
+  eventos.sort((a,b)=>(a._fecha||0)-(b._fecha||0));
+
+  const itemsHTML = eventos.length ? eventos.map(e=>`
+    <div class="exp-item">
+      <div class="exp-item-dot" style="background:${e.color}"></div>
+      <div class="exp-item-body">
+        <div class="exp-item-tipo">${sanitizeHTML(e.tipo)}</div>
+        <div class="exp-item-meta">${sanitizeHTML(e.fecha)} · ${sanitizeHTML(e.usuario)}</div>
+        ${e.desc?`<div class="exp-item-desc">${sanitizeHTML(e.desc)}</div>`:''}
+        ${e.foto?`<img class="exp-item-foto" src="${e.foto}">`:''}
+      </div>
+    </div>`).join('') : '<div style="padding:6mm 0;color:#888;font-size:9pt">Sin eventos registrados.</div>';
+
+  document.getElementById('print-expediente-area').innerHTML = `
+    <div class="exp-header">
+      <div class="exp-title">Expediente de ticket — ${sanitizeHTML(t.codigo)}</div>
+      <div class="exp-meta-grid">
+        <div><b>Título:</b> ${sanitizeHTML(t.titulo||'—')}</div>
+        <div><b>Activo:</b> ${sanitizeHTML(t.activoNombre||'—')}</div>
+        <div><b>Responsable:</b> ${sanitizeHTML(t.resp||'—')}</div>
+        <div><b>Tipo:</b> ${sanitizeHTML(t.tipo||'—')}</div>
+        <div><b>Prioridad:</b> ${sanitizeHTML(t.prior||'—')}</div>
+        <div><b>Estado:</b> ${sanitizeHTML(t.estado||'—')}</div>
+        <div><b>Creado:</b> ${sanitizeHTML(t.fechaCreacion||'—')}</div>
+        <div><b>Deadline:</b> ${sanitizeHTML(t.dead||'—')}</div>
+      </div>
+    </div>
+    <div class="exp-timeline">${itemsHTML}</div>
+    <div class="exp-footer">Expediente generado el ${ts()} por ${sanitizeHTML(session.nombre)} desde SAGAE. Documento de uso interno.</div>
+  `;
+
+  const orig = document.title;
+  document.title = 'Expediente ' + t.codigo + ' — SAGAE';
+  document.body.classList.add('printing-expediente');
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{
+      document.body.classList.remove('printing-expediente');
+      document.title = orig;
+    }, 500);
+  }, 100);
 }
 
 // ── EXPORTAR PDF (PRINT) ───────────────────────────────────────────
