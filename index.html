@@ -1594,6 +1594,7 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div class="f-2">
     <div class="f-row"><div class="f-lbl">Marca</div><input class="f-inp" id="ea-marca" list="dl-marcas" autocomplete="off" placeholder="Dell, HP..."></div>
+    <datalist id="dl-marcas"></datalist>
     <div class="f-row"><div class="f-lbl">Modelo</div><input class="f-inp" id="ea-modelo" placeholder="Inspiron 15..."></div>
   </div>
   <div class="f-2">
@@ -1636,7 +1637,8 @@ tbody tr.clickable{cursor:pointer;}
     </div>
     <div class="f-row">
       <div class="f-lbl">Cargo / Rol</div>
-      <input class="f-inp" id="ea-asignado-cargo" placeholder="Docente, Secretaria..." autocomplete="off">
+      <input class="f-inp" id="ea-asignado-cargo" list="dl-cargos" placeholder="Docente, Secretaria..." autocomplete="off">
+      <datalist id="dl-cargos"></datalist>
     </div>
   </div>
   <div class="f-2">
@@ -6537,6 +6539,38 @@ function buildDataLists(){
     selDepResp.innerHTML = '<option value="">— Sin responsable —</option>' +
       persActivas.map(p=>`<option value="${p.nombre}">${p.nombre}${p.cargo?' — '+p.cargo:''}</option>`).join('');
     if(cur) selDepResp.value = cur;
+  }
+
+  // ── Sugerencias de Marca (datalist) ─────────────────────────────
+  // Antes el campo "Marca" ya apuntaba a una lista de sugerencias que
+  // nunca llegó a crearse — el <input list="dl-marcas"> no tenía ningún
+  // <datalist> real detrás, así que en la práctica era texto libre sin
+  // ninguna ayuda. Se construye aquí a partir de las marcas que ya
+  // existen en el inventario, para reducir variantes del mismo
+  // fabricante ("Dell" / "DELL" / "Dell Inc.") sin bloquear marcas
+  // nuevas que aún no se hayan registrado.
+  const dlMarcas = document.getElementById('dl-marcas');
+  if(dlMarcas){
+    const marcas = [...new Set(
+      (Array.isArray(activos)?activos:[])
+        .map(a=>(a.marca||'').trim())
+        .filter(Boolean)
+    )].sort((a,b)=>a.localeCompare(b,'es'));
+    dlMarcas.innerHTML = marcas.map(m=>`<option value="${sanitizeHTML(m)}">`).join('');
+  }
+
+  // ── Sugerencias de Cargo/Rol (datalist) ──────────────────────────
+  // Misma idea que Marca: se sugieren los cargos ya registrados en el
+  // módulo de Personas, sin obligar a elegir de una lista cerrada —
+  // así "Docente" no termina escrito de 5 formas distintas entre
+  // activos, pero tampoco se bloquea un cargo legítimo que aún no
+  // exista en el catálogo.
+  const dlCargos = document.getElementById('dl-cargos');
+  if(dlCargos){
+    const cargos = [...new Set(
+      persActivas.map(p=>(p.cargo||'').trim()).filter(Boolean)
+    )].sort((a,b)=>a.localeCompare(b,'es'));
+    dlCargos.innerHTML = cargos.map(c=>`<option value="${sanitizeHTML(c)}">`).join('');
   }
 }
 
