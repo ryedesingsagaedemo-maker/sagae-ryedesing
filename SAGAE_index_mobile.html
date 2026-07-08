@@ -893,7 +893,9 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="form-group">
       <label class="form-label">Tipo</label>
       <select class="form-select" id="mm-tipo">
+        <option>Entrega de equipo</option>
         <option>Preventivo</option><option>Correctivo</option>
+        <option>Daño reportado</option>
         <option>Actualización</option><option>Limpieza</option>
         <option>Reparación</option><option>Inspección</option>
       </select>
@@ -901,6 +903,14 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="form-group">
       <label class="form-label">Descripción *</label>
       <textarea class="form-textarea" id="mm-desc" placeholder="¿Qué se realizó?"></textarea>
+    </div>
+    <!-- Fotos de este evento — constancia visual (entrega, daño, etc.) -->
+    <div class="form-group" style="background:#FFF9EC;border-radius:12px;padding:14px;border:1px solid #E7DFC6">
+      <label class="form-label" style="color:var(--navy)">📷 Fotos de este evento</label>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Hasta 3 fotos — ej: estado del equipo al entregarlo, o la falla reportada</div>
+      <div id="mm-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+      <button type="button" class="btn-secondary" id="mm-fotos-add-btn" onclick="agregarFotoMantenimientoMobile()">📷 Tomar / agregar foto</button>
+      <div id="mm-fotos-limite-note" style="display:none;margin-top:6px;font-size:11px;color:#666;">Máximo de 3 fotos por evento alcanzado.</div>
     </div>
     <div class="form-group">
       <label class="form-label">Fecha</label>
@@ -1308,7 +1318,7 @@ async function apiGet(sheet, intento=1){
   try{
     const tok = (typeof session!=='undefined' && session && session.token) ? '&session='+encodeURIComponent(session.token) : '';
     const controller = new AbortController();
-    const timer = setTimeout(()=>controller.abort(), 20000);
+    const timer = setTimeout(()=>controller.abort(), 15000);
     const r=await fetch(API+"?sheet="+sheet+tok,{mode:"cors", signal:controller.signal});
     clearTimeout(timer);
     if(!r.ok){
@@ -1337,7 +1347,7 @@ function _generarRequestId(){
 // Google Apps Script NO agrega encabezados CORS a las respuestas de
 // POST (sí lo hace en GET) — confirmado en pruebas reales. Este patrón
 // dispara el POST "a ciegas" (no-cors) y sondea el resultado con GET.
-async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
+async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
   const requestId = _generarRequestId();
   const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
   fetch(API, {
@@ -1424,8 +1434,11 @@ function apiPost(sheet,action,payload){
 }
 
 // ── CARGA INICIAL ─────────────────────────────────────────────
-// Fetch con timeout para evitar colgarse
-async function apiGetTimeout(sheet, timeoutMs=25000){
+// Fetch con timeout para evitar colgarse. IMPORTANTE: apiGet ya tiene su
+// propio timeout de 15s + 1 reintento interno (hasta ~30s en el peor
+// caso) — este timeout externo debe ser más generoso que eso, o cortaría
+// el reintento interno antes de que termine.
+async function apiGetTimeout(sheet, timeoutMs=32000){
   return new Promise((resolve)=>{
     const timer=setTimeout(()=>resolve(null),timeoutMs);
     apiGet(sheet).then(data=>{clearTimeout(timer);resolve(data);}).catch(()=>{clearTimeout(timer);resolve(null);});
@@ -1487,11 +1500,11 @@ async function loadData(){
 async function cargarDatosPostLogin(){
   try{
     const [rawT,rawA,rawDep,rawEsp,rawPer]=await Promise.all([
-      apiGetTimeout("tickets",25000),
-      apiGetTimeout("activos",25000),
-      apiGetTimeout("departamentos",25000),
-      apiGetTimeout("espacios",25000),
-      apiGetTimeout("personas",25000)
+      apiGetTimeout("tickets"),
+      apiGetTimeout("activos"),
+      apiGetTimeout("departamentos"),
+      apiGetTimeout("espacios"),
+      apiGetTimeout("personas")
     ]);
     if(rawT){tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));cntTickets=tickets.length;}
     if(rawA){activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));}
@@ -1566,6 +1579,13 @@ async function doLogin(){
   err.style.display="none";
   if(!u||!p){err.textContent="Ingresa usuario y contraseña.";err.style.display="block";return;}
 
+  const btnLogin=document.querySelector(".btn-login");
+  const _txtOriginal=btnLogin?btnLogin.textContent:"Iniciar sesión";
+  if(btnLogin){ btnLogin.disabled=true; btnLogin.textContent="Verificando..."; }
+  // Si la espera se alarga, avisar que sigue trabajando — para que el
+  // técnico no piense que la app se congeló al no ver ningún cambio.
+  const _avisoLargo=setTimeout(()=>{ if(btnLogin) btnLogin.textContent="Esto está tardando más de lo normal..."; },8000);
+
   let resp;
   try{
     resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
@@ -1573,13 +1593,18 @@ async function doLogin(){
     // típico de Apps Script) — no hace falta que el técnico vuelva a tocar
     // "Iniciar sesión" por una demora puntual del servidor.
     if(resp && resp.error==='TIMEOUT'){
+      if(btnLogin) btnLogin.textContent="Reintentando conexión...";
       resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
     }
   }catch(e){
+    clearTimeout(_avisoLargo);
+    if(btnLogin){ btnLogin.disabled=false; btnLogin.textContent=_txtOriginal; }
     err.textContent="⚠ No se pudo contactar al servidor. Verifica tu conexión.";
     err.style.display="block";
     return;
   }
+  clearTimeout(_avisoLargo);
+  if(btnLogin){ btnLogin.disabled=false; btnLogin.textContent=_txtOriginal; }
 
   if(!resp || !resp.ok){
     if(resp && resp.error==='BLOCKED'){
@@ -1624,7 +1649,14 @@ async function doLogin(){
     return;
   }
 
+  // La pantalla de login sigue visible mientras se cargan los datos —
+  // mantener el botón en estado "ocupado" para que no parezca que la
+  // app se congeló durante esta segunda espera.
+  if(btnLogin){ btnLogin.disabled=true; btnLogin.textContent="Cargando datos..."; }
+  const _avisoLargo2=setTimeout(()=>{ if(btnLogin) btnLogin.textContent="Esto está tardando más de lo normal..."; },8000);
   await cargarDatosPostLogin();
+  clearTimeout(_avisoLargo2);
+  if(btnLogin){ btnLogin.disabled=false; btnLogin.textContent=_txtOriginal; }
   iniciarControlSesionUnicaMobile();
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
@@ -1994,6 +2026,78 @@ function quitarFotoTicketMobile(index){
   if(_fotoEstaBloqueadaMobile(_mtFotosActuales[index])) return;
   _mtFotosActuales.splice(index,1);
   _renderGaleriaFotosMobile(_mtFotosActuales, false);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FOTOS POR EVENTO DE MANTENIMIENTO — hasta 3 fotos por evento (no
+// para todo el activo), con acceso directo a la cámara del celular
+// (input.capture='environment') ya que este flujo se usa sobre todo en
+// campo: al entregar un equipo o al reportar un daño recién visto.
+// ══════════════════════════════════════════════════════════════════
+let _mmFotosActuales = [];
+
+function _renderGaleriaFotosMant(){
+  const list = document.getElementById('mm-fotos-list');
+  if(!list) return;
+  list.innerHTML = _mmFotosActuales.length ? _mmFotosActuales.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#FFF3D6;border-left:3px solid #B8960C;border-radius:8px;padding:8px 10px;font-size:12px;color:#7A5C0A;">
+      <div style="flex:1;min-width:0">
+        📷 <a href="${f.url}" target="_blank" style="color:#7A5C0A;font-weight:600">Ver foto ↗</a>
+        ${f.nota?' — '+f.nota:''}
+      </div>
+      <button type="button" class="btn-secondary" onclick="quitarFotoMantenimientoMobile(${i})" style="padding:4px 8px;font-size:12px;">🗑</button>
+    </div>`).join('') : '<div style="font-size:11px;color:#666;">Sin fotos todavía.</div>';
+  document.getElementById('mm-fotos-limite-note').style.display = _mmFotosActuales.length>=3 ? 'block' : 'none';
+  const addBtn = document.getElementById('mm-fotos-add-btn');
+  if(addBtn) addBtn.style.display = _mmFotosActuales.length>=3 ? 'none' : '';
+}
+
+function quitarFotoMantenimientoMobile(index){
+  _mmFotosActuales.splice(index,1);
+  _renderGaleriaFotosMant();
+}
+
+function agregarFotoMantenimientoMobile(){
+  if(_mmFotosActuales.length >= 3){ showToast('Ya hay 3 fotos en este evento, el máximo permitido.','error'); return; }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment'; // abre la cámara trasera directamente en celular
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async () => {
+    const file = input.files[0];
+    document.body.removeChild(input);
+    if(!file) return;
+    if(file.size > 10*1024*1024){ showToast('La imagen no puede superar 10MB','error'); return; }
+
+    const btn = document.getElementById('mm-fotos-add-btn');
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
+    try{
+      const base64full = await new Promise((res,rej)=>{
+        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(file);
+      });
+      const base64data = base64full.split(',')[1];
+      const data = await apiPostAsync(null,'uploadFoto',{
+        base64:base64data, mimeType:file.type, nombreArchivo:file.name,
+        modulo:'Activos', codigoRegistro: activoDetalle?.codigo||'',
+        _sessionToken: session?session.token:null
+      }, 25000);
+      if(data && data.url){
+        const nota = prompt('Nota corta para esta foto (opcional):','') || '';
+        _mmFotosActuales.push({ url:data.url, fecha:ts(), usuario:session.nombre, nota:nota.trim().slice(0,200) });
+        _renderGaleriaFotosMant();
+        showToast('✅ Foto agregada','success');
+      }else{
+        showToast('Error al subir: '+(data?.error||'sin respuesta'),'error');
+      }
+    }catch(e){
+      showToast('Error: '+e.message,'error');
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='📷 Tomar / agregar foto'; }
+    }
+  };
+  input.click();
 }
 
 function agregarFotoTicketMobile(){
@@ -2366,6 +2470,8 @@ function openMantActivo(){
   document.getElementById("mm-desc").value="";
   document.getElementById("mm-fecha").value=new Date().toISOString().slice(0,10);
   document.getElementById("mm-costo").value="";
+  _mmFotosActuales = [];
+  _renderGaleriaFotosMant();
   document.getElementById("mant-overlay").classList.add("open");
   document.getElementById("modal-mant").classList.add("open");
 }
@@ -2401,7 +2507,7 @@ async function saveMant(){
   const desc=document.getElementById("mm-desc").value.trim();
   if(!desc){showToast("La descripción es obligatoria","error");return;}
   const emailResp=(document.getElementById("mm-email-resp")?.value||"").trim();
-  const e={tipo:document.getElementById("mm-tipo").value,desc,fecha:document.getElementById("mm-fecha").value||ts(),tec:session.nombre,costo:parseFloat(document.getElementById("mm-costo").value)||0,usuario:session.nombre,emailResp,asignadoA:activoDetalle?.asignado||"—",color:"amber"};
+  const e={tipo:document.getElementById("mm-tipo").value,desc,fecha:document.getElementById("mm-fecha").value||ts(),tec:session.nombre,costo:parseFloat(document.getElementById("mm-costo").value)||0,usuario:session.nombre,emailResp,asignadoA:activoDetalle?.asignado||"—",fotos:_mmFotosActuales.length?_mmFotosActuales:undefined,color:"amber"};
   activoDetalle.historial=activoDetalle.historial||[];
   activoDetalle.historial.push(e);
   const necesitaPiezas=document.getElementById("mm-necesita-piezas")?.checked;
@@ -2419,6 +2525,8 @@ async function saveMant(){
   saveCache();
   ["mm-desc","mm-fecha","mm-costo","mm-email-resp","mm-piezas-desc","mm-piezas-email","mm-piezas-presupuesto"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   const chk=document.getElementById("mm-necesita-piezas");if(chk){chk.checked=false;toggleMobPiezas(false);}
+  _mmFotosActuales = [];
+  _renderGaleriaFotosMant();
   showToast("Mantenimiento registrado"+(necesitaPiezas?" + solicitud de compra":"")+" ✓","success");
   closeMant();closeSheet();renderActivos();
 }
