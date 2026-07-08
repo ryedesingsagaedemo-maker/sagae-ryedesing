@@ -1707,7 +1707,7 @@ tbody tr.clickable{cursor:pointer;}
     <div id="et-hist-list" style="max-height:240px;overflow-y:auto;padding-right:4px;"></div>
   </div>
   <div id="et-readonly-note" style="display:none;margin:2px 0 10px;font-size:11px;color:var(--text3);background:#F1F5F9;border-radius:6px;padding:8px 10px;">
-    👁 Estás viendo este ticket en modo solo lectura. Tu rol no tiene permiso de edición.
+    👁 <span id="et-readonly-msg">Estás viendo este ticket en modo solo lectura.</span>
   </div>
   <div class="f-row" id="et-motivo-wrap" style="display:none;">
     <div class="req-note">Motivo obligatorio — queda registrado en auditoría.</div>
@@ -3032,6 +3032,11 @@ function openTicket(id,forceReadOnly){
   document.getElementById('et-save-btn').style.display=readOnly?'none':'';
   document.getElementById('et-motivo-wrap').style.display=(isEdit&&!readOnly)?'block':'none';
   document.getElementById('et-readonly-note').style.display=readOnly?'block':'none';
+  if(readOnly){
+    document.getElementById('et-readonly-msg').textContent = per.edit
+      ? 'Estás viendo este ticket en modo solo lectura. Toca ✎ en la lista si quieres editarlo.'
+      : 'Estás viendo este ticket en modo solo lectura. Tu rol no tiene permiso de edición.';
+  }
   document.getElementById('et-motivo').value='';document.getElementById('et-id').value=id||'';
   const sel=document.getElementById('et-activo');
   sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=='eliminado').map(a=>`<option value="${a.codigo}">${a.codigo} — ${sanitizeHTML(a.nombre||'')}</option>`).join('');
@@ -3823,8 +3828,8 @@ function renderTickets(){
       ${(t.estado!=='cerrado'&&t.estado!=='eliminado'&&['admin','tecnico'].includes(session.rol)&&t.resp!==session.nombre)?
         `<button class="act-btn" style="background:#1B3A6B;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600" onclick="tomarTicket('${t.codigo}')">Tomar</button>`:
         (t.resp===session.nombre&&t.estado!=='cerrado'?`<span style="font-size:9px;color:#1A7A4A;font-weight:600">✓ Tuyo</span>`:'')}
-      ${per.edit&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openTicket('${t.codigo}')">✎</button>`:''}
-      ${!per.edit?`<button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver detalle y seguimiento">👁</button>`:''}
+      <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial y trazabilidad (solo lectura)">👁</button>
+      ${per.edit&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openTicket('${t.codigo}')" title="Editar">✎</button>`:''}
       ${per.delete&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openDelete('ticket','${t.codigo}')" style="color:var(--red)">×</button>`:''}
     </td></tr>`).join('');
 }
@@ -3832,7 +3837,8 @@ function renderTickets(){
 function renderKanban(){
   ['abierto','progreso','revision','cerrado'].forEach(col=>{
     const items=tickets.filter(t=>t.estado===col);document.getElementById('kc-'+col).textContent=items.length;
-    document.getElementById('k-'+col).innerHTML=items.length?items.map(t=>`<div class="k-card" style="cursor:pointer" onclick="openTicket('${t.codigo}',${!((PERMS[session.rol]||{}).edit)})" title="Ver detalle y seguimiento">
+    document.getElementById('k-'+col).innerHTML=items.length?items.map(t=>`<div class="k-card" style="cursor:pointer;position:relative" onclick="openTicket('${t.codigo}',true)" title="Ver historial y trazabilidad (solo lectura)">
+      ${((PERMS[session.rol]||{}).edit)?`<button onclick="event.stopPropagation();openTicket('${t.codigo}')" title="Editar" style="position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px">✎</button>`:''}
       <div class="code-cell" style="font-size:9px;margin-bottom:3px">${t.codigo}</div>
       <div class="k-card-t">${t.titulo}</div>
       <div class="k-card-m"><span>${t.activoNombre&&t.activoNombre!=='—'?t.activoNombre:t.proy||'—'}</span><span class="badge s-${t.prior}" style="font-size:9px">${t.prior}</span></div>
@@ -4648,7 +4654,7 @@ function repTickets(el, ts){
     <div class="rep-section">
       <div class="rep-sec-title">Detalle de tickets (${lista.length})</div>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Código</th><th>Título</th><th>Activo</th><th>Responsable</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Avance</th><th>Deadline</th></tr></thead>
+        <thead><tr><th>Código</th><th>Título</th><th>Activo</th><th>Responsable</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Avance</th><th>Deadline</th><th>Trazabilidad</th></tr></thead>
         <tbody>${lista.map(t=>`<tr>
           <td class="code-cell">${t.codigo}</td>
           <td style="font-weight:600;max-width:160px">${t.titulo}</td>
@@ -4659,6 +4665,11 @@ function repTickets(el, ts){
           <td><span class="badge s-${t.estado}">${t.estado}</span></td>
           <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${t.avance||0}%"></div></div><span class="prog-t">${t.avance||0}%</span></div></td>
           <td style="font-size:10px;color:var(--text3)">${renderDead(t.dead)}</td>
+          <td style="text-align:center">
+            <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial completo (${(t.historial||[]).length} eventos)">
+              👁 ${(t.historial||[]).length}
+            </button>
+          </td>
         </tr>`).join('')}</tbody>
       </table></div>
     </div>`;
