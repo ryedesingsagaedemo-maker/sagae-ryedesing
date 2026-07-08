@@ -766,6 +766,7 @@ tbody tr.clickable{cursor:pointer;}
   <div class="spinner"></div>
   <div class="loading-text" id="loading-text">Iniciando SAGAE...</div>
   <div class="loading-sub" id="loading-sub">Conectando a Google Sheets</div>
+  <button id="loading-cancel-btn" onclick="_cancelarCargaYVolver()" style="display:none;margin-top:16px;background:none;border:1px solid #fff;color:#fff;padding:6px 16px;border-radius:6px;font-size:12px;cursor:pointer;">Cancelar y volver al inicio</button>
 </div>
 
 <div class="login-wrap" id="login-screen" style="display:none;">
@@ -2049,7 +2050,7 @@ function _updateQueueBadge(){
 async function apiGet(sheet, intento=1){
   try{
     const controller = new AbortController();
-    const timer = setTimeout(()=>controller.abort(), 25000);
+    const timer = setTimeout(()=>controller.abort(), 15000);
     const tok = session && session.token ? '&session='+encodeURIComponent(session.token) : '';
     const r = await fetch(API+'?sheet='+sheet+tok, {mode:'cors', signal:controller.signal});
     clearTimeout(timer);
@@ -2085,7 +2086,7 @@ function _generarRequestId(){
 // respuesta) y luego pregunta el resultado real con un GET, que sí es
 // legible. El servidor guarda el resultado bajo el mismo _requestId
 // durante 60 segundos (ver enviarRespuesta_ en el backend).
-async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
+async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
   const requestId = _generarRequestId();
   const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
   fetch(API, {
@@ -2329,6 +2330,13 @@ async function cargarNombreInstitucion(){
 
 async function loadFromSheets(){
   const lt=document.getElementById('loading-text'),ls=document.getElementById('loading-sub');
+  const cancelBtn=document.getElementById('loading-cancel-btn');
+  cancelBtn.style.display='none';
+  // Si la carga se alarga, avisar que sigue trabajando (no se congeló) y,
+  // pasado más tiempo, ofrecer una salida manual — para que la persona
+  // nunca se quede mirando una pantalla estática sin ninguna opción.
+  const _avisoLargo = setTimeout(()=>{ ls.textContent='Esto está tardando más de lo normal, seguimos intentando...'; }, 8000);
+  const _avisoCancelar = setTimeout(()=>{ cancelBtn.style.display='inline-block'; }, 20000);
   try{
   // ── CARGA EN PARALELO — hojas simultáneas (requiere sesión activa) ──
   lt.textContent='Cargando datos del sistema...';
@@ -2380,14 +2388,28 @@ async function loadFromSheets(){
     lt.textContent='¡Sistema listo!';
     setSyncStatus(true,'Conectado a Google Sheets');
   }
+  clearTimeout(_avisoLargo); clearTimeout(_avisoCancelar); cancelBtn.style.display='none';
   return true;
   }catch(err){
+    clearTimeout(_avisoLargo); clearTimeout(_avisoCancelar); cancelBtn.style.display='none';
     console.error('Error cargando datos:',err);
     lt.textContent='⚠️ Error de conexión';
     ls.textContent='Verifica tu conexión e intenta de nuevo.';
     setSyncStatus(false,'Error de conexión');
     return false;
   }
+}
+
+// Escape manual si la carga inicial de datos se cuelga de verdad — regresa
+// al login sin dejar a la persona atrapada mirando el spinner sin salida.
+function _cancelarCargaYVolver(){
+  document.getElementById('loading-overlay').style.display='none';
+  document.getElementById('loading-cancel-btn').style.display='none';
+  if(session){ apiPostAsync(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{}); }
+  session=null;
+  document.getElementById('login-screen').style.display='flex';
+  const err=document.getElementById('login-err');
+  if(err){ err.textContent='La carga se canceló. Intenta iniciar sesión de nuevo.'; err.style.display='block'; }
 }
 
 // Rate limiting — máximo 5 intentos, bloqueo de 5 minutos
@@ -2408,6 +2430,12 @@ async function doLogin(){
   err.style.display='none';
   if(!u||!p){err.textContent='Ingresa usuario y contraseña.';err.style.display='block';return;}
   ll.style.display='block';
+  ll.textContent='Verificando credenciales...';
+  // Si la espera se alarga, avisar que sigue trabajando en vez de dejar
+  // el mismo texto estático — así no parece que la pantalla se congeló.
+  const _avisoLargo = setTimeout(()=>{
+    ll.textContent='Esto está tardando más de lo normal, seguimos intentando...';
+  }, 8000);
 
   // La verificación de contraseña ocurre ENTERAMENTE en el servidor.
   // El cliente nunca ve ni calcula passHash de nadie.
@@ -2418,14 +2446,17 @@ async function doLogin(){
     // de un "cold start" de Apps Script) — el usuario no necesita ver el
     // error ni volver a escribir su contraseña por una demora puntual.
     if(resp && resp.error==='TIMEOUT'){
+      ll.textContent='Seguimos intentando conectar con el servidor...';
       resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
     }
   }catch(e){
+    clearTimeout(_avisoLargo);
     ll.style.display='none';
     err.textContent='⚠ No se pudo contactar al servidor. Verifica tu conexión.';
     err.style.display='block';
     return;
   }
+  clearTimeout(_avisoLargo);
 
   if(resp && resp.ok){
     ll.style.display='none';
@@ -4974,6 +5005,20 @@ function exportCSV(){
 // ya usan los reportes y las etiquetas (clase en <body> + @media print).
 const COLOR_DOT={green:'#3B6D11',red:'#B91C1C',blue:'#1B3A6B',yellow:'#BA7517',gray:'#6B7280'};
 
+// Las fotos se guardan con la URL del VISOR de Drive
+// ("https://drive.google.com/file/d/ID/view?usp=sharing"), que abre bien
+// en una pestaña nueva pero NO se puede usar como src de una <img> — un
+// navegador no la renderiza como imagen. Este helper la convierte al
+// formato de Drive que sí se puede incrustar directamente, siempre que
+// el archivo esté compartido como "cualquiera con el enlace" (que es
+// como ya se suben, ver subirFotoADrive en el backend).
+function _driveUrlToImg(url){
+  if(!url) return url;
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(!m) return url; // no es un link de Drive reconocido, se usa tal cual
+  return 'https://drive.google.com/uc?export=view&id='+m[1];
+}
+
 function imprimirExpedienteTicket(codigo){
   const t = tickets.find(x=>x.codigo===codigo);
   if(!t){ showToast('No se encontró el ticket.','error'); return; }
@@ -4997,7 +5042,7 @@ function imprimirExpedienteTicket(codigo){
       _fecha: parseFechaRegistro(f.fecha),
       tipo: '📷 Foto adjunta', desc: f.nota||'', fecha: f.fecha||'',
       usuario: f.usuario||'—', color: '#7C3AED',
-      foto: f.url
+      foto: _driveUrlToImg(f.url), fotoOriginal: f.url
     });
   });
   eventos.sort((a,b)=>(a._fecha||0)-(b._fecha||0));
@@ -5009,7 +5054,7 @@ function imprimirExpedienteTicket(codigo){
         <div class="exp-item-tipo">${sanitizeHTML(e.tipo)}</div>
         <div class="exp-item-meta">${sanitizeHTML(e.fecha)} · ${sanitizeHTML(e.usuario)}</div>
         ${e.desc?`<div class="exp-item-desc">${sanitizeHTML(e.desc)}</div>`:''}
-        ${e.foto?`<img class="exp-item-foto" src="${e.foto}">`:''}
+        ${e.foto?`<img class="exp-item-foto" src="${e.foto}" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"><div style="display:none;font-size:8pt;color:#B91C1C;">⚠ La foto no se pudo cargar. Ábrela directamente: <a href="${e.fotoOriginal}">${e.fotoOriginal}</a></div>`:''}
       </div>
     </div>`).join('') : '<div style="padding:6mm 0;color:#888;font-size:9pt">Sin eventos registrados.</div>';
 
