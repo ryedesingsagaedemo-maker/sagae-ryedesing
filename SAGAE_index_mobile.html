@@ -1304,16 +1304,28 @@ function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({tickets,
 function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c){tickets=c.tickets||[];activos=c.activos||[];cntTickets=tickets.length;return true;}}catch(e){}return false;}
 
 // ── API ─────────────────────────────────────────────────────────
-async function apiGet(sheet){
+async function apiGet(sheet, intento=1){
   try{
     const tok = (typeof session!=='undefined' && session && session.token) ? '&session='+encodeURIComponent(session.token) : '';
-    const r=await fetch(API+"?sheet="+sheet+tok,{mode:"cors"});
-    if(!r.ok)return[];
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), 20000);
+    const r=await fetch(API+"?sheet="+sheet+tok,{mode:"cors", signal:controller.signal});
+    clearTimeout(timer);
+    if(!r.ok){
+      if(intento<2) return apiGet(sheet, intento+1);
+      return null;
+    }
     const d=await r.json();
     if(d && d.ok===false && d.error==='SESSION_INVALID'){ _sesionExpiradaMobile(); return []; }
     return Array.isArray(d)?d:[];
   }
-  catch(e){return null;}
+  catch(e){
+    // Reintento único: los "cold starts" de Apps Script a veces tardan
+    // más que el límite de tiempo en el primer intento y responden bien
+    // en el segundo — evita que el técnico vea la app vacía por gusto.
+    if(intento<2) return apiGet(sheet, intento+1);
+    return null;
+  }
 }
 
 // Llamada legible (no no-cors) para login/sesión/cierre de sesión —
@@ -1325,7 +1337,7 @@ function _generarRequestId(){
 // Google Apps Script NO agrega encabezados CORS a las respuestas de
 // POST (sí lo hace en GET) — confirmado en pruebas reales. Este patrón
 // dispara el POST "a ciegas" (no-cors) y sondea el resultado con GET.
-async function apiPostAsync(sheet, action, payload, timeoutMs=12000){
+async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
   const requestId = _generarRequestId();
   const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
   fetch(API, {
@@ -1413,7 +1425,7 @@ function apiPost(sheet,action,payload){
 
 // ── CARGA INICIAL ─────────────────────────────────────────────
 // Fetch con timeout para evitar colgarse
-async function apiGetTimeout(sheet, timeoutMs=8000){
+async function apiGetTimeout(sheet, timeoutMs=25000){
   return new Promise((resolve)=>{
     const timer=setTimeout(()=>resolve(null),timeoutMs);
     apiGet(sheet).then(data=>{clearTimeout(timer);resolve(data);}).catch(()=>{clearTimeout(timer);resolve(null);});
@@ -1475,18 +1487,34 @@ async function loadData(){
 async function cargarDatosPostLogin(){
   try{
     const [rawT,rawA,rawDep,rawEsp,rawPer]=await Promise.all([
-      apiGetTimeout("tickets",10000),
-      apiGetTimeout("activos",10000),
-      apiGetTimeout("departamentos",10000),
-      apiGetTimeout("espacios",10000),
-      apiGetTimeout("personas",10000)
+      apiGetTimeout("tickets",25000),
+      apiGetTimeout("activos",25000),
+      apiGetTimeout("departamentos",25000),
+      apiGetTimeout("espacios",25000),
+      apiGetTimeout("personas",25000)
     ]);
     if(rawT){tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));cntTickets=tickets.length;}
     if(rawA){activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));}
     if(rawDep){departamentos=rawDep.map(r=>({...r}));}
     if(rawEsp){espacios=rawEsp.map(r=>({...r}));}
     if(rawPer){personas=rawPer.map(r=>({...r}));}
-    saveCache();setSyncStatus(true);
+    saveCache();
+    // ── AVISO DE CARGA PARCIAL ──────────────────────────────────
+    // apiGetTimeout puede devolver null si, incluso con el reintento
+    // interno de apiGet, no hubo respuesta a tiempo. Antes esto se
+    // ignoraba en silencio y de todos modos se marcaba "sincronizado":
+    // el técnico veía un dashboard vacío pensando que era la realidad,
+    // sin ninguna señal de que en verdad falló la carga.
+    const fallaron=[];
+    if(rawT===null) fallaron.push("tickets");
+    if(rawA===null) fallaron.push("activos");
+    if(fallaron.length){
+      setSyncStatus(false);
+      document.getElementById("offline-banner").classList.add("show");
+      showToast('⚠ No se pudo cargar: '+fallaron.join(', ')+'. Desliza hacia abajo para reintentar.', 'error');
+      return false;
+    }
+    setSyncStatus(true);
     document.getElementById("offline-banner").classList.remove("show");
     return true;
   }catch(e){
@@ -1541,6 +1569,12 @@ async function doLogin(){
   let resp;
   try{
     resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
+    // Reintento automático y silencioso ante un simple timeout (cold start
+    // típico de Apps Script) — no hace falta que el técnico vuelva a tocar
+    // "Iniciar sesión" por una demora puntual del servidor.
+    if(resp && resp.error==='TIMEOUT'){
+      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
+    }
   }catch(e){
     err.textContent="⚠ No se pudo contactar al servidor. Verifica tu conexión.";
     err.style.display="block";
