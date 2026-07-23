@@ -2452,13 +2452,13 @@ async function doLogin(){
   // El cliente nunca ve ni calcula passHash de nadie.
   let resp;
   try{
-    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
+    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'web'});
     // Reintento automático y silencioso si fue por tiempo agotado (típico
     // de un "cold start" de Apps Script) — el usuario no necesita ver el
     // error ni volver a escribir su contraseña por una demora puntual.
     if(resp && resp.error==='TIMEOUT'){
       ll.textContent='Seguimos intentando conectar con el servidor...';
-      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
+      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'web'});
     }
   }catch(e){
     clearTimeout(_avisoLargo);
@@ -2970,24 +2970,36 @@ async function saveActivo(){
 
 
 
+// Debe coincidir exactamente con _respNormalizado_ del backend.
+function _respNormalizadoJS_(v){
+  const s = String(v||'').trim();
+  if(s==='' || s==='—' || s.toLowerCase()==='sin asignar') return null;
+  return s;
+}
+
 // ── API POST con respuesta legible — para tomar tickets ──────────
 async function apiPostConRespuesta(sheet, action, payload){
-  // Para tomar tickets: verificar ANTES vía GET si sigue sin asignar
+  // Para tomar tickets: verificar ANTES vía GET si el responsable sigue
+  // siendo el mismo que el usuario vio al pulsar "Tomar". Antes esto
+  // bloqueaba CUALQUIER ticket que ya tuviera un responsable, lo cual
+  // impedía la reasignación intencional (un técnico no puede seguir,
+  // otro —desde web o mobile— lo toma). La comparación correcta es
+  // contra el responsable ESPERADO (payload._respEsperado), no contra
+  // "¿está vacío?".
   if(payload && payload._isTakeTicket){
     try{
       const freshData = await apiGet('tickets');
       if(Array.isArray(freshData)){
         const tFresh = freshData.find(x => x.codigo === payload.codigo);
         if(tFresh){
-          const respActual = String(tFresh.resp||'').trim();
-          const sinAsignar = respActual==='' || respActual==='—' ||
-                             respActual.toLowerCase()==='sin asignar';
-          if(!sinAsignar){
-            return {ok: false, error: 'TICKET_ALREADY_TAKEN', takenBy: respActual};
+          const respActualNorm = _respNormalizadoJS_(tFresh.resp);
+          const respEsperadoNorm = _respNormalizadoJS_(payload._respEsperado);
+          if(respActualNorm !== respEsperadoNorm){
+            return {ok: false, error: 'TICKET_ALREADY_TAKEN', takenBy: respActualNorm || 'Sin asignar'};
           }
         }
       }
-    }catch(e){ /* si falla el check, continuar */ }
+    }catch(e){ /* si falla el check, continuar — el servidor valida igual */ }
   }
   // POST siempre con no-cors (Apps Script no soporta CORS preflight en POST)
   try{
@@ -3051,8 +3063,12 @@ async function tomarTicket(codigo){
     color:   'blue'
   });
 
-  // Marcar como operación de tomar ticket para que el servidor valide
+  // Marcar como operación de tomar ticket para que el servidor valide, e
+  // indicar quién era el responsable esperado (visto por este usuario justo
+  // antes de pulsar "Tomar") — es contra ESE valor que se detecta la carrera,
+  // no contra "¿está vacío?" (eso bloqueaba la reasignación intencional).
   t._isTakeTicket = true;
+  t._respEsperado = respAnterior;
 
   // Usar POST con respuesta para detectar si alguien llegó primero
   const resultado = await apiPostConRespuesta('tickets','update',t);
@@ -5451,11 +5467,68 @@ document.addEventListener('click', e => {
   if (!document.getElementById('search-wrap')?.contains(e.target)) closeSearch();
 });
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModals();});
+// ══════════════════════════════════════════════════════════════════
+// PROTECCIÓN CONTRA PÉRDIDA DE DATOS AL CERRAR UN MODAL POR ACCIDENTE
+// ══════════════════════════════════════════════════════════════════
+// Antes, un clic fuera del recuadro (o Escape) cerraba el modal sin
+// preguntar nada, perdiendo todo lo escrito en el formulario — muy fácil
+// de disparar sin querer. Ahora se toma una "foto" de los valores del
+// formulario justo cuando el modal termina de abrirse (y de poblarse),
+// y si al intentar cerrarlo por fuera del recuadro los valores ya no
+// coinciden con esa foto, se pide confirmación antes de descartar.
+function _snapshotFormularioModal_(modalEl){
+  const campos = modalEl.querySelectorAll('input, textarea, select');
+  const data = {};
+  campos.forEach(el=>{
+    if(!el.id) return;
+    data[el.id] = (el.type==='checkbox'||el.type==='radio') ? el.checked : el.value;
+  });
+  return JSON.stringify(data);
+}
+window._modalSnapshots = window._modalSnapshots || {};
+(function _iniciarObservadorModales_(){
+  const obs = new MutationObserver(muts=>{
+    muts.forEach(m=>{
+      const el = m.target;
+      if(!(el instanceof HTMLElement) || !el.classList || !el.classList.contains('modal-bg') || !el.id) return;
+      if(el.classList.contains('open')){
+        // Se abrió: guardar foto del estado ya poblado (el observer corre
+        // después de que la función de apertura terminó de llenar campos).
+        window._modalSnapshots[el.id] = _snapshotFormularioModal_(el);
+      } else {
+        delete window._modalSnapshots[el.id];
+      }
+    });
+  });
+  obs.observe(document.body, {attributes:true, attributeFilter:['class'], subtree:true});
+})();
+function _hayModalConCambiosSinGuardar_(){
+  let hayCambios = false;
+  document.querySelectorAll('.modal-bg.open').forEach(el=>{
+    const snap = window._modalSnapshots[el.id];
+    if(snap===undefined) return; // no se pudo tomar foto (no debería pasar) — no bloquear el cierre
+    if(_snapshotFormularioModal_(el) !== snap) hayCambios = true;
+  });
+  return hayCambios;
+}
+function _confirmarCierreSiHayCambios_(){
+  if(_hayModalConCambiosSinGuardar_()){
+    return confirm('Tienes cambios sin guardar en este formulario.\n\n¿Deseas descartarlos y cerrar de todas formas?');
+  }
+  return true;
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(_confirmarCierreSiHayCambios_()) closeModals();
+  }
+});
 // Cierre de modales con delegación — funciona para TODOS los modal-bg
 // incluyendo los que se añadan después (como mod-etiq-grupo)
 document.addEventListener('click', e=>{
-  if(e.target && e.target.classList.contains('modal-bg')) closeModals();
+  if(e.target && e.target.classList.contains('modal-bg')){
+    if(_confirmarCierreSiHayCambios_()) closeModals();
+  }
 });
 mostrarPantallaLogin();
 
