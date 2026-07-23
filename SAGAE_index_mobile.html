@@ -597,7 +597,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <!-- MODAL NUEVO / EDITAR TICKET -->
 
 <!-- MODAL NUEVO ACTIVO -->
-<div class="modal-overlay" id="mob-activo-overlay" onclick="cerrarNuevoActivoMobile()"></div>
+<div class="modal-overlay" id="mob-activo-overlay" onclick="_intentarCerrarModalMobile_('mob-modal-activo', cerrarNuevoActivoMobile)"></div>
 <div class="modal-sheet" id="mob-modal-activo">
   <div class="modal-header">
     <span class="modal-header-title">Nuevo activo</span>
@@ -769,7 +769,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+<div class="modal-overlay" id="modal-overlay" onclick="_intentarCerrarModalMobile_('modal-ticket', closeModal)"></div>
 <div class="modal-sheet" id="modal-ticket">
   <div class="modal-header">
     <span class="modal-header-title" id="modal-title">Nuevo ticket</span>
@@ -883,7 +883,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </div>
 
 <!-- MODAL MANTENIMIENTO -->
-<div class="modal-overlay" id="mant-overlay" onclick="closeMant()"></div>
+<div class="modal-overlay" id="mant-overlay" onclick="_intentarCerrarModalMobile_('modal-mant', closeMant)"></div>
 <div class="modal-sheet" id="modal-mant">
   <div class="modal-header">
     <span class="modal-header-title">Registrar mantenimiento</span>
@@ -999,8 +999,51 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-// CONFIG
+// PROTECCIÓN CONTRA PÉRDIDA DE DATOS AL CERRAR UN MODAL POR ACCIDENTE
 // ══════════════════════════════════════════════════════════════════
+// Antes, tocar el fondo oscuro fuera de la hoja del formulario (ticket,
+// activo, mantenimiento) lo cerraba de inmediato sin preguntar nada —
+// muy fácil de disparar sin querer en celular. Ahora se toma una "foto"
+// de los valores del formulario justo cuando termina de abrirse y
+// poblarse, y si al tocar fuera los valores ya no coinciden con esa
+// foto, se pide confirmación antes de descartar.
+function _snapshotFormularioModal_(modalEl){
+  const campos = modalEl.querySelectorAll('input, textarea, select');
+  const data = {};
+  campos.forEach(el=>{
+    if(!el.id) return;
+    data[el.id] = (el.type==='checkbox'||el.type==='radio') ? el.checked : el.value;
+  });
+  return JSON.stringify(data);
+}
+window._modalSnapshots = window._modalSnapshots || {};
+(function _iniciarObservadorModalesMobile_(){
+  const obs = new MutationObserver(muts=>{
+    muts.forEach(m=>{
+      const el = m.target;
+      if(!(el instanceof HTMLElement) || !el.classList || !el.classList.contains('modal-sheet') || !el.id) return;
+      if(el.classList.contains('open')){
+        window._modalSnapshots[el.id] = _snapshotFormularioModal_(el);
+      } else {
+        delete window._modalSnapshots[el.id];
+      }
+    });
+  });
+  document.addEventListener('DOMContentLoaded', ()=>{
+    obs.observe(document.body, {attributes:true, attributeFilter:['class'], subtree:true});
+  });
+})();
+// Se usa desde el onclick del fondo (overlay) de cada modal — recibe el id
+// de la hoja (modal-sheet) y la función que realmente lo cierra.
+function _intentarCerrarModalMobile_(modalSheetId, fnCerrar){
+  const el = document.getElementById(modalSheetId);
+  const snap = el ? window._modalSnapshots[modalSheetId] : undefined;
+  if(el && snap!==undefined && _snapshotFormularioModal_(el) !== snap){
+    if(!confirm('Tienes cambios sin guardar en este formulario.\n\n¿Deseas descartarlos y cerrar de todas formas?')) return;
+  }
+  fnCerrar();
+}
+
 const API = "https://script.google.com/macros/s/AKfycbxSA74xU_zCdMuS6GFwbwWcYwW0JxyzlPgb08TWaJPyu8AxthZVzuY9tYbwK6oXxFPU/exec";
 const API_TOKEN = "SAGAE-7F2A9C41E8B6D053A1C4F9082EB37A65"; // gate mínimo — la autorización real es la sesión
 const CACHE_KEY = "sagae_mobile_cache";
@@ -1588,13 +1631,13 @@ async function doLogin(){
 
   let resp;
   try{
-    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
+    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'});
     // Reintento automático y silencioso ante un simple timeout (cold start
     // típico de Apps Script) — no hace falta que el técnico vuelva a tocar
     // "Iniciar sesión" por una demora puntual del servidor.
     if(resp && resp.error==='TIMEOUT'){
       if(btnLogin) btnLogin.textContent="Reintentando conexión...";
-      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p});
+      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'});
     }
   }catch(e){
     clearTimeout(_avisoLargo);
@@ -1797,24 +1840,36 @@ function tktCardHTML(t){
 
 // ── TOMAR TICKET — técnico se auto-asigna ────────────────────────
 
+// Debe coincidir exactamente con _respNormalizado_ del backend.
+function _respNormalizadoJS_(v){
+  const s = String(v||'').trim();
+  if(s==='' || s==='—' || s.toLowerCase()==='sin asignar') return null;
+  return s;
+}
+
 // ── API POST con respuesta legible — para tomar tickets ──────────
 async function apiPostConRespuesta(sheet, action, payload){
-  // Para tomar tickets: verificar ANTES vía GET si sigue sin asignar
+  // Para tomar tickets: verificar ANTES vía GET si el responsable sigue
+  // siendo el mismo que el técnico vio al pulsar "Tomar". Antes esto
+  // bloqueaba CUALQUIER ticket que ya tuviera un responsable, lo cual
+  // impedía la reasignación intencional (un técnico no puede seguir,
+  // otro —desde mobile o web— lo toma). La comparación correcta es
+  // contra el responsable ESPERADO (payload._respEsperado), no contra
+  // "¿está vacío?".
   if(payload && payload._isTakeTicket){
     try{
       const freshData = await apiGet('tickets');
       if(Array.isArray(freshData)){
         const tFresh = freshData.find(x => x.codigo === payload.codigo);
         if(tFresh){
-          const respActual = String(tFresh.resp||'').trim();
-          const sinAsignar = respActual==='' || respActual==='—' ||
-                             respActual.toLowerCase()==='sin asignar';
-          if(!sinAsignar){
-            return {ok: false, error: 'TICKET_ALREADY_TAKEN', takenBy: respActual};
+          const respActualNorm = _respNormalizadoJS_(tFresh.resp);
+          const respEsperadoNorm = _respNormalizadoJS_(payload._respEsperado);
+          if(respActualNorm !== respEsperadoNorm){
+            return {ok: false, error: 'TICKET_ALREADY_TAKEN', takenBy: respActualNorm || 'Sin asignar'};
           }
         }
       }
-    }catch(e){ /* si falla el check, continuar */ }
+    }catch(e){ /* si falla el check, continuar — el servidor valida igual */ }
   }
   // POST con no-cors (Apps Script no soporta CORS preflight en POST)
   try{
@@ -1866,8 +1921,12 @@ async function tomarTicket(codigo, e){
     color:   'blue'
   });
 
-  // Marcar como tomar ticket para validación en servidor
+  // Marcar como tomar ticket para validación en servidor, e indicar quién
+  // era el responsable esperado (visto por este técnico justo antes de
+  // pulsar "Tomar") — la carrera se detecta contra ESE valor, no contra
+  // "¿está vacío?" (eso bloqueaba la reasignación intencional).
   t._isTakeTicket = true;
+  t._respEsperado = respAnterior;
 
   const resultado = await apiPostConRespuesta('tickets','update',t);
   await apiPost('auditoria','insert',{
@@ -2057,6 +2116,48 @@ function quitarFotoMantenimientoMobile(index){
   _renderGaleriaFotosMant();
 }
 
+// ══════════════════════════════════════════════════════════════════
+// COMPRESIÓN DE FOTOS ANTES DE SUBIR (solo móvil)
+// ══════════════════════════════════════════════════════════════════
+// Las fotos de cámara de un celular actual suelen pesar 3-8MB. En base64
+// eso crece ~33% más, y en redes celulares (3G/4G con señal débil, típico
+// en campo) enviar ese volumen a menudo supera el tiempo de espera antes
+// de completarse — esa es la causa más probable de "no sube fotos" en la
+// app móvil. Aquí se redimensiona y recomprime la imagen en el propio
+// navegador (canvas) antes de convertirla a base64, reduciendo el tamaño
+// típico a unos cientos de KB sin pérdida perceptible para uso de
+// evidencia/documentación. No aplica a PDFs (agregarFotoTicketAdmin en el
+// panel web acepta PDF además de imagen).
+function _comprimirImagenMobile(file, maxDim=1600, calidad=0.72){
+  return new Promise((resolve,reject)=>{
+    if(!file.type || !file.type.startsWith('image/')){
+      resolve(file); // no es imagen (no debería pasar en subida móvil) — usar tal cual
+      return;
+    }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let {width, height} = img;
+      if(width > maxDim || height > maxDim){
+        const ratio = Math.min(maxDim/width, maxDim/height);
+        width = Math.round(width*ratio);
+        height = Math.round(height*ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob)=>{
+        if(!blob){ resolve(file); return; } // fallback: subir original si falla la compresión
+        resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), {type:'image/jpeg'}));
+      }, 'image/jpeg', calidad);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); }; // fallback: subir original
+    img.src = url;
+  });
+}
+
 function agregarFotoMantenimientoMobile(){
   if(_mmFotosActuales.length >= 3){ showToast('Ya hay 3 fotos en este evento, el máximo permitido.','error'); return; }
   const input = document.createElement('input');
@@ -2072,22 +2173,26 @@ function agregarFotoMantenimientoMobile(){
     if(file.size > 10*1024*1024){ showToast('La imagen no puede superar 10MB','error'); return; }
 
     const btn = document.getElementById('mm-fotos-add-btn');
-    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Comprimiendo...'; }
     try{
+      const fileComprimido = await _comprimirImagenMobile(file);
+      if(btn) btn.textContent='⏳ Subiendo...';
       const base64full = await new Promise((res,rej)=>{
-        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(file);
+        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(fileComprimido);
       });
       const base64data = base64full.split(',')[1];
       const data = await apiPostAsync(null,'uploadFoto',{
-        base64:base64data, mimeType:file.type, nombreArchivo:file.name,
+        base64:base64data, mimeType:fileComprimido.type, nombreArchivo:fileComprimido.name,
         modulo:'Activos', codigoRegistro: activoDetalle?.codigo||'',
         _sessionToken: session?session.token:null
-      }, 25000);
+      }, 60000); // 60s: red celular + imagen comprimida — más margen que otras acciones
       if(data && data.url){
         const nota = prompt('Nota corta para esta foto (opcional):','') || '';
         _mmFotosActuales.push({ url:data.url, fecha:ts(), usuario:session.nombre, nota:nota.trim().slice(0,200) });
         _renderGaleriaFotosMant();
         showToast('✅ Foto agregada','success');
+      }else if(data && data.error==='TIMEOUT'){
+        showToast('⏱ La subida tardó demasiado. Verifica tu señal y vuelve a intentar.','error');
       }else{
         showToast('Error al subir: '+(data?.error||'sin respuesta'),'error');
       }
@@ -2115,17 +2220,19 @@ function agregarFotoTicketMobile(){
     if(file.size > 10*1024*1024){ showMobToast('La imagen no puede superar 10MB'); return; }
 
     const btn = document.getElementById('mt-fotos-add-btn');
-    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Comprimiendo...'; }
     try{
+      const fileComprimido = await _comprimirImagenMobile(file);
+      if(btn) btn.textContent='⏳ Subiendo...';
       const base64full = await new Promise((res,rej)=>{
-        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(file);
+        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(fileComprimido);
       });
       const base64data = base64full.split(',')[1];
       const data = await apiPostAsync(null,'uploadFoto',{
-        base64:base64data, mimeType:file.type, nombreArchivo:file.name,
+        base64:base64data, mimeType:fileComprimido.type, nombreArchivo:fileComprimido.name,
         modulo:'Tickets', codigoRegistro: document.getElementById('mt-id').value||'',
         _sessionToken: session?session.token:null
-      }, 25000);
+      }, 60000); // 60s: red celular + imagen comprimida — más margen que otras acciones
       if(data && data.url){
         const nota = prompt('Nota corta para esta foto (opcional):','') || '';
         _mtFotosActuales.push({
@@ -2134,6 +2241,8 @@ function agregarFotoTicketMobile(){
         });
         _renderGaleriaFotosMobile(_mtFotosActuales, false);
         showMobToast('✅ Foto agregada');
+      }else if(data && data.error==='TIMEOUT'){
+        showMobToast('⏱ La subida tardó demasiado. Verifica tu señal y vuelve a intentar.');
       }else{
         showMobToast('Error al subir: '+(data?.error||'sin respuesta'));
       }
@@ -3184,15 +3293,17 @@ function abrirSubidaFotoMobile(targetInputId, previewId, btnId, modulo){
     }
 
     const btn = document.getElementById(btnId);
-    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Comprimiendo...'; }
 
     try {
+      const fileComprimido = await _comprimirImagenMobile(file);
+      if(btn) btn.textContent='⏳ Subiendo...';
       // Leer como base64
       const base64full = await new Promise((res,rej)=>{
         const r = new FileReader();
         r.onload  = ()=>res(r.result);
         r.onerror = ()=>rej(new Error('Error leyendo archivo'));
-        r.readAsDataURL(file);
+        r.readAsDataURL(fileComprimido);
       });
       const base64data = base64full.split(',')[1];
 
@@ -3200,12 +3311,12 @@ function abrirSubidaFotoMobile(targetInputId, previewId, btnId, modulo){
       // Apps Script. Usamos el patrón POST-ciego + GET-resultado.
       const data = await apiPostAsync(null,'uploadFoto',{
         base64:          base64data,
-        mimeType:        file.type,
-        nombreArchivo:   file.name,
+        mimeType:        fileComprimido.type,
+        nombreArchivo:   fileComprimido.name,
         modulo:          modulo,
         codigoRegistro:  '',
         _sessionToken:   session ? session.token : null
-      }, 25000);
+      }, 60000); // 60s: red celular + imagen comprimida — más margen que otras acciones
 
       if(data && data.url){
         const inp  = document.getElementById(targetInputId);
@@ -3216,6 +3327,8 @@ function abrirSubidaFotoMobile(targetInputId, previewId, btnId, modulo){
           prev.innerHTML = `📷 <strong>${file.name}</strong> — <a href="${data.url}" target="_blank" style="color:#1B3A6B">Ver foto ↗</a>`;
         }
         showMobToast('✅ Foto subida correctamente');
+      } else if(data && data.error==='TIMEOUT'){
+        showMobToast('⏱ La subida tardó demasiado. Verifica tu señal y vuelve a intentar.');
       } else {
         showMobToast('Error al subir: '+(data?.error||'sin respuesta'));
       }
