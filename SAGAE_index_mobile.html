@@ -1864,8 +1864,12 @@ async function apiPostConRespuesta(sheet, action, payload){
         if(tFresh){
           const respActualNorm = _respNormalizadoJS_(tFresh.resp);
           const respEsperadoNorm = _respNormalizadoJS_(payload._respEsperado);
-          if(respActualNorm !== respEsperadoNorm){
-            return {ok: false, error: 'TICKET_ALREADY_TAKEN', takenBy: respActualNorm || 'Sin asignar'};
+          // Solo bloquear la carrera real: ticket que el técnico creía LIBRE
+          // pero que alguien más acaba de tomar. Si ya sabía que tenía
+          // responsable (aunque su vista esté desactualizada sobre quién
+          // exactamente), es una reasignación intencional — permitir.
+          if(respEsperadoNorm === null && respActualNorm !== null){
+            return {ok: false, error: 'TICKET_ALREADY_TAKEN', takenBy: respActualNorm};
           }
         }
       }
