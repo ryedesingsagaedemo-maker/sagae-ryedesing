@@ -466,16 +466,30 @@ tbody tr.clickable{cursor:pointer;}
   }
 }
 
-/* ── EXPEDIENTE COMPLETO DE TICKET — historial + fotos en una sola línea de tiempo ── */
+/* ── EXPEDIENTE COMPLETO DE TICKET / ACTIVO — historial + fotos en una sola línea de tiempo ── */
 @media print{
   @page{ size: letter portrait; margin: 14mm 16mm; }
-  body.printing-expediente *{ visibility:hidden!important; }
-  body.printing-expediente #print-expediente-area,
-  body.printing-expediente #print-expediente-area *{ visibility:visible!important; }
+  /* Antes #print-expediente-area usaba position:fixed para "escapar" del
+     layout de altura fija de #screen (overflow:hidden). Eso funciona para
+     un encabezado corto, pero un elemento fijo se REPITE completo en CADA
+     página al imprimir — por eso el expediente salía duplicado en las 8
+     páginas. La corrección correcta (igual que ya se hizo para reportes):
+     sacar a #screen y sus hijos de su layout fijo con overflow:hidden, y
+     ocultar todo lo demás con display:none (no visibility:hidden, que sí
+     ocupa espacio) para que el expediente fluya una sola vez en flujo
+     normal, paginándose naturalmente si no cabe en una hoja. */
+  body.printing-expediente #screen > *:not(#print-expediente-area){
+    display:none!important;
+  }
+  body.printing-expediente #screen{
+    display:block!important; width:100%!important; max-width:none!important;
+    height:auto!important; max-height:none!important; overflow:visible!important;
+    box-shadow:none!important; border-radius:0!important;
+  }
   body.printing-expediente #print-expediente-area{
-    position:fixed!important; top:0!important; left:0!important;
+    display:block!important;
     width:100%!important; margin:0!important; padding:0!important;
-    background:#fff!important; display:block!important;
+    background:#fff!important;
     font-family:Arial,Helvetica,sans-serif!important; color:#111!important;
   }
   .exp-header{border:0.5mm solid #1B3A6B;border-radius:3mm;padding:5mm 6mm;margin-bottom:6mm;background:#E8F0FB;break-inside:avoid;}
@@ -2994,8 +3008,12 @@ async function apiPostConRespuesta(sheet, action, payload){
         if(tFresh){
           const respActualNorm = _respNormalizadoJS_(tFresh.resp);
           const respEsperadoNorm = _respNormalizadoJS_(payload._respEsperado);
-          if(respActualNorm !== respEsperadoNorm){
-            return {ok: false, error: 'TICKET_ALREADY_TAKEN', takenBy: respActualNorm || 'Sin asignar'};
+          // Solo bloquear la carrera real: ticket que el usuario creía LIBRE
+          // pero que alguien más acaba de tomar. Si el usuario ya sabía que
+          // tenía responsable (aunque su vista esté desactualizada sobre
+          // quién exactamente), es una reasignación intencional — permitir.
+          if(respEsperadoNorm === null && respActualNorm !== null){
+            return {ok: false, error: 'TICKET_ALREADY_TAKEN', takenBy: respActualNorm};
           }
         }
       }
