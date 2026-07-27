@@ -2032,6 +2032,7 @@ let session=null,activos=[],tickets=[],auditLog=[],usuarios=[],activoActual=null
 let cntActivos=0,cntTickets=0,filtroA='todos',filtroT='todos',filtroAud='todos',filtroTipo='todos';
 let mobiliario=[];
 let licencias=[];
+let responsablesLista=[];
 let departamentos=[];
 let personas=[];
 let espacios=[];
@@ -2211,6 +2212,21 @@ function _updateQueueBadge(){
 // que quien llama pueda distinguir "no hay datos" de "no se pudo cargar" —
 // antes ambos casos se veían idénticos en pantalla (ceros/"Sin datos"),
 // lo cual confundía una falla de red con una ausencia real de información.
+// La hoja "usuarios" completa solo la puede leer admin (trae correo,
+// usuario, etc. — ver PERMS_SERVER/puedeLeerHoja_ en el backend). Para
+// que técnico/consultor/inventario también puedan elegir un responsable
+// al crear o editar un ticket, se usa este endpoint aparte que solo trae
+// nombre y rol de los usuarios activos — nada sensible.
+async function cargarResponsablesLista(){
+  try{
+    const tok = session && session.token ? '&session='+encodeURIComponent(session.token) : '';
+    const r = await fetch(API+'?action=responsables'+tok, {mode:'cors'});
+    if(!r.ok) return;
+    const d = await r.json();
+    if(Array.isArray(d)) responsablesLista = d;
+  }catch(e){ /* silencioso: el select queda solo con "Sin asignar" si falla */ }
+}
+
 async function apiGet(sheet, intento=1){
   try{
     const controller = new AbortController();
@@ -2514,7 +2530,8 @@ async function loadFromSheets(){
     apiGet('licencias').catch(()=>[]),
     apiGet('personas').catch(()=>[]),
     apiGet('espacios').catch(()=>[]),
-    apiGet('departamentos').catch(()=>[])
+    apiGet('departamentos').catch(()=>[]),
+    cargarResponsablesLista()
   ]);
   lt.textContent='Procesando datos...';
   usuarios = rawU.map(r=>({...r}));
@@ -3301,7 +3318,7 @@ function openTicket(id,forceReadOnly){
   sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=='eliminado').map(a=>`<option value="${a.codigo}">${a.codigo} — ${sanitizeHTML(a.nombre||'')}</option>`).join('');
   // Poblar select de responsables con usuarios activos
   const respSel=document.getElementById('et-resp');
-  const usuariosActivos=usuarios.filter(u=>u.estado==='activo'||u.estado!=='inactivo');
+  const usuariosActivos=responsablesLista.filter(u=>u.estado==='activo'||u.estado!=='inactivo');
   respSel.innerHTML='<option value="">— Selecciona responsable —</option>'+usuariosActivos.map(u=>`<option value="${u.nombre}">${u.nombre} (${u.rol==='admin'?'Admin':u.rol==='tecnico'?'Técnico':u.rol==='consultor'?'Consultor':'Inventario'})</option>`).join('');
   if(isEdit){
     const t=tickets.find(x=>x.codigo===id);if(!t)return;
@@ -3579,7 +3596,7 @@ async function confirmDelete(){
 function openMant(){
   // Poblar select de técnicos con usuarios activos que sean admin o tecnico
   const tecSel = document.getElementById('mm-tec');
-  const tecnicos = usuarios.filter(u=>(u.estado==='activo'||!u.estado||u.estado!=='inactivo') && ['admin','tecnico'].includes(u.rol));
+  const tecnicos = responsablesLista.filter(u=>(u.estado==='activo'||!u.estado||u.estado!=='inactivo') && ['admin','tecnico'].includes(u.rol));
   tecSel.innerHTML = '<option value="">— Selecciona técnico —</option>' +
     tecnicos.map(u=>`<option value="${u.nombre}">${u.nombre} (${u.rol==='admin'?'Admin':'Técnico'})</option>`).join('');
   // Pre-seleccionar al usuario actual si es técnico o admin
