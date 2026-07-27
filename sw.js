@@ -1,16 +1,18 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v1.7
+// SAGAE — Service Worker v1.8
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v1.7';
-const CACHE_STATIC = 'sagae-static-v1.7';
+const CACHE_NAME   = 'sagae-mobile-v1.8';
+const CACHE_STATIC = 'sagae-static-v1.8';
 
 // Recursos a cachear para funcionamiento offline
-// CORRECCIÓN v1.7: antes apuntaba a index.html (panel de escritorio),
-// por eso el técnico veía el panel web dentro del "shell" de la PWA.
-// El módulo de técnico vive en SAGAE_index_mobile.html.
+// (Corrección histórica v1.7: antes apuntaba a index.html —panel de
+// escritorio—, por eso el técnico veía el panel web dentro del "shell"
+// de la PWA. El módulo de técnico vive en SAGAE_index_mobile.html.)
+// v1.8: se sube de versión para forzar refresco de caché tras cambios
+// en el formulario de tipo de activo (Licencia de Software) del móvil.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -21,7 +23,7 @@ const STATIC_ASSETS = [
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v1.7...');
+  console.log('[SAGAE SW] Instalando v1.8...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -36,7 +38,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v1.7...');
+  console.log('[SAGAE SW] Activando v1.8...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -154,4 +156,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v1.7 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v1.8 cargado correctamente');
