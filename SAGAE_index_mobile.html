@@ -600,7 +600,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div class="modal-overlay" id="mob-activo-overlay" onclick="_intentarCerrarModalMobile_('mob-modal-activo', cerrarNuevoActivoMobile)"></div>
 <div class="modal-sheet" id="mob-modal-activo">
   <div class="modal-header">
-    <span class="modal-header-title">Nuevo activo</span>
+    <span class="modal-header-title" id="mob-modal-activo-title">Nuevo activo</span>
     <button class="modal-close" onclick="cerrarNuevoActivoMobile()">✕</button>
   </div>
   <div class="modal-body">
@@ -1060,7 +1060,7 @@ const TIPO_ICON = {
 };
 
 let session = null;
-let tickets = [], activos = [], usuarios = [], departamentos = [], espacios = [], personas = [];
+let tickets = [], activos = [], usuarios = [], departamentos = [], espacios = [], personas = [], responsablesLista = [];
 let cntTickets = 0;
 let activoDetalle = null;
 let filtroTkt = "todos", filtroAct = "todos";
@@ -1488,6 +1488,20 @@ async function apiGetTimeout(sheet, timeoutMs=32000){
   });
 }
 
+// La hoja "usuarios" completa solo la puede leer admin (correo, usuario,
+// etc.). Para poder asignar responsable en un ticket desde CUALQUIER rol
+// (admin o técnico), se usa este endpoint aparte que solo trae nombre y
+// rol — nada sensible. Ver acción "responsables" en el backend.
+async function cargarResponsablesMobile(){
+  try{
+    const tok = (typeof session!=='undefined' && session && session.token) ? '&session='+encodeURIComponent(session.token) : '';
+    const r = await fetch(API+"?action=responsables"+tok, {mode:"cors"});
+    if(!r.ok) return;
+    const d = await r.json();
+    if(Array.isArray(d)) responsablesLista = d;
+  }catch(e){ /* silencioso: si falla, el select simplemente queda solo con "Sin asignar" */ }
+}
+
 async function loadData(){
   const fromCache = loadCache();
   const splash = document.getElementById("splash");
@@ -1547,7 +1561,8 @@ async function cargarDatosPostLogin(){
       apiGetTimeout("activos"),
       apiGetTimeout("departamentos"),
       apiGetTimeout("espacios"),
-      apiGetTimeout("personas")
+      apiGetTimeout("personas"),
+      cargarResponsablesMobile()
     ]);
     if(rawT){tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));cntTickets=tickets.length;}
     if(rawA){activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));}
@@ -2350,7 +2365,7 @@ function openNuevoTicket(){
   // Poblar responsables
   const respSel=document.getElementById("mt-resp");
   if(respSel){
-    const usersActivos=usuarios.filter(u=>u.estado!=="inactivo");
+    const usersActivos=responsablesLista.filter(u=>u.estado!=="inactivo");
     respSel.innerHTML='<option value="Sin asignar">— Sin asignar —</option>'+usersActivos.map(u=>`<option value="${u.nombre}">${u.nombre} (${u.rol==="admin"?"Admin":"Técnico"})</option>`).join("");
   }
   document.getElementById("modal-overlay").classList.add("open");
@@ -2365,7 +2380,7 @@ function openEditTicket(codigo){
   // Poblar y setear responsable
   const respSelE=document.getElementById("mt-resp");
   if(respSelE){
-    const usersActivosE=usuarios.filter(u=>u.estado!=="inactivo");
+    const usersActivosE=responsablesLista.filter(u=>u.estado!=="inactivo");
     respSelE.innerHTML='<option value="Sin asignar">— Sin asignar —</option>'+usersActivosE.map(u=>`<option value="${u.nombre}">${u.nombre} (${u.rol==="admin"?"Admin":"Técnico"})</option>`).join("");
     respSelE.value=t.resp||"Sin asignar";
   }
@@ -2570,11 +2585,62 @@ function openActivoDetalle(codigo){
   document.getElementById("ticket-sheet").classList.add("open");
 }
 
-// ── EDITAR ACTIVO ─────────────────────────────────────────────
+// ── EDITAR ACTIVO (incluye reasignar responsable) ────────────────
+// Reutiliza el mismo modal de "Nuevo activo" pero precargado con los
+// datos existentes, y guarda con action:'update' en vez de 'insert'.
+// Disponible tanto para admin como para técnico (mismo botón "✏️ Editar"
+// que ya se mostraba en el detalle del activo).
 function openEditActivoSheet(codigo){
-  // Para simplificar mobile, abrimos el modal de ticket reutilizado para activos
-  // En versión completa se implementaría modal propio
-  showToast("Usa la versión web para editar activos en detalle","");
+  const a = activos.find(x=>x.codigo===codigo);
+  if(!a){ showToast('Activo no encontrado',''); return; }
+  const modal = document.getElementById('mob-modal-activo');
+  if(!modal) return;
+  modal._editCodigo = codigo;
+  document.getElementById('mob-modal-activo-title').textContent = 'Editar activo';
+  document.getElementById('mob-btn-guardar-activo').textContent = '💾 Guardar cambios';
+
+  document.getElementById('mob-ea-nombre').value = a.nombre||'';
+  document.getElementById('mob-ea-tipo').value   = a.tipo||'Laptop';
+  document.getElementById('mob-ea-estado').value = a.estado||'activo';
+  document.getElementById('mob-ea-marca').value  = a.marca||'';
+  document.getElementById('mob-ea-modelo').value = a.modelo||'';
+  document.getElementById('mob-ea-serial').value = a.serial||'';
+  document.getElementById('mob-ea-obs').value    = a.obs||'';
+  document.getElementById('mob-ea-foto').value   = '';
+
+  // Poblar departamentos y preseleccionar el actual
+  const selDep = document.getElementById('mob-ea-depto');
+  if(selDep){
+    const depArr = Array.isArray(departamentos)?departamentos:[];
+    selDep.innerHTML = '<option value="">— Sin departamento —</option>' +
+      depArr.filter(d=>d.estado!=='eliminado').map(d=>`<option value="${d.nombre}">${d.nombre}</option>`).join('');
+    selDep.value = a.depto && a.depto!=='—' ? a.depto : '';
+  }
+  // Poblar espacios (filtrados por el depto actual) y preseleccionar
+  const selUbic = document.getElementById('mob-ea-ubicacion');
+  if(selUbic){
+    const espArr = Array.isArray(espacios)?espacios:[];
+    const dep = selDep ? selDep.value : '';
+    const filteredEsp = dep ? espArr.filter(e=>e.estado!=='eliminado' && e.depto===dep) : espArr.filter(e=>e.estado!=='eliminado');
+    selUbic.innerHTML = '<option value="">— Sin ubicación —</option>' +
+      filteredEsp.map(e=>`<option value="${e.nombre}">${e.nombre}</option>`).join('');
+    selUbic.value = a.ubicacion && a.ubicacion!=='—' ? a.ubicacion : '';
+  }
+  // Poblar personas (filtradas por el depto actual) y preseleccionar el responsable actual
+  const selAsig = document.getElementById('mob-ea-asignado');
+  if(selAsig){
+    const perArr = Array.isArray(personas)?personas:[];
+    const dep = selDep ? selDep.value : '';
+    const filteredPer = dep
+      ? perArr.filter(p=>p.estado!=='eliminado'&&p.estado!=='inactivo'&&p.depto===dep)
+      : perArr.filter(p=>p.estado!=='eliminado'&&p.estado!=='inactivo');
+    selAsig.innerHTML = '<option value="">— Sin asignar —</option>' +
+      filteredPer.map(p=>`<option value="${p.nombre}" data-email="${p.email||''}" data-cargo="${p.cargo||''}">${p.nombre}${p.cargo?' — '+p.cargo:''}</option>`).join('');
+    selAsig.value = a.asignado && a.asignado!=='—' ? a.asignado : '';
+  }
+
+  document.getElementById('mob-activo-overlay').classList.add('open');
+  modal.classList.add('open');
 }
 
 // ── MANTENIMIENTO ─────────────────────────────────────────────
@@ -2836,8 +2902,8 @@ window.addEventListener("offline",()=>{
 
 // ── SERVICE WORKER ────────────────────────────────────────────
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=1.7").then(reg=>{
-    console.log("[SAGAE] SW registrado v1.6:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=2.0").then(reg=>{
+    console.log("[SAGAE] SW registrado v2.0:", reg.scope);
 
     // Detectar cuando hay un nuevo SW esperando (actualización disponible)
     reg.addEventListener("updatefound", ()=>{
@@ -2867,6 +2933,16 @@ if("serviceWorker" in navigator){
     if(!refreshing){
       refreshing = true;
       window.location.reload();
+    }
+  });
+
+  // En celulares la app casi nunca se "cierra" del todo — queda en segundo
+  // plano. Por defecto el navegador solo revisa si hay una versión nueva
+  // del Service Worker cada ~24h. Esto fuerza una revisión inmediata cada
+  // vez que la app vuelve a primer plano, para no depender de esa espera.
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "visible"){
+      navigator.serviceWorker.getRegistration().then(reg=>{ if(reg) reg.update(); });
     }
   });
 }
@@ -3147,6 +3223,9 @@ document.addEventListener('visibilitychange', ()=>{
 function abrirNuevoActivoMobile(){
   const modal = document.getElementById('mob-modal-activo');
   if(!modal) return;
+  modal._editCodigo = null;
+  document.getElementById('mob-modal-activo-title').textContent = 'Nuevo activo';
+  document.getElementById('mob-btn-guardar-activo').textContent = '💾 Guardar activo';
   // Limpiar campos
   ['mob-ea-nombre','mob-ea-modelo','mob-ea-serial','mob-ea-obs','mob-ea-foto'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
@@ -3218,7 +3297,7 @@ function onChangeDeptomobile(depto){
 
 function cerrarNuevoActivoMobile(){
   const modal=document.getElementById('mob-modal-activo');
-  if(modal) modal.classList.remove('open');
+  if(modal){ modal.classList.remove('open'); modal._editCodigo=null; }
   const overlay=document.getElementById('mob-activo-overlay');
   if(overlay) overlay.classList.remove('open');
 }
@@ -3227,10 +3306,34 @@ async function guardarNuevoActivoMobile(){
   const nombre = (document.getElementById('mob-ea-nombre')?.value||'').trim();
   if(!nombre){ showMobToast('El nombre es obligatorio'); return; }
   const btn = document.getElementById('mob-btn-guardar-activo');
-  if(btn){ btn.disabled=true; btn.textContent='Guardando...'; }
+  const modal = document.getElementById('mob-modal-activo');
+  const editCodigo = modal?._editCodigo || null;
+  const existente = editCodigo ? activos.find(x=>x.codigo===editCodigo) : null;
+  if(btn){ btn.disabled=true; btn.textContent = editCodigo ? 'Guardando cambios...' : 'Guardando...'; }
   try{
+    const nuevoAsignado = document.getElementById('mob-ea-asignado')?.value||'—';
+    const historialPrevio = existente?.historial || [];
+    const eventosEdicion = [];
+    if(existente && (existente.asignado||'—') !== nuevoAsignado){
+      eventosEdicion.push({
+        tipo: 'Reasignación',
+        desc: `Responsable cambiado de "${existente.asignado||'Sin asignar'}" a "${nuevoAsignado==='—'?'Sin asignar':nuevoAsignado}" — ${session.nombre} (${session.rol}) desde app móvil`,
+        fecha: new Date().toLocaleString('es-PA'),
+        usuario: session.nombre,
+        color:'blue'
+      });
+    } else if(existente){
+      eventosEdicion.push({
+        tipo: 'Edición',
+        desc: `Datos del activo editados por ${session.nombre} (${session.rol}) desde app móvil`,
+        fecha: new Date().toLocaleString('es-PA'),
+        usuario: session.nombre,
+        color:'blue'
+      });
+    }
+
     const payload = {
-      codigo:    '',  // asignado server-side
+      codigo:    editCodigo || '',  // vacío = asignado server-side (creación)
       nombre,
       tipo:      document.getElementById('mob-ea-tipo')?.value||'Laptop',
       estado:    document.getElementById('mob-ea-estado')?.value||'activo',
@@ -3239,31 +3342,36 @@ async function guardarNuevoActivoMobile(){
       serial:    (document.getElementById('mob-ea-serial')?.value||'').trim().toUpperCase()||'—',
       ubicacion: document.getElementById('mob-ea-ubicacion')?.value||'—',
       depto:     document.getElementById('mob-ea-depto')?.value||'—',
-      asignado:  document.getElementById('mob-ea-asignado')?.value||'—',
+      asignado:  nuevoAsignado,
       asignadoEmail: (()=>{ const sel=document.getElementById('mob-ea-asignado'); const opt=sel?.options[sel?.selectedIndex]; return opt?.dataset?.email||''; })(),
       asignadoCargo: (()=>{ const sel=document.getElementById('mob-ea-asignado'); const opt=sel?.options[sel?.selectedIndex]; return opt?.dataset?.cargo||''; })(),
       obs:       (document.getElementById('mob-ea-obs')?.value||'').trim(),
-      foto:      document.getElementById('mob-ea-foto')?.value.trim()||'—',
-      historial: JSON.stringify([{
+      foto:      editCodigo ? (existente?.foto||'—') : (document.getElementById('mob-ea-foto')?.value.trim()||'—'),
+      historial: JSON.stringify(editCodigo ? [...historialPrevio, ...eventosEdicion] : [{
         tipo:'Creación',
         desc:'Registrado desde app mobile por '+session.nombre,
         fecha: new Date().toLocaleString('es-PA'),
         usuario: session.nombre,
         color:'green'
       }]),
-      fechaCreacion: new Date().toLocaleString('es-PA')
+      fechaCreacion: editCodigo ? (existente?.fechaCreacion || new Date().toLocaleString('es-PA')) : new Date().toLocaleString('es-PA')
     };
-    await apiPost('activos','insert', payload);
+    await apiPost('activos', editCodigo ? 'update' : 'insert', payload);
+    await apiPost('auditoria','insert',{
+      ts:new Date().toLocaleString('es-PA'), usuario:session.username, nombre:session.nombre, rol:session.rol,
+      accion: editCodigo?'EDITAR':'CREAR', tipo:'Activo', codigo: editCodigo||'NUEVO',
+      detalle: editCodigo ? `Editado desde app móvil${eventosEdicion[0]?.tipo==='Reasignación'?' (reasignación de responsable)':''}` : `Registrado desde app móvil: ${nombre}`
+    });
     // Recargar activos
     const rawA = await apiGet('activos');
     activos = Array.isArray(rawA) ? rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3})) : activos;
     cerrarNuevoActivoMobile();
     renderActivos();
-    showMobToast('✅ Activo registrado correctamente');
+    showMobToast(editCodigo ? '✅ Activo actualizado correctamente' : '✅ Activo registrado correctamente');
   }catch(e){
     showMobToast('Error: '+e.message);
   }finally{
-    if(btn){ btn.disabled=false; btn.textContent='💾 Guardar activo'; }
+    if(btn){ btn.disabled=false; btn.textContent = editCodigo ? '💾 Guardar cambios' : '💾 Guardar activo'; }
   }
 }
 
