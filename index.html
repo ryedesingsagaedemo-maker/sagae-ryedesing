@@ -820,6 +820,7 @@ tbody tr.clickable{cursor:pointer;}
     <div class="sb-item" id="nav-detalle" style="display:none;" onclick="go('detalle',this)">◉ Detalle activo</div>
     <div class="sb-sec">Mobiliario</div>
     <div class="sb-item" id="nav-mobiliario" onclick="go('mobiliario',this)">🪑 Mobiliario</div>
+    <div class="sb-item" id="nav-licencias" onclick="go('licencias',this)">🔑 Licencias</div>
     <div class="sb-sec">Tickets</div>
     <div class="sb-item" id="nav-tickets" onclick="go('tickets',this)">◉ Tickets</div>
     <div class="sb-item" id="nav-kanban" onclick="go('kanban',this)">▦ Kanban</div>
@@ -1459,6 +1460,129 @@ tbody tr.clickable{cursor:pointer;}
     </div>
   </div>
 
+  <div class="pnl" id="pnl-licencias">
+    <div class="pnl-header">
+      <h2 class="pnl-title">🔑 Licencias de Software</h2>
+      <p class="pnl-sub">Paquetes de licencias (compradas por cantidad) y los equipos donde están instaladas</p>
+    </div>
+    <!-- Filtros -->
+    <div class="f-row" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+      <select class="f-sel" id="fil-lic-estado" onchange="renderLicencias()" style="min-width:140px;">
+        <option value="todos">Todos los estados</option>
+        <option value="activo">Activa</option>
+        <option value="vencida">Vencida</option>
+        <option value="cancelada">Cancelada</option>
+      </select>
+      <input class="f-inp" id="fil-lic-q" placeholder="Buscar licencia, proveedor..." oninput="renderLicencias()" style="min-width:180px;flex:1;">
+    </div>
+    <!-- KPIs rápidos -->
+    <div class="rep-kpi" id="lic-kpis" style="margin-bottom:14px;"></div>
+    <!-- Tabla -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Licencia</th>
+              <th>Proveedor</th>
+              <th>Cupos usados</th>
+              <th>Vence / renueva</th>
+              <th>Costo anual</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tb-licencias"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL NUEVO / EDITAR PAQUETE DE LICENCIA ═══ -->
+  <div class="modal-bg" id="mod-licencia">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-title">
+        <span id="mod-licencia-title">Nuevo paquete de licencia</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="f-row" style="grid-column:1/-1">
+          <div class="f-lbl">Nombre del paquete *</div>
+          <input class="f-inp" id="lic-nombre" placeholder="Ej: Microsoft 365 Business Standard">
+        </div>
+        <div class="f-row">
+          <div class="f-lbl">Proveedor *</div>
+          <input class="f-inp" id="lic-proveedor" list="dl-lic-proveedores" autocomplete="off" placeholder="Microsoft, Adobe, Google...">
+          <datalist id="dl-lic-proveedores"></datalist>
+        </div>
+        <div class="f-row">
+          <div class="f-lbl">Plan / Versión</div>
+          <input class="f-inp" id="lic-plan" placeholder="Business Standard, Creative Cloud...">
+        </div>
+        <div class="f-row" style="grid-column:1/-1">
+          <div class="f-lbl">Clave de licencia / N° de contrato</div>
+          <input class="f-inp" id="lic-clave" placeholder="Opcional">
+        </div>
+        <div class="f-row">
+          <div class="f-lbl">Inicio de vigencia</div>
+          <input class="f-inp" type="date" id="lic-inicio" min="1990-01-01" max="2046-12-31" onchange="validateDateField(this)">
+        </div>
+        <div class="f-row">
+          <div class="f-lbl">Vence / debe renovarse *</div>
+          <input class="f-inp" type="date" id="lic-venc" min="1990-01-01" max="2046-12-31" onchange="validateDateField(this)">
+          <div class="f-hint">💡 Aquí llegan las alertas automáticas de renovación</div>
+        </div>
+        <div class="f-row">
+          <div class="f-lbl">Costo anual ($)</div>
+          <input class="f-inp" type="number" min="0" step="0.01" id="lic-costo" placeholder="0.00">
+        </div>
+        <div class="f-row">
+          <div class="f-lbl">Cantidad de licencias / cupos</div>
+          <input class="f-inp" type="number" min="0" id="lic-cupos" placeholder="Ej: 50">
+          <div class="f-hint">💡 Cuántos equipos pueden tenerla instalada a la vez. Deja 0 o vacío si no aplica límite.</div>
+        </div>
+        <div class="f-row">
+          <div class="f-lbl">Estado</div>
+          <select class="f-inp f-sel" id="lic-estado">
+            <option value="activo">Activa</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+        <div class="f-row" style="grid-column:1/-1">
+          <div class="f-lbl">Observaciones</div>
+          <textarea class="f-inp" id="lic-obs" rows="2" placeholder="Notas adicionales..." style="resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModals()">Cancelar</button>
+        <button class="btn btn-p" onclick="guardarLicencia()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: EQUIPOS CON ESTA LICENCIA INSTALADA ═══ -->
+  <div class="modal-bg" id="mod-licencia-detalle">
+    <div class="modal" style="max-width:720px;">
+      <div class="modal-title">
+        <span id="mod-lic-det-title">Equipos con esta licencia</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <div id="lic-det-info" style="font-size:12px;color:var(--text3);margin-bottom:12px;"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap;">
+        <div class="f-row" style="flex:1;min-width:220px;margin-bottom:0">
+          <div class="f-lbl">Asignar / instalar en equipo</div>
+          <select class="f-inp f-sel" id="lic-asignar-activo"><option value="">— Seleccionar activo —</option></select>
+        </div>
+        <button class="btn btn-p" onclick="asignarLicenciaAEquipo()" style="white-space:nowrap;">+ Registrar instalación</button>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Código</th><th>Equipo</th><th>Fecha instalación</th><th>Registrado por</th><th></th></tr></thead>
+        <tbody id="tb-lic-instalaciones"></tbody>
+      </table></div>
+    </div>
+  </div>
+
   <div class="pnl" id="pnl-tickets">
         <div class="tab-row"><button class="tab-btn on" onclick="filterT('todos',this)">Todos</button><button class="tab-btn" onclick="filterT('abierto',this)">Abiertos</button><button class="tab-btn" onclick="filterT('progreso',this)">En progreso</button><button class="tab-btn" onclick="filterT('revision',this)">En revisión</button><button class="tab-btn" onclick="filterT('cerrado',this)">Cerrados</button><button class="tab-btn" onclick="filterT('eliminado',this)">Eliminados</button></div>
         <div class="tbl-wrap"><table><thead><tr><th>Código</th><th>Título</th><th>Activo vinculado</th><th>Responsable</th><th>Prioridad</th><th>Estado</th><th>Avance</th><th>Deadline</th><th>📎</th><th></th></tr></thead><tbody id="tb-tickets"></tbody></table></div>
@@ -1499,7 +1623,7 @@ tbody tr.clickable{cursor:pointer;}
             <option value="">— Selecciona un reporte —</option>
             <option value="inventario">Inventario general de activos</option>
             <option value="depto">Activos por departamento</option>
-            <option value="garantia">Garantías próximas a vencer</option>
+            <option value="garantia">Garantías y licencias próximas a vencer</option>
             <option value="hojavida">Hoja de vida individual por activo</option>
             <option value="tickets">Tickets por período / responsable</option>
             <option value="mantenimientos">Mantenimientos y costos</option>
@@ -1539,6 +1663,19 @@ tbody tr.clickable{cursor:pointer;}
         </button>
         <span id="backup-status" style="font-size:11px;color:var(--text3);"></span>
       </div>
+      <!-- Alertas de garantías/licencias y deadlines - solo visible para admin -->
+      <div id="alertas-admin-bar" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;">
+        <span style="font-size:11px;font-weight:700;color:#92400E;">⏰ Alertas de vencimiento (garantías, licencias y deadlines):</span>
+        <button class="btn btn-p" onclick="ejecutarAlertasManualUI()" id="btn-alertas-ahora"
+          style="font-size:11px;background:#92400E;padding:4px 10px;" title="Envía de inmediato las alertas que correspondan hoy, sin esperar al trigger diario">
+          Enviar alertas ahora (prueba)
+        </button>
+        <button class="btn" onclick="instalarTriggerAlertasUI()" id="btn-alertas-trigger"
+          style="font-size:11px;padding:4px 10px;" title="Instala la revisión automática diaria a las 8:00am Panamá">
+          ⏰ Activar alertas automáticas diarias
+        </button>
+        <span id="alertas-status" style="font-size:11px;color:var(--text3);"></span>
+      </div>
         <div class="tab-row"><button class="tab-btn on" onclick="filterAud('todos',this)">Todo</button><button class="tab-btn" onclick="filterAud('CREAR',this)">Creaciones</button><button class="tab-btn" onclick="filterAud('EDITAR',this)">Ediciones</button><button class="tab-btn" onclick="filterAud('ELIMINAR',this)">Eliminaciones</button><button class="tab-btn" onclick="filterAud('LOGIN',this)">Accesos</button></div>
         <div class="tbl-wrap"><table><thead><tr><th>Fecha / Hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Objeto</th><th>Código</th><th>Detalle</th></tr></thead><tbody id="tb-audit"></tbody></table></div>
       </div>
@@ -1559,7 +1696,7 @@ tbody tr.clickable{cursor:pointer;}
   <div class="f-err" id="err-ea-nombre">⚠ Ingresa el nombre descriptivo del equipo</div>
 </div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Tipo *</div><select class="f-inp f-sel" id="ea-tipo">
+    <div class="f-row"><div class="f-lbl">Tipo *</div><select class="f-inp f-sel" id="ea-tipo" onchange="onChangeTipoActivo(this.value)">
   <optgroup label="Equipos de usuario">
     <option>Computadora</option>
     <option>Laptop</option>
@@ -1599,7 +1736,7 @@ tbody tr.clickable{cursor:pointer;}
   </optgroup>
   <optgroup label="Otros">
     <option>Red / Switch</option>
-    <option>Software</option>
+    <option value="Software">Licencia de Software</option>
     <option>Vehículo</option>
     <option>Otro</option>
   </optgroup>
@@ -1607,17 +1744,17 @@ tbody tr.clickable{cursor:pointer;}
     <div class="f-row"><div class="f-lbl">Estado *</div><select class="f-inp f-sel" id="ea-estado"><option value="activo">Activo</option><option value="asignado">Asignado</option><option value="disponible">Disponible</option><option value="mantenimiento">Mantenimiento</option><option value="descarte">Descarte</option></select></div>
   </div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Marca</div><input class="f-inp" id="ea-marca" list="dl-marcas" autocomplete="off" placeholder="Dell, HP..."></div>
+    <div class="f-row"><div class="f-lbl" id="lbl-ea-marca">Marca</div><input class="f-inp" id="ea-marca" list="dl-marcas" autocomplete="off" placeholder="Dell, HP..."></div>
     <datalist id="dl-marcas"></datalist>
-    <div class="f-row"><div class="f-lbl">Modelo</div><input class="f-inp" id="ea-modelo" placeholder="Inspiron 15..."></div>
+    <div class="f-row"><div class="f-lbl" id="lbl-ea-modelo">Modelo</div><input class="f-inp" id="ea-modelo" placeholder="Inspiron 15..."></div>
   </div>
   <div class="f-2">
     <div class="f-row">
-  <div class="f-lbl">Número de serie</div>
+  <div class="f-lbl" id="lbl-ea-serial">Número de serie</div>
   <input class="f-inp" id="ea-serial" placeholder="SN-XXXX"
     style="text-transform:uppercase;letter-spacing:1px"
     oninput="this.value=this.value.toUpperCase()">
-  <div class="f-hint">💡 Se convierte a mayúsculas automáticamente. Búscalo en la etiqueta del equipo.</div>
+  <div class="f-hint" id="hint-ea-serial">💡 Se convierte a mayúsculas automáticamente. Búscalo en la etiqueta del equipo.</div>
 </div>
     <div class="f-row"><div class="f-lbl">Ubicación — Espacio
   <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Al seleccionar hereda el responsable automáticamente</span>
@@ -1657,34 +1794,35 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div class="f-2">
     <div class="f-row">
-  <div class="f-lbl">Fecha de compra</div>
+  <div class="f-lbl" id="lbl-ea-compra">Fecha de compra</div>
   <input class="f-inp" type="date" id="ea-compra"
     min="1990-01-01" max="2046-12-31"
     onchange="validateFechas();validateDateField(this)">
   <div class="f-err" id="err-ea-compra">⚠ Selecciona una fecha válida de compra</div>
 </div>
 <div class="f-row">
-  <div class="f-lbl">Garantía hasta</div>
+  <div class="f-lbl" id="lbl-ea-garantia">Garantía hasta</div>
   <input class="f-inp" type="date" id="ea-garantia"
     min="1990-01-01" max="2046-12-31"
     onchange="validateFechas();validateDateField(this)">
   <div class="f-err" id="err-ea-garantia">⚠ La garantía debe ser posterior a la fecha de compra</div>
+  <div class="f-hint" id="hint-ea-garantia" style="display:none">💡 Aquí llegan las alertas automáticas de renovación</div>
 </div>
   </div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Valor ($)</div>
+    <div class="f-row"><div class="f-lbl" id="lbl-ea-valor">Valor ($)</div>
   <input class="f-inp" type="number" min="0" step="0.01" id="ea-valor" placeholder="0.00"
     oninput="validateField(this,'number','Solo números. Ej: 350.00')"
     onblur="validateField(this,'number','Solo números. Ej: 350.00')">
   <div class="f-err" id="err-ea-valor">⚠ Ingresa solo el número sin símbolos. Ej: 350.00</div>
-  <div class="f-hint">💡 Precio de compra en dólares</div>
+  <div class="f-hint" id="hint-ea-valor">💡 Precio de compra en dólares</div>
 </div>
-    <div class="f-row"><div class="f-lbl">Vida útil (años)</div>
+    <div class="f-row" id="row-ea-vida"><div class="f-lbl" id="lbl-ea-vida">Vida útil (años)</div>
   <input class="f-inp" type="number" min="1" max="30" id="ea-vida" value="3"
     oninput="validateField(this,'integer','Número entero del 1 al 30')"
     onblur="validateField(this,'integer','Número entero del 1 al 30')">
   <div class="f-err" id="err-ea-vida">⚠ Ingresa un número entre 1 y 30 años</div>
-  <div class="f-hint">💡 Laptops/PC: 3-5 · Cámaras/NVR: 5-10 · Servidores: 5-7 · UPS: 3-5</div>
+  <div class="f-hint" id="hint-ea-vida">💡 Laptops/PC: 3-5 · Cámaras/NVR: 5-10 · Servidores: 5-7 · UPS: 3-5</div>
 </div>
   </div>
   <div class="f-row"><div class="f-lbl">Observaciones</div><input class="f-inp" id="ea-obs" placeholder="Notas adicionales..."></div>
@@ -1887,12 +2025,13 @@ const TIPO_ICON={
   Proyector:'📽️',Televisor:'📺','Bocina / Audio':'🔊',
   UPS:'🔋',Regulador:'⚡',
   'Teléfono IP':'☎️',
-  'Red / Switch':'🔌',Software:'💿',Vehículo:'🚗',Otro:'📦'
+  'Red / Switch':'🔌',Software:'🔑',Vehículo:'🚗',Otro:'📦'
 };
-const PERMS={admin:{departamentos:true,personas:true,espacios:true,activos:true,tickets:true,kanban:true,auditoria:true,usuarios:true,mobiliario:true,edit:true,delete:true},tecnico:{departamentos:false,personas:true,espacios:true,activos:true,tickets:true,kanban:true,auditoria:false,usuarios:false,mobiliario:true,edit:true,delete:false},consultor:{departamentos:false,personas:true,espacios:true,activos:true,tickets:true,kanban:true,auditoria:true,usuarios:false,mobiliario:true,edit:false,delete:false},inventario:{departamentos:false,personas:true,espacios:true,mobiliario:true,activos:true,tickets:false,kanban:false,auditoria:false,usuarios:false,edit:true,delete:false}};
+const PERMS={admin:{departamentos:true,personas:true,espacios:true,activos:true,tickets:true,kanban:true,auditoria:true,usuarios:true,mobiliario:true,licencias:true,edit:true,delete:true},tecnico:{departamentos:false,personas:true,espacios:true,activos:true,tickets:true,kanban:true,auditoria:false,usuarios:false,mobiliario:true,licencias:true,edit:true,delete:false},consultor:{departamentos:false,personas:true,espacios:true,activos:true,tickets:true,kanban:true,auditoria:true,usuarios:false,mobiliario:true,licencias:true,edit:false,delete:false},inventario:{departamentos:false,personas:true,espacios:true,mobiliario:true,activos:true,tickets:false,kanban:false,auditoria:false,usuarios:false,licencias:true,edit:true,delete:false}};
 let session=null,activos=[],tickets=[],auditLog=[],usuarios=[],activoActual=null;
 let cntActivos=0,cntTickets=0,filtroA='todos',filtroT='todos',filtroAud='todos',filtroTipo='todos';
 let mobiliario=[];
+let licencias=[];
 let departamentos=[];
 let personas=[];
 let espacios=[];
@@ -2366,12 +2505,13 @@ async function loadFromSheets(){
   // ── CARGA EN PARALELO — hojas simultáneas (requiere sesión activa) ──
   lt.textContent='Cargando datos del sistema...';
   ls.textContent='Cargando datos en paralelo...';
-  const [rawU, rawA, rawT, rawAud, rawMob0, rawPer0, rawEsp0, rawDep0] = await Promise.all([
+  const [rawU, rawA, rawT, rawAud, rawMob0, rawLic0, rawPer0, rawEsp0, rawDep0] = await Promise.all([
     (session && session.rol==='admin') ? apiGet('usuarios') : Promise.resolve([]),
     apiGet('activos'),
     apiGet('tickets'),
     apiGet('auditoria'),
     apiGet('mobiliario').catch(()=>[]),
+    apiGet('licencias').catch(()=>[]),
     apiGet('personas').catch(()=>[]),
     apiGet('espacios').catch(()=>[]),
     apiGet('departamentos').catch(()=>[])
@@ -2386,6 +2526,10 @@ async function loadFromSheets(){
   // ── Procesar datos cargados en Promise.all ──
   mobiliario = Array.isArray(rawMob0) ? rawMob0.map(r=>({
     ...r, cantidad:parseInt(r.cantidad)||1, valor:parseFloat(r.valor)||0, historial:parseHist(r.historial)
+  })) : [];
+  licencias = Array.isArray(rawLic0) ? rawLic0.map(r=>({
+    ...r, costoAnual:parseFloat(r.costoAnual)||0, cantidadTotal:parseInt(r.cantidadTotal)||0,
+    instalaciones: parseHist(r.instalaciones), historial: parseHist(r.historial)
   })) : [];
   personas     = Array.isArray(rawPer0) ? rawPer0.map(r=>({...r})) : [];
   espacios     = Array.isArray(rawEsp0) ? rawEsp0.map(r=>({...r})) : [];
@@ -2581,10 +2725,10 @@ function go(panel,el){
   // Smart polling — actualizar panel activo y limpiar badge
   _pollingPanel = panel;
   if(panel==='tickets'||panel==='kanban') _limpiarBadgeNav();
-  const titles={dashboard:'Dashboard',activos:'Inventario de activos',detalle:'Detalle del activo',tickets:'Gestión de tickets',kanban:'Kanban de tickets',usuarios:'Gestión de usuarios',auditoria:'Registro de auditoría',miperfil:'Mi perfil',reportes:'Reportes',mobiliario:'Inventario de Mobiliario',personas:'Personas y Beneficiarios',espacios:'Espacios y Aulas',departamentos:'Catálogo de Departamentos'};
+  const titles={dashboard:'Dashboard',activos:'Inventario de activos',detalle:'Detalle del activo',tickets:'Gestión de tickets',kanban:'Kanban de tickets',usuarios:'Gestión de usuarios',auditoria:'Registro de auditoría',miperfil:'Mi perfil',reportes:'Reportes',mobiliario:'Inventario de Mobiliario',personas:'Personas y Beneficiarios',espacios:'Espacios y Aulas',departamentos:'Catálogo de Departamentos',licencias:'Licencias de software'};
   document.getElementById('tb-title').textContent=titles[panel]||panel;
   renderTopbarBtns(panel);
-  if(panel==='dashboard')renderDash();if(panel==='activos')renderActivos();if(panel==='tickets')renderTickets();if(panel==='mobiliario')renderMobiliario();if(panel==='personas')renderPersonas();if(panel==='espacios')renderEspacios();if(panel==='departamentos')renderDepartamentos();
+  if(panel==='dashboard')renderDash();if(panel==='activos')renderActivos();if(panel==='tickets')renderTickets();if(panel==='mobiliario')renderMobiliario();if(panel==='licencias')renderLicencias();if(panel==='personas')renderPersonas();if(panel==='espacios')renderEspacios();if(panel==='departamentos')renderDepartamentos();
   if(panel==='kanban')renderKanban();if(panel==='usuarios')renderUsuarios();if(panel==='auditoria')renderAudit();
   if(panel==='miperfil')renderMiPerfil();if(panel==='reportes')initReportes();
 }
@@ -2614,6 +2758,9 @@ function renderTopbarBtns(p){
     if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openMob(null)">+ Nuevo elemento</button>';
     if(['admin','inventario'].includes(session.rol))
       c.innerHTML+='<button class="btn" onclick="exportarMobiliarioCSV()" style="margin-left:6px">⬇ Exportar CSV</button>';
+  }
+  if(p==='licencias'){
+    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openLicencia(null)">+ Nuevo paquete de licencia</button>';
   }
   if(p==='tickets'&&per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openTicket(null)">+ Nuevo ticket</button>';
   if(p==='usuarios'&&per.usuarios){
@@ -2824,11 +2971,14 @@ function openActivo(id){
     }, 50);
     document.getElementById('ea-compra').value=a.compra!=='—'?a.compra:'';document.getElementById('ea-garantia').value=a.garantia!=='—'?a.garantia:'';
     document.getElementById('ea-valor').value=a.valor||'';document.getElementById('ea-vida').value=a.vida||3;
+    onChangeTipoActivo(a.tipo||'');
 
   }else{
     ['ea-nombre','ea-marca','ea-modelo','ea-serial','ea-ubicacion','ea-asignado','ea-depto','ea-obs','ea-foto','ea-asignado-email','ea-asignado-cargo'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('ea-valor').value='';document.getElementById('ea-vida').value=3;
     document.getElementById('ea-compra').value='';document.getElementById('ea-garantia').value='';document.getElementById('ea-estado').value='activo';
+    document.getElementById('ea-tipo').selectedIndex=0;
+    onChangeTipoActivo(document.getElementById('ea-tipo').value);
   }
   document.getElementById('mod-activo').classList.add('open');
 }
@@ -3761,6 +3911,47 @@ function validateFechas(){
   }
 }
 
+// ── RELABELING DINÁMICO DEL FORMULARIO SEGÚN TIPO DE ACTIVO ──────
+// Cuando el tipo es "Licencia de Software" (value interno "Software",
+// se conserva por compatibilidad con datos ya guardados), el formulario
+// reutiliza los mismos campos de siempre pero con etiquetas propias de
+// una licencia, en vez de agregar columnas nuevas a la hoja de cálculo.
+function onChangeTipoActivo(tipo){
+  const esLicencia = tipo === 'Software';
+  const set = (id, texto) => { const el = document.getElementById(id); if(el) el.textContent = texto; };
+  const placeholder = (id, texto) => { const el = document.getElementById(id); if(el) el.placeholder = texto; };
+
+  if(esLicencia){
+    set('lbl-ea-marca', 'Proveedor');
+    placeholder('ea-marca', 'Microsoft, Adobe, Google...');
+    set('lbl-ea-modelo', 'Plan / Versión');
+    placeholder('ea-modelo', 'Microsoft 365 Business Standard...');
+    set('lbl-ea-serial', 'Clave / N° de licencia o suscripción');
+    placeholder('ea-serial', 'Clave de producto o ID de suscripción');
+    document.getElementById('hint-ea-serial').textContent = '💡 Número de licencia, clave de producto o ID de la suscripción.';
+    set('lbl-ea-compra', 'Inicio de vigencia');
+    set('lbl-ea-garantia', 'Vence / debe renovarse');
+    const hg = document.getElementById('hint-ea-garantia'); if(hg) hg.style.display = '';
+    set('lbl-ea-valor', 'Costo anual ($)');
+    document.getElementById('hint-ea-valor').textContent = '💡 Costo de la renovación anual (o del período de la licencia)';
+    const rowVida = document.getElementById('row-ea-vida'); if(rowVida) rowVida.style.display = 'none';
+  } else {
+    set('lbl-ea-marca', 'Marca');
+    placeholder('ea-marca', 'Dell, HP...');
+    set('lbl-ea-modelo', 'Modelo');
+    placeholder('ea-modelo', 'Inspiron 15...');
+    set('lbl-ea-serial', 'Número de serie');
+    placeholder('ea-serial', 'SN-XXXX');
+    document.getElementById('hint-ea-serial').textContent = '💡 Se convierte a mayúsculas automáticamente. Búscalo en la etiqueta del equipo.';
+    set('lbl-ea-compra', 'Fecha de compra');
+    set('lbl-ea-garantia', 'Garantía hasta');
+    const hg = document.getElementById('hint-ea-garantia'); if(hg) hg.style.display = 'none';
+    set('lbl-ea-valor', 'Valor ($)');
+    document.getElementById('hint-ea-valor').textContent = '💡 Precio de compra en dólares';
+    const rowVida = document.getElementById('row-ea-vida'); if(rowVida) rowVida.style.display = '';
+  }
+}
+
 function populateSuggestions(){
   // Llenar datalists dinámicamente desde los datos del sistema
   if(!activos || !activos.length) return;
@@ -4509,7 +4700,12 @@ function cambiarReporte(tipo){
       </select>`;
   }
   if(tipo==='garantia'){
-    filtros.innerHTML=`<select class="f-sel" id="fil-dias" onchange="generarReporte()" style="max-width:200px"><option value="30">Vence en 30 días</option><option value="60">Vence en 60 días</option><option value="90" selected>Vence en 90 días</option><option value="180">Vence en 180 días</option><option value="365">Vence en 1 año</option></select>`;
+    filtros.innerHTML=`<select class="f-sel" id="fil-dias" onchange="generarReporte()" style="max-width:200px"><option value="30">Vence en 30 días</option><option value="60">Vence en 60 días</option><option value="90" selected>Vence en 90 días</option><option value="180">Vence en 180 días</option><option value="365">Vence en 1 año</option></select>
+      <select class="f-sel" id="fil-garantia-cat" onchange="generarReporte()" style="max-width:200px">
+        <option value="todos">Equipos y licencias</option>
+        <option value="licencias">🔑 Solo licencias registradas como activo individual</option>
+        <option value="equipos">Solo equipos (hardware)</option>
+      </select>`;
   }
   if(tipo==='depto'){
     const deptos=[...new Set(activos.map(a=>a.depto||'Sin departamento'))].filter(Boolean).sort();
@@ -4684,27 +4880,35 @@ function repPorDepartamento(el, ts){
 // ── REPORTE 3: GARANTÍAS ───────────────────────────────────────────
 function repGarantias(el, ts){
   const dias=parseInt(document.getElementById('fil-dias')?.value||90);
+  const cat=document.getElementById('fil-garantia-cat')?.value||'todos';
+  const filtroCat = a => cat==='licencias' ? a.tipo==='Software' : cat==='equipos' ? a.tipo!=='Software' : true;
   const hoy=new Date();
   const limite=new Date(hoy.getTime()+dias*24*3600*1000);
   const lista=activos.filter(a=>{
     if(a.estado==='eliminado'||!a.garantia||a.garantia==='—')return false;
+    if(!filtroCat(a))return false;
     const g=new Date(a.garantia);
     return g>=hoy && g<=limite;
   }).sort((a,b)=>new Date(a.garantia)-new Date(b.garantia));
   const vencidas=activos.filter(a=>{
     if(!a.garantia||a.garantia==='—')return false;
+    if(!filtroCat(a))return false;
     return new Date(a.garantia)<hoy && a.estado!=='eliminado';
   });
+  const tituloRep = cat==='licencias' ? '🔑 Licencias de software próximas a vencer' : cat==='equipos' ? 'Garantías de equipos próximas a vencer' : 'Garantías y licencias próximas a vencer';
   repDatosActuales=[...vencidas,...lista];
   el.innerHTML=`
     <div class="rep-header">
-      <div><div class="rep-title">Garantías próximas a vencer — ${dias} días</div><div class="rep-meta">Generado: ${ts}</div></div>
+      <div><div class="rep-title">${tituloRep} — ${dias} días</div><div class="rep-meta">Generado: ${ts} · 📧 Alertas automáticas activas si el administrador activó el envío diario en Configuración</div></div>
+    </div>
+    <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:8px 12px;font-size:11px;color:#92400E;margin-bottom:12px;">
+      💡 Este reporte muestra garantías de equipos. Si compraste licencias <b>por paquete</b> (una licencia instalada en varios equipos), regístralas y consulta sus vencimientos en <span style="cursor:pointer;text-decoration:underline;font-weight:600" onclick="go('licencias',document.getElementById('nav-licencias'))">🔑 Licencias</span> — ese módulo también envía las alertas automáticas por correo.
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">${vencidas.length}</div><div class="rep-kpi-l">Ya vencidas</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${lista.length}</div><div class="rep-kpi-l">Vencen en ${dias} días</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v">${activos.filter(a=>a.garantia&&a.garantia!=='—'&&new Date(a.garantia)>limite&&a.estado!=='eliminado').length}</div><div class="rep-kpi-l">Vigentes</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v">${activos.filter(a=>(!a.garantia||a.garantia==='—')&&a.estado!=='eliminado').length}</div><div class="rep-kpi-l">Sin garantía registrada</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">${activos.filter(a=>filtroCat(a)&&a.garantia&&a.garantia!=='—'&&new Date(a.garantia)>limite&&a.estado!=='eliminado').length}</div><div class="rep-kpi-l">Vigentes</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">${activos.filter(a=>filtroCat(a)&&(!a.garantia||a.garantia==='—')&&a.estado!=='eliminado').length}</div><div class="rep-kpi-l">Sin fecha registrada</div></div>
     </div>
     ${vencidas.length?`<div class="rep-section">
       <div class="rep-sec-title" style="color:#791F1F">⚠ Garantías ya vencidas (${vencidas.length})</div>
@@ -4776,6 +4980,27 @@ function repHojaVida(el, ts){
           <div style="color:var(--text3);font-size:10px">${t.resp||'—'} · ${renderDead(t.dead)} · Avance: ${t.avance||0}%</div>
         </div>`).join(''):'<div class="empty-c">Sin tickets vinculados</div>'}
       </div>
+    </div>
+    <div class="rep-section" style="margin-bottom:12px">
+      <div class="rep-sec-title">🔑 Licencias de software instaladas en este equipo (${(typeof licenciasDeActivo==='function'?licenciasDeActivo(a.codigo):[]).length})</div>
+      ${(()=>{
+        const lics = typeof licenciasDeActivo==='function' ? licenciasDeActivo(a.codigo) : [];
+        if(!lics.length) return '<div class="empty-c">Sin licencias registradas para este equipo. Se registran desde el módulo 🔑 Licencias.</div>';
+        return `<div class="tbl-wrap"><table>
+          <thead><tr><th>Código</th><th>Licencia</th><th>Proveedor</th><th>Vence</th><th>Estado</th></tr></thead>
+          <tbody>${lics.map(l=>{
+            const vc = l.estado==='cancelada'?'cancelada':_licVencComputado(l);
+            const vcLabel = {activo:'Vigente',vencida:'⛔ Vencida',sin_fecha:'Sin fecha',cancelada:'Cancelada'}[vc];
+            return `<tr>
+              <td class="code-cell">${l.codigo}</td>
+              <td style="font-weight:600">${sanitizeHTML(l.nombre||'')}</td>
+              <td>${sanitizeHTML(l.proveedor||'—')}</td>
+              <td style="font-size:11px">${l.fechaVencimiento||'—'}</td>
+              <td><span class="badge">${vcLabel}</span></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>`;
+      })()}
     </div>
     <div class="rep-section">
       <div class="rep-sec-title">Historial completo del activo (${(a.historial||[]).length} eventos)</div>
@@ -6532,6 +6757,264 @@ async function eliminarMob(codigo){
 }
 
 // ── EXPORTAR CSV ──────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// MÓDULO LICENCIAS DE SOFTWARE (paquetes instalables en varios equipos)
+// ════════════════════════════════════════════════════════════════
+function _licVencComputado(l){
+  if(!l.fechaVencimiento) return 'sin_fecha';
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const v=new Date(l.fechaVencimiento);
+  if(isNaN(v.getTime())) return 'sin_fecha';
+  return v<hoy ? 'vencida' : 'activo';
+}
+
+function renderLicencias(){
+  const tb  = document.getElementById('tb-licencias');
+  const kpi = document.getElementById('lic-kpis');
+  if(!tb) return;
+
+  const qRaw   = (document.getElementById('fil-lic-q')?.value||'').toLowerCase();
+  const estFil = document.getElementById('fil-lic-estado')?.value||'todos';
+  const per = PERMS[session.rol]||{};
+
+  let list = licencias.filter(l => l.estado !== 'eliminado');
+  if(estFil !== 'todos'){
+    list = list.filter(l => estFil==='cancelada' ? l.estado==='cancelada' : (l.estado!=='cancelada' && _licVencComputado(l)===estFil));
+  }
+  if(qRaw) list = list.filter(l =>
+    (l.nombre||'').toLowerCase().includes(qRaw)||
+    (l.proveedor||'').toLowerCase().includes(qRaw)||
+    (l.codigo||'').toLowerCase().includes(qRaw)
+  );
+  list = list.slice().sort((a,b)=>new Date(a.fechaVencimiento||'2999-01-01')-new Date(b.fechaVencimiento||'2999-01-01'));
+
+  // KPIs
+  const total = licencias.filter(l=>l.estado!=='eliminado' && l.estado!=='cancelada');
+  const vencidas = total.filter(l=>_licVencComputado(l)==='vencida').length;
+  const proximas30 = total.filter(l=>{
+    if(!l.fechaVencimiento) return false;
+    const dias=Math.floor((new Date(l.fechaVencimiento)-new Date())/(24*3600*1000));
+    return dias>=0 && dias<=30;
+  }).length;
+  const costoTotal = total.reduce((s,l)=>s+(l.costoAnual||0),0);
+  const equiposCubiertos = new Set(total.flatMap(l=>(l.instalaciones||[]).map(i=>i.activoCodigo))).size;
+  kpi.innerHTML=`
+    <div class="rep-kpi-card"><div class="rep-kpi-v">${total.length}</div><div class="rep-kpi-l">Paquetes activos</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">${vencidas}</div><div class="rep-kpi-l">Vencidas</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${proximas30}</div><div class="rep-kpi-l">Vencen en 30 días</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v">${equiposCubiertos}</div><div class="rep-kpi-l">Equipos con licencia instalada</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v">$${costoTotal.toLocaleString()}</div><div class="rep-kpi-l">Costo anual total</div></div>
+  `;
+
+  if(!list.length){
+    tb.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3);font-size:12px">
+      Sin licencias${estFil!=='todos'?' con los filtros seleccionados':'. Usa "+ Nuevo paquete de licencia" para registrar una.'}</td></tr>`;
+    return;
+  }
+
+  const estColor = {activo:'#1D9E75',vencida:'#791F1F',sin_fecha:'#888'};
+  tb.innerHTML = list.map(l=>{
+    const vc = l.estado==='cancelada' ? 'cancelada' : _licVencComputado(l);
+    const vcLabel = {activo:'Vigente',vencida:'⛔ Vencida',sin_fecha:'Sin fecha',cancelada:'Cancelada'}[vc];
+    const usadas = (l.instalaciones||[]).length;
+    const cupoColor = l.cantidadTotal && usadas>l.cantidadTotal ? '#791F1F' : (l.cantidadTotal && usadas===l.cantidadTotal ? '#BA7517' : 'var(--text2)');
+    return `
+    <tr>
+      <td class="code-cell">${l.codigo||'—'}</td>
+      <td>
+        <div style="font-weight:600;font-size:12px">${sanitizeHTML(l.nombre||'')}</div>
+        <div style="font-size:10px;color:var(--text3)">${sanitizeHTML(l.planVersion||'')}</div>
+      </td>
+      <td>${sanitizeHTML(l.proveedor||'—')}</td>
+      <td style="text-align:center;cursor:pointer;color:var(--navy);font-weight:700" onclick="abrirDetalleLicencia('${l.codigo}')" title="Ver / asignar equipos">
+        ${usadas}${l.cantidadTotal?' / '+l.cantidadTotal:''} 🖥️
+        <div style="font-size:9px;font-weight:400;color:${cupoColor}">${l.cantidadTotal && usadas>l.cantidadTotal ? '⚠ excede cupos' : 'Ver equipos'}</div>
+      </td>
+      <td style="font-size:11px">${fmtFecha ? fmtFecha(l.fechaVencimiento) : (l.fechaVencimiento||'—')}</td>
+      <td style="font-weight:600;color:#3B6D11">${l.costoAnual?'$'+l.costoAnual.toLocaleString():'—'}</td>
+      <td><span class="badge" style="background:${estColor[vc]||'#888'}22;color:${estColor[vc]||'#888'};border:1px solid ${estColor[vc]||'#888'}44">${vcLabel}</span></td>
+      <td onclick="event.stopPropagation()">
+        <button class="act-btn" onclick="abrirDetalleLicencia('${l.codigo}')" title="Ver equipos">👁</button>
+        ${per.edit?`<button class="act-btn" onclick="openLicencia('${l.codigo}')">✎</button>`:''}
+        ${per.delete?`<button class="act-btn" onclick="eliminarLicencia('${l.codigo}')" style="color:var(--red)">×</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── ABRIR MODAL DE PAQUETE ──────────────────────────────────────
+function openLicencia(codigo){
+  const isEdit = !!codigo;
+  document.getElementById('mod-licencia-title').textContent = isEdit ? 'Editar paquete de licencia' : 'Nuevo paquete de licencia';
+  const l = isEdit ? licencias.find(x=>x.codigo===codigo) : {};
+  document.getElementById('lic-nombre').value    = l.nombre||'';
+  document.getElementById('lic-proveedor').value = l.proveedor||'';
+  document.getElementById('lic-plan').value      = l.planVersion||'';
+  document.getElementById('lic-clave').value     = l.claveLicencia||'';
+  document.getElementById('lic-inicio').value    = l.fechaInicio||'';
+  document.getElementById('lic-venc').value      = l.fechaVencimiento||'';
+  document.getElementById('lic-costo').value     = l.costoAnual||'';
+  document.getElementById('lic-cupos').value     = l.cantidadTotal||'';
+  document.getElementById('lic-estado').value    = l.estado==='cancelada' ? 'cancelada' : 'activo';
+  document.getElementById('lic-obs').value       = l.obs||'';
+  // Sugerencias de proveedores ya usados
+  const dl = document.getElementById('dl-lic-proveedores');
+  if(dl){
+    const provs = [...new Set(licencias.map(x=>x.proveedor).filter(Boolean))];
+    dl.innerHTML = provs.map(p=>`<option value="${sanitizeHTML(p)}">`).join('');
+  }
+  document.getElementById('mod-licencia')._editCodigo = isEdit ? codigo : null;
+  document.getElementById('mod-licencia').classList.add('open');
+}
+
+// ── GUARDAR ───────────────────────────────────────────────────────
+async function guardarLicencia(){
+  const nombre    = document.getElementById('lic-nombre').value.trim();
+  const proveedor = document.getElementById('lic-proveedor').value.trim();
+  const venc      = document.getElementById('lic-venc').value;
+  if(!nombre)    { showToast('El nombre del paquete es obligatorio',''); return; }
+  if(!proveedor) { showToast('El proveedor es obligatorio',''); return; }
+  if(!venc)      { showToast('La fecha de vencimiento/renovación es obligatoria — de ahí salen las alertas',''); return; }
+
+  const editCodigo = document.getElementById('mod-licencia')._editCodigo;
+  const isEdit     = !!editCodigo;
+  const existente  = isEdit ? licencias.find(l=>l.codigo===editCodigo) : null;
+  const obj = {
+    codigo:     isEdit ? editCodigo : '',
+    nombre, proveedor,
+    planVersion:    document.getElementById('lic-plan').value.trim(),
+    claveLicencia:  document.getElementById('lic-clave').value.trim(),
+    fechaInicio:    document.getElementById('lic-inicio').value||'—',
+    fechaVencimiento: venc,
+    costoAnual:     parseFloat(document.getElementById('lic-costo').value)||0,
+    cantidadTotal:  parseInt(document.getElementById('lic-cupos').value)||0,
+    estado:         document.getElementById('lic-estado').value,
+    obs:            document.getElementById('lic-obs').value.trim(),
+    instalaciones:  JSON.stringify(existente?.instalaciones||[]),
+    historial:      JSON.stringify([
+      ...(existente?.historial||[]),
+      { tipo: isEdit?'Edición':'Creación', desc: isEdit?`Editado por ${session.nombre}`:`Registrado por ${session.nombre}`, fecha: ts(), usuario: session.nombre, color:'blue' }
+    ]),
+    fechaCreacion: isEdit ? (existente?.fechaCreacion||ts()) : ts()
+  };
+
+  const btn = document.querySelector('#mod-licencia .btn-p');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try{
+    await apiPost('licencias', isEdit?'update':'insert', obj);
+    if(isEdit){
+      const idx = licencias.findIndex(l=>l.codigo===editCodigo);
+      if(idx>=0) licencias[idx] = {...obj, costoAnual:parseFloat(obj.costoAnual)||0, cantidadTotal:parseInt(obj.cantidadTotal)||0, instalaciones:existente?.instalaciones||[], historial:parseHist(obj.historial)};
+    } else {
+      const raw = await apiGet('licencias');
+      licencias = raw.map(r=>({...r, costoAnual:parseFloat(r.costoAnual)||0, cantidadTotal:parseInt(r.cantidadTotal)||0, instalaciones:parseHist(r.instalaciones), historial:parseHist(r.historial)}));
+    }
+    audit(isEdit?'EDITAR':'CREAR','Licencia',obj.codigo||'NUEVO',(isEdit?'Editado':'Registrado')+' por '+session.nombre+': '+obj.nombre);
+    closeModals();
+    renderLicencias();
+    showToast(isEdit?'✅ Licencia actualizada':'✅ Licencia registrada','success');
+  }catch(e){
+    showToast('Error guardando: '+e.message,'');
+  }finally{
+    btn.disabled=false; btn.textContent='Guardar';
+  }
+}
+
+// ── ELIMINAR ──────────────────────────────────────────────────────
+async function eliminarLicencia(codigo){
+  if(!confirm('¿Eliminar este paquete de licencia? Esto no desinstala nada de los equipos, solo deja de rastrearse en SAGAE.')) return;
+  const l = licencias.find(x=>x.codigo===codigo);
+  if(!l) return;
+  try{
+    await apiPost('licencias','update',{...l, estado:'eliminado', instalaciones:JSON.stringify(l.instalaciones||[]), historial:JSON.stringify(l.historial||[])});
+    l.estado='eliminado';
+    audit('ELIMINAR','Licencia',codigo,`Eliminado: ${l.nombre}`);
+    renderLicencias();
+    showToast('Licencia eliminada','success');
+  }catch(e){ showToast('Error: '+e.message,''); }
+}
+
+// ── DETALLE: EQUIPOS CON ESTA LICENCIA INSTALADA ────────────────
+function abrirDetalleLicencia(codigo){
+  const l = licencias.find(x=>x.codigo===codigo);
+  if(!l) return;
+  document.getElementById('mod-lic-det-title').textContent = `${l.nombre} — Equipos con licencia instalada`;
+  const usadas = (l.instalaciones||[]).length;
+  document.getElementById('lic-det-info').innerHTML =
+    `Código: <b>${l.codigo}</b> · Proveedor: <b>${sanitizeHTML(l.proveedor||'—')}</b> · Vence: <b>${l.fechaVencimiento||'—'}</b> · ` +
+    `Cupos usados: <b style="color:${l.cantidadTotal && usadas>l.cantidadTotal?'#791F1F':'inherit'}">${usadas}${l.cantidadTotal?' / '+l.cantidadTotal:''}</b>`;
+
+  // Selector de activos que AÚN NO tienen esta licencia instalada
+  const yaInstalados = new Set((l.instalaciones||[]).map(i=>i.activoCodigo));
+  const sel = document.getElementById('lic-asignar-activo');
+  sel.innerHTML = '<option value="">— Seleccionar activo —</option>' +
+    activos.filter(a=>a.estado!=='eliminado' && !yaInstalados.has(a.codigo))
+      .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''))
+      .map(a=>`<option value="${a.codigo}">${a.codigo} — ${sanitizeHTML(a.nombre||'')}</option>`).join('');
+
+  const tb = document.getElementById('tb-lic-instalaciones');
+  const instalaciones = l.instalaciones||[];
+  tb.innerHTML = instalaciones.length ? instalaciones.map((i,idx)=>`
+    <tr>
+      <td class="code-cell">${i.activoCodigo||'—'}</td>
+      <td>${sanitizeHTML(i.activoNombre||'—')}</td>
+      <td style="font-size:11px">${i.fecha||'—'}</td>
+      <td style="font-size:11px">${sanitizeHTML(i.usuario||'—')}</td>
+      <td><button class="act-btn" onclick="quitarInstalacionLicencia('${l.codigo}',${idx})" style="color:var(--red)" title="Quitar de este equipo">×</button></td>
+    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Aún no está instalada en ningún equipo registrado</td></tr>`;
+
+  document.getElementById('mod-licencia-detalle')._codigo = codigo;
+  document.getElementById('mod-licencia-detalle').classList.add('open');
+}
+
+async function asignarLicenciaAEquipo(){
+  const codigo = document.getElementById('mod-licencia-detalle')._codigo;
+  const l = licencias.find(x=>x.codigo===codigo);
+  if(!l) return;
+  const activoCodigo = document.getElementById('lic-asignar-activo').value;
+  if(!activoCodigo){ showToast('Selecciona un equipo primero',''); return; }
+  const activo = activos.find(a=>a.codigo===activoCodigo);
+  const nuevaInstalacion = { activoCodigo, activoNombre: activo?.nombre||'—', fecha: ts(), usuario: session.nombre };
+  const instalacionesNuevas = [...(l.instalaciones||[]), nuevaInstalacion];
+
+  if(l.cantidadTotal && instalacionesNuevas.length > l.cantidadTotal){
+    if(!confirm(`⚠ Esta licencia tiene ${l.cantidadTotal} cupo(s) contratado(s) y ya se usarían ${instalacionesNuevas.length}. ¿Registrar de todos modos? (puede indicar que hace falta comprar más cupos)`)) return;
+  }
+
+  try{
+    await apiPost('licencias','update',{
+      ...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[]),
+      costoAnual:l.costoAnual, cantidadTotal:l.cantidadTotal
+    });
+    l.instalaciones = instalacionesNuevas;
+    audit('EDITAR','Licencia',codigo,`Instalada en equipo ${activoCodigo} por ${session.nombre}`);
+    abrirDetalleLicencia(codigo);
+    renderLicencias();
+    showToast('✅ Instalación registrada','success');
+  }catch(e){ showToast('Error: '+e.message,''); }
+}
+
+async function quitarInstalacionLicencia(codigo, idx){
+  const l = licencias.find(x=>x.codigo===codigo);
+  if(!l) return;
+  if(!confirm('¿Quitar este equipo de la lista de instalaciones de la licencia?')) return;
+  const instalacionesNuevas = (l.instalaciones||[]).filter((_,i)=>i!==idx);
+  try{
+    await apiPost('licencias','update',{...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[])});
+    l.instalaciones = instalacionesNuevas;
+    audit('EDITAR','Licencia',codigo,`Instalación removida por ${session.nombre}`);
+    abrirDetalleLicencia(codigo);
+    renderLicencias();
+    showToast('Instalación removida','success');
+  }catch(e){ showToast('Error: '+e.message,''); }
+}
+
+// Licencias instaladas en un activo específico — usado en la hoja de vida del activo
+function licenciasDeActivo(codigoActivo){
+  return licencias.filter(l=>l.estado!=='eliminado' && (l.instalaciones||[]).some(i=>i.activoCodigo===codigoActivo));
+}
+
+// ── EXPORTAR CSV ──────────────────────────────────────────────────
 function exportarMobiliarioCSV(){
   const headers=['codigo','nombre','tipo','cantidad','condicion','ubicacion','depto','material','color','valor','valorTotal','fecha','obs'];
   const rows = mobiliario.filter(m=>m.estado!=='eliminado').map(m=>[
@@ -7558,6 +8041,53 @@ async function instalarTriggerBackup(){
     showToast('Error: '+e.message,'');
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='⏰ Activar backup automático diario'; }
+  }
+}
+
+// ── ALERTAS DE GARANTÍAS/LICENCIAS Y DEADLINES ──────────────────
+async function ejecutarAlertasManualUI(){
+  const btn = document.getElementById('btn-alertas-ahora');
+  const status = document.getElementById('alertas-status');
+  if(btn){ btn.disabled=true; btn.textContent='Enviando...'; }
+  if(status) status.textContent = 'Revisando garantías, licencias y deadlines...';
+  try{
+    await fetch(API, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        sheet:'sistema', action:'run_alertas_ahora',
+        payload:{_apiToken: API_TOKEN}
+      })
+    });
+    if(status) status.textContent = '✅ Revisión ejecutada — se enviaron los correos que correspondían hoy';
+    showToast('✅ Alertas revisadas y enviadas','success');
+  }catch(e){
+    if(status) status.textContent = '❌ Error: '+e.message;
+    showToast('Error al enviar alertas: '+e.message,'');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Enviar alertas ahora (prueba)'; }
+  }
+}
+
+async function instalarTriggerAlertasUI(){
+  const btn = document.getElementById('btn-alertas-trigger');
+  const status = document.getElementById('alertas-status');
+  if(btn){ btn.disabled=true; btn.textContent='⏰ Instalando...'; }
+  try{
+    await fetch(API, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        sheet:'sistema', action:'install_alertas_trigger',
+        payload:{_apiToken: API_TOKEN}
+      })
+    });
+    if(status) status.textContent = '✅ Alertas automáticas activadas — se revisarán diariamente a las 8:00am (Panamá)';
+    showToast('✅ Alertas automáticas de vencimiento activadas','success');
+  }catch(e){
+    showToast('Error: '+e.message,'');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='⏰ Activar alertas automáticas diarias'; }
   }
 }
 
