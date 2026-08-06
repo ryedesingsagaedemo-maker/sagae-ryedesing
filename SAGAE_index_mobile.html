@@ -1553,17 +1553,36 @@ async function loadData(){
   setSyncStatus(true);
 }
 
+// Ejecuta un arreglo de funciones (cada una debe devolver una Promise) en
+// lotes de tamaño "lote", con una pausa de "pausaMs" entre cada lote, en
+// vez de disparar todas a la vez. Reduce el número de ejecuciones
+// simultáneas que llegan a Apps Script en un mismo instante — antes,
+// varios técnicos iniciando sesión al mismo tiempo (o un técnico con el
+// panel web abierto en paralelo) podían saturar la cuota de ejecuciones
+// simultáneas de Apps Script, que responde 503 y el cliente lo ve como
+// login lento o "TIMEOUT".
+async function _cargarEnLotesMobile(tareas, lote=3, pausaMs=250){
+  const resultados = new Array(tareas.length);
+  for(let i=0; i<tareas.length; i+=lote){
+    const grupo = tareas.slice(i, i+lote);
+    const parciales = await Promise.all(grupo.map(fn=>fn()));
+    parciales.forEach((r,j)=>{ resultados[i+j] = r; });
+    if(i+lote < tareas.length) await new Promise(res=>setTimeout(res, pausaMs));
+  }
+  return resultados;
+}
+
 // Carga los datos operativos DESPUÉS de tener sesión (llamado desde doLogin)
 async function cargarDatosPostLogin(){
   try{
-    const [rawT,rawA,rawDep,rawEsp,rawPer]=await Promise.all([
-      apiGetTimeout("tickets"),
-      apiGetTimeout("activos"),
-      apiGetTimeout("departamentos"),
-      apiGetTimeout("espacios"),
-      apiGetTimeout("personas"),
-      cargarResponsablesMobile()
-    ]);
+    const [rawT,rawA,rawDep,rawEsp,rawPer]=await _cargarEnLotesMobile([
+      ()=> apiGetTimeout("tickets"),
+      ()=> apiGetTimeout("activos"),
+      ()=> apiGetTimeout("departamentos"),
+      ()=> apiGetTimeout("espacios"),
+      ()=> apiGetTimeout("personas"),
+      ()=> cargarResponsablesMobile()
+    ], 3, 250);
     if(rawT){tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));cntTickets=tickets.length;}
     if(rawA){activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));}
     if(rawDep){departamentos=rawDep.map(r=>({...r}));}
@@ -1647,11 +1666,14 @@ async function doLogin(){
   let resp;
   try{
     resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'});
-    // Reintento automático y silencioso ante un simple timeout (cold start
-    // típico de Apps Script) — no hace falta que el técnico vuelva a tocar
-    // "Iniciar sesión" por una demora puntual del servidor.
+    // Reintento automático y silencioso ante un simple timeout (puede ser
+    // cold start de Apps Script, o cuota de ejecuciones simultáneas
+    // saturada por otras sesiones activas). Se espera un lapso corto y
+    // aleatorio (1-2.5s) antes de reintentar, en vez de golpear al
+    // servidor de inmediato en el mismo instante de congestión.
     if(resp && resp.error==='TIMEOUT'){
       if(btnLogin) btnLogin.textContent="Reintentando conexión...";
+      await new Promise(res=>setTimeout(res, 1000 + Math.random()*1500));
       resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'});
     }
   }catch(e){
@@ -3032,7 +3054,13 @@ function detenerPollingMobile(){
 
 function _programarPollMob(){
   if(!_mobPollingActive) return;
-  const iv = _MOB_INTERVAL[_mobPanelActivo] || _MOB_INTERVAL.default;
+  const base = _MOB_INTERVAL[_mobPanelActivo] || _MOB_INTERVAL.default;
+  // Jitter de ±15%: con varios técnicos en campo usando la app al mismo
+  // tiempo, evita que todos los dispositivos consulten al servidor en el
+  // mismo instante exacto cada vez, lo cual contribuye a saturar la cuota
+  // de ejecuciones simultáneas de Apps Script.
+  const jitter = base * 0.15 * (Math.random()*2 - 1);
+  const iv = Math.round(base + jitter);
   _mobPollingTimer = setTimeout(_ejecutarPollMob, iv);
 }
 
