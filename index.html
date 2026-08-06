@@ -2508,6 +2508,22 @@ async function cargarNombreInstitucion(){
   }catch(e){ /* si falla, se deja el título genérico de SAGAE */ }
 }
 
+// Ejecuta un arreglo de funciones (cada una debe devolver una Promise) en
+// lotes de tamaño "lote", con una pausa de "pausaMs" entre cada lote, en
+// vez de disparar todas a la vez. Devuelve los resultados en el mismo
+// orden que las tareas recibidas. Reduce el número de ejecuciones
+// simultáneas que llegan a Apps Script en un mismo instante.
+async function _cargarEnLotes(tareas, lote=3, pausaMs=250){
+  const resultados = new Array(tareas.length);
+  for(let i=0; i<tareas.length; i+=lote){
+    const grupo = tareas.slice(i, i+lote);
+    const parciales = await Promise.all(grupo.map(fn=>fn()));
+    parciales.forEach((r,j)=>{ resultados[i+j] = r; });
+    if(i+lote < tareas.length) await new Promise(res=>setTimeout(res, pausaMs));
+  }
+  return resultados;
+}
+
 async function loadFromSheets(){
   const lt=document.getElementById('loading-text'),ls=document.getElementById('loading-sub');
   const cancelBtn=document.getElementById('loading-cancel-btn');
@@ -2518,21 +2534,27 @@ async function loadFromSheets(){
   const _avisoLargo = setTimeout(()=>{ ls.textContent='Esto está tardando más de lo normal, seguimos intentando...'; }, 8000);
   const _avisoCancelar = setTimeout(()=>{ cancelBtn.style.display='inline-block'; }, 20000);
   try{
-  // ── CARGA EN PARALELO — hojas simultáneas (requiere sesión activa) ──
+  // ── CARGA POR LOTES — antes se disparaban 10 peticiones simultáneas al
+  // iniciar sesión (Promise.all). Con varias sesiones activas al mismo
+  // tiempo, esto agota la cuota de ejecuciones simultáneas de Apps Script
+  // y el servidor responde 503 — el cliente lo ve como "TIMEOUT" o login
+  // lento/fallido, aunque el código de login en sí funcione bien.
+  // Ahora se cargan en lotes pequeños (máx. 3 en paralelo) con una breve
+  // pausa entre lotes, para no saturar la cuota del lado del servidor.
   lt.textContent='Cargando datos del sistema...';
-  ls.textContent='Cargando datos en paralelo...';
-  const [rawU, rawA, rawT, rawAud, rawMob0, rawLic0, rawPer0, rawEsp0, rawDep0] = await Promise.all([
-    (session && session.rol==='admin') ? apiGet('usuarios') : Promise.resolve([]),
-    apiGet('activos'),
-    apiGet('tickets'),
-    apiGet('auditoria'),
-    apiGet('mobiliario').catch(()=>[]),
-    apiGet('licencias').catch(()=>[]),
-    apiGet('personas').catch(()=>[]),
-    apiGet('espacios').catch(()=>[]),
-    apiGet('departamentos').catch(()=>[]),
-    cargarResponsablesLista()
-  ]);
+  ls.textContent='Cargando datos en lotes...';
+  const [rawU, rawA, rawT, rawAud, rawMob0, rawLic0, rawPer0, rawEsp0, rawDep0] = await _cargarEnLotes([
+    ()=> (session && session.rol==='admin') ? apiGet('usuarios') : Promise.resolve([]),
+    ()=> apiGet('activos'),
+    ()=> apiGet('tickets'),
+    ()=> apiGet('auditoria'),
+    ()=> apiGet('mobiliario').catch(()=>[]),
+    ()=> apiGet('licencias').catch(()=>[]),
+    ()=> apiGet('personas').catch(()=>[]),
+    ()=> apiGet('espacios').catch(()=>[]),
+    ()=> apiGet('departamentos').catch(()=>[]),
+    ()=> cargarResponsablesLista()
+  ], 3, 250);
   lt.textContent='Procesando datos...';
   usuarios = rawU.map(r=>({...r}));
   activos  = rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));
@@ -2628,11 +2650,15 @@ async function doLogin(){
   let resp;
   try{
     resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'web'});
-    // Reintento automático y silencioso si fue por tiempo agotado (típico
-    // de un "cold start" de Apps Script) — el usuario no necesita ver el
-    // error ni volver a escribir su contraseña por una demora puntual.
+    // Reintento automático y silencioso si fue por tiempo agotado (puede ser
+    // un "cold start" de Apps Script, o la cuota de ejecuciones simultáneas
+    // saturada por otras sesiones activas en ese instante). En el segundo
+    // caso, reintentar de inmediato golpea al servidor en el mismo momento
+    // de congestión — por eso se espera un lapso corto y aleatorio (1-2.5s)
+    // antes de reintentar, dando tiempo a que la cuota se libere.
     if(resp && resp.error==='TIMEOUT'){
       ll.textContent='Seguimos intentando conectar con el servidor...';
+      await new Promise(res=>setTimeout(res, 1000 + Math.random()*1500));
       resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'web'});
     }
   }catch(e){
@@ -6458,8 +6484,12 @@ function detenerPolling(){
 
 function _programarSiguientePoll(){
   if(!_pollingActive) return;
-  const interval = _POLL_INTERVAL[_pollingPanel] || _POLL_INTERVAL.default;
-  _pollingTimer = setTimeout(_ejecutarPoll, interval);
+  const base = _POLL_INTERVAL[_pollingPanel] || _POLL_INTERVAL.default;
+  // Jitter de ±15%: si varias sesiones abren el mismo panel a la vez,
+  // esto evita que todas consulten al servidor en el mismo instante
+  // exacto cada vez, lo cual contribuye a saturar la cuota de Apps Script.
+  const jitter = base * 0.15 * (Math.random()*2 - 1);
+  _pollingTimer = setTimeout(_ejecutarPoll, Math.round(base + jitter));
 }
 
 async function _ejecutarPoll(){
