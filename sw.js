@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v2.1
+// SAGAE — Service Worker v2.2
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v2.1';
-const CACHE_STATIC = 'sagae-static-v2.1';
+const CACHE_NAME   = 'sagae-mobile-v2.2';
+const CACHE_STATIC = 'sagae-static-v2.2';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -15,6 +15,10 @@ const CACHE_STATIC = 'sagae-static-v2.1';
 // desde el móvil (nuevo endpoint "responsables" en el backend), edición
 // de activos existentes (incluye reasignar responsable) y verificación
 // proactiva de actualización al volver la app a primer plano.
+// v2.2: se fuerza la renovación de la caché para que los técnicos reciban
+// la app móvil con el bloqueo visual de guardado y la protección contra
+// tickets duplicados. Sin este cambio de versión, el navegador seguiría
+// sirviendo la versión anterior desde la caché.
 // v2.1: corrección de login lento/intermitente (503 de Apps Script por
 // saturación de la cuota de ejecuciones simultáneas) — carga de datos
 // post-login por lotes en vez de en paralelo, jitter en el polling de
@@ -29,7 +33,7 @@ const STATIC_ASSETS = [
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v2.1...');
+  console.log('[SAGAE SW] Instalando v2.2...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -44,7 +48,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v2.1...');
+  console.log('[SAGAE SW] Activando v2.2...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -162,4 +166,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v2.1 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v2.2 cargado correctamente');
