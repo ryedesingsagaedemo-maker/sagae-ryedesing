@@ -2312,7 +2312,7 @@ function _generarRequestId(){
 // respuesta) y luego pregunta el resultado real con un GET, que sí es
 // legible. El servidor guarda el resultado bajo el mismo _requestId
 // durante 60 segundos (ver enviarRespuesta_ en el backend).
-async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
+async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
   const requestId = _generarRequestId();
   // _sessionToken: sin él, cualquier acción autenticada (insert/update) era
   // rechazada con SESSION_INVALID. _opId: hace que un reintento del usuario
@@ -2326,9 +2326,13 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
     body: JSON.stringify({sheet, action, payload: securePayload})
   }).catch(()=>{});
 
+  // Espera inicial: el servidor necesita al menos ~1s para procesar.
+  // Sondear antes solo genera ejecuciones que devuelven "pending".
+  await new Promise(r=>setTimeout(r, 800));
+
   const inicio = Date.now();
+  let intervalo = 500;
   while(Date.now()-inicio < timeoutMs){
-    await new Promise(r=>setTimeout(r,350));
     try{
       const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(), {mode:'cors'});
       if(r.ok){
@@ -2336,6 +2340,8 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
         if(d && !d.pending) return d;
       }
     }catch(e){ /* seguir intentando hasta agotar el tiempo */ }
+    await new Promise(r=>setTimeout(r, intervalo));
+    if(intervalo < 2000) intervalo = Math.min(intervalo * 1.4, 2000);
   }
   return {ok:false, error:'TIMEOUT', message:'El servidor tardó demasiado en responder. Intenta de nuevo.'};
 }
@@ -3944,9 +3950,12 @@ let _sessionCheckInterval = null;
 function iniciarControlSesionUnica(){
   clearInterval(_sessionCheckInterval);
 
-  // Verificar cada 30 segundos contra el servidor (CacheService). Esto
+  // Verificar cada 2 minutos contra el servidor (CacheService). Esto
   // detecta tanto sesión reemplazada en otro dispositivo como expiración
   // por inactividad, y de paso refresca el TTL deslizante de 30 min.
+  // Antes era cada 30s, pero cada verificación es un doPost+doGet que
+  // compite por la cuota de ejecuciones concurrentes de Apps Script,
+  // afectando el login de otros usuarios.
   _sessionCheckInterval = setInterval(async()=>{
     if(!session || !session.token) return;
     try{
@@ -3981,7 +3990,7 @@ function iniciarControlSesionUnica(){
     }catch(e){
       // Error de red — no hacer nada, esperar siguiente ciclo
     }
-  }, 30 * 1000);
+  }, 120 * 1000);
 }
 
 function sanitizeHTML(str){
