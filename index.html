@@ -295,6 +295,22 @@ tbody tr.clickable{cursor:pointer;}
 .modal-close:hover{background:var(--bg2);}
 .f-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
+/* ── BLOQUEO VISUAL DURANTE EL GUARDADO ───────────────────────────────
+   Antes no existía ninguna señal de que el guardado estaba en curso: el
+   botón quedaba igual y el segundo clic se bloqueaba en silencio. El
+   usuario asumía que no había funcionado y volvía a intentarlo, con la
+   consiguiente duplicación de tickets. */
+.modal-bg.busy{cursor:progress;}
+.save-overlay{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(1.5px);}
+.save-overlay-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xl);
+  box-shadow:0 8px 40px rgba(0,0,0,.18);padding:22px 28px;display:flex;align-items:center;gap:14px;
+  font-size:13px;font-weight:600;color:var(--text);max-width:320px;}
+.save-spin{width:22px;height:22px;border:3px solid var(--bg3);border-top-color:#1B3A6B;
+  border-radius:50%;animation:save-rot .8s linear infinite;flex-shrink:0;}
+@keyframes save-rot{to{transform:rotate(360deg);}}
+.save-overlay-sub{display:block;font-weight:400;font-size:11px;color:var(--text3);margin-top:3px;}
+.btn[disabled],.btn-p[disabled]{opacity:.55;cursor:not-allowed;pointer-events:none;}
 .req-note{font-size:11px;color:var(--red);background:var(--red-l);padding:6px 10px;border-radius:var(--r-md);margin-bottom:12px;border:1px solid var(--red-m);}
 .info-note{font-size:11px;color:var(--blue);background:var(--blue-l);padding:6px 10px;border-radius:var(--r-md);margin-bottom:12px;border:1px solid var(--blue-m);}
 .pass-wrap{position:relative;}
@@ -1675,6 +1691,21 @@ tbody tr.clickable{cursor:pointer;}
           ⏰ Activar alertas automáticas diarias
         </button>
         <span id="alertas-status" style="font-size:11px;color:var(--text3);"></span>
+        <!-- Cola de notificaciones (correos asíncronos) -->
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+          <span style="font-size:11px;font-weight:600;color:var(--text2);">📬 Cola de notificaciones por correo</span>
+          <span id="notif-queue-status" style="font-size:11px;color:var(--text3);margin-left:6px;"></span>
+          <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-p" onclick="instalarTriggerNotifUI()" id="btn-notif-trigger"
+              style="font-size:11px;padding:4px 10px;" title="Instala el disparador que envía los correos pendientes cada minuto">
+              📬 Activar cola de notificaciones
+            </button>
+            <button class="btn" onclick="verificarColaNotifUI()" id="btn-notif-check"
+              style="font-size:11px;padding:4px 10px;" title="Consulta cuántos correos hay pendientes y si el trigger está activo">
+              🔍 Verificar estado de la cola
+            </button>
+          </div>
+        </div>
       </div>
         <div class="tab-row"><button class="tab-btn on" onclick="filterAud('todos',this)">Todo</button><button class="tab-btn" onclick="filterAud('CREAR',this)">Creaciones</button><button class="tab-btn" onclick="filterAud('EDITAR',this)">Ediciones</button><button class="tab-btn" onclick="filterAud('ELIMINAR',this)">Eliminaciones</button><button class="tab-btn" onclick="filterAud('LOGIN',this)">Accesos</button></div>
         <div class="tbl-wrap"><table><thead><tr><th>Fecha / Hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Objeto</th><th>Código</th><th>Detalle</th></tr></thead><tbody id="tb-audit"></tbody></table></div>
@@ -1897,7 +1928,7 @@ tbody tr.clickable{cursor:pointer;}
     <div class="f-lbl">Motivo de la edición *</div>
     <input class="f-inp" id="et-motivo" placeholder="Ej: Corrección de responsable...">
   </div>
-  <div class="modal-actions"><button class="btn" onclick="closeModals()">Cancelar</button><button class="btn btn-p" id="et-save-btn" onclick="if(!window._savingTicket)saveTicket()">Guardar ticket</button></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModals()">Cancelar</button><button class="btn btn-p" id="et-save-btn" onclick="saveTicket()">Guardar ticket</button></div>
 </div></div>
 
 <!-- MODAL USUARIO -->
@@ -2126,10 +2157,21 @@ window.addEventListener('beforeunload', e=>{
   }
 });
 
+// Identificador único de OPERACIÓN. Se genera UNA sola vez por llamada y
+// se reutiliza en los 3 reintentos y en la cola de pendientes. El servidor
+// recuerda el resultado durante 10 minutos: si el mismo _opId vuelve a
+// llegar, NO vuelve a escribir. Sin esto, un reintento por tiempo agotado
+// creaba un segundo ticket (el servidor había terminado igual, el cliente
+// no podía saberlo porque la respuesta de un POST no-cors es ilegible).
+function _generarOpId(){
+  return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12);
+}
+
 async function apiPost(sheet,action,payload){
   // uploadFoto no necesita sheet
   try{
-    const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _sessionToken: session?session.token:null};
+    const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _sessionToken: session?session.token:null,
+                           _opId: (payload&&payload._opId) || _generarOpId()};
     const body = JSON.stringify({sheet,action,payload:securePayload});
 
     if(!_isOnline){
@@ -2147,7 +2189,11 @@ async function apiPost(sheet,action,payload){
           method:'POST', mode:'no-cors',
           headers:{'Content-Type':'application/json'},
           body,
-          signal: AbortSignal.timeout(12000)
+          // 30 s: Apps Script puede tardar más que 12 s en un arranque en
+          // frío. Antes se abortaba a los 12 s aunque el servidor hubiera
+          // guardado bien, y el reintento duplicaba la fila. Ahora el
+          // reintento es inofensivo porque viaja con el mismo _opId.
+          signal: AbortSignal.timeout(30000)
         });
         setSyncStatus(true,'Guardado · '+ts());
         return true;
@@ -2268,7 +2314,12 @@ function _generarRequestId(){
 // durante 60 segundos (ver enviarRespuesta_ en el backend).
 async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
   const requestId = _generarRequestId();
-  const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
+  // _sessionToken: sin él, cualquier acción autenticada (insert/update) era
+  // rechazada con SESSION_INVALID. _opId: hace que un reintento del usuario
+  // no pueda crear un segundo registro.
+  const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId,
+                         _sessionToken: session?session.token:null,
+                         _opId: (payload&&payload._opId) || _generarOpId()};
   fetch(API, {
     method:'POST', mode:'no-cors',
     headers:{'Content-Type':'application/json'},
@@ -3532,14 +3583,69 @@ function agregarFotoMantenimiento(){
   input.click();
 }
 
+// ════════════════════════════════════════════════════════════════════
+// BLOQUEO VISUAL DE GUARDADO
+// ════════════════════════════════════════════════════════════════════
+// Cubre la pantalla completa mientras la operación está en curso: el
+// usuario ve que el sistema está trabajando, no puede volver a pulsar
+// Guardar ni Cancelar, y recibe una confirmación explícita al terminar.
+// Esta es la corrección directa de la causa de los tickets duplicados.
+let _saveOverlayEl = null;
+let _pausarPollingPorGuardado = false;
+
+function mostrarGuardando(mensaje, submensaje){
+  if(_saveOverlayEl) return;
+  const ov = document.createElement('div');
+  ov.className = 'save-overlay';
+  ov.id = 'save-overlay';
+  ov.innerHTML = '<div class="save-overlay-box"><div class="save-spin"></div><div>'
+    + sanitizeHTML(mensaje||'Guardando...')
+    + (submensaje?'<span class="save-overlay-sub">'+sanitizeHTML(submensaje)+'</span>':'')
+    + '</div></div>';
+  document.body.appendChild(ov);
+  _saveOverlayEl = ov;
+  // Bloquear también los botones del modal por si el overlay no alcanzara
+  document.querySelectorAll('.modal-bg.open .modal-actions .btn, .modal-bg.open .modal-close')
+    .forEach(b=>{ b.disabled = true; });
+  // Evitar que el sondeo periódico reescriba la lista justo mientras se guarda
+  _pausarPollingPorGuardado = true;
+}
+
+function ocultarGuardando(){
+  if(_saveOverlayEl){ _saveOverlayEl.remove(); _saveOverlayEl = null; }
+  document.querySelectorAll('.modal-actions .btn, .modal-close').forEach(b=>{ b.disabled = false; });
+  _pausarPollingPorGuardado = false;
+}
+
 async function saveTicket(){
   // Defensa en profundidad: si el rol activo no tiene permiso de edición, se bloquea
   // el guardado aunque el botón esté oculto y aunque alguien manipule el formulario.
   if(!(PERMS[session.rol]||{}).edit){showToast('Tu rol no tiene permiso para editar tickets.','error');return;}
+  // Un único candado para creación Y edición. Antes solo existía en la
+  // rama de creación, así que en "Guardar cambios" cada clic disparaba
+  // una actualización y una tanda de correos adicional.
+  if(window._savingTicket){
+    showToast('El ticket se está guardando, espera un momento...','');
+    return;
+  }
   const titulo=document.getElementById('et-titulo').value.trim();if(!titulo){alert('El título es obligatorio.');return;}
   const editId=document.getElementById('et-id').value,isEdit=editId!=='';
+  // ── Validaciones ANTES de bloquear la pantalla ──────────────────
+  let motivo='';
   if(isEdit){
-    const motivo=document.getElementById('et-motivo').value.trim();if(!motivo){alert('El motivo es obligatorio.');return;}
+    motivo=document.getElementById('et-motivo').value.trim();
+    if(!motivo){alert('El motivo es obligatorio.');return;}
+    if(!tickets.find(x=>x.codigo===editId)){showToast('No se encontró el ticket a editar.','error');return;}
+  }
+
+  window._savingTicket = true;
+  mostrarGuardando(
+    isEdit ? 'Guardando cambios...' : 'Creando ticket...',
+    'No cierres esta ventana. Los correos de aviso se envían por separado.'
+  );
+
+  try{
+  if(isEdit){
     const t=tickets.find(x=>x.codigo===editId);if(!t)return;
     const cambios=[];const nResp=document.getElementById('et-resp').value||'—';
     // Capturar valores ANTES del cambio para el historial
@@ -3563,39 +3669,93 @@ async function saveTicket(){
       desc: det+(eventosDetalle.length?' | '+eventosDetalle.join(' · '):''),
       fecha:ts(),usuario:session.nombre,color:colorEvento
     });
-    await apiPost('tickets','update',t);audit('EDITAR','Ticket',t.codigo,det);
-  }else{
-    // ── PROTECCIÓN ANTI-DUPLICADOS ────────────────────────────────
-    // 1. Generar código provisional con timestamp+random (único por definición)
-    // 2. El Apps Script lo sobreescribirá con el código real usando LockService
-    // 3. Esto evita race conditions si dos usuarios envían al mismo tiempo
-    if(window._savingTicket){
-      showToast('Ya hay un ticket guardándose, espera un momento...','');
-      return;
+    const rEdit = await apiPost('tickets','update',t);
+    audit('EDITAR','Ticket',t.codigo,det);
+    if(rEdit===false){
+      showToast('⚠ Sin conexión: los cambios de '+t.codigo+' quedaron en cola y se enviarán solos.','error');
+    }else{
+      showToast('✅ Cambios guardados en '+t.codigo,'success');
     }
-    window._savingTicket = true;
+  }else{
+    // ── CREACIÓN DE TICKET ────────────────────────────────────────
+    // Cambios de esta versión:
+    // 1. Se eliminó la descarga completa de la hoja Tickets que se hacía
+    //    solo para contar filas: el servidor ya asigna el consecutivo real
+    //    con LockService. Eso quitaba entre 5 y 15 segundos de espera.
+    // 2. Se usa apiPostAsync (POST + consulta del resultado por GET), así
+    //    el sistema SABE si el ticket se creó y con qué código, en vez de
+    //    suponerlo. Antes era imposible confirmarlo.
+    // 3. El _opId hace que un envío repetido NO cree un segundo ticket.
     const _tsuffix = Date.now().toString(36).toUpperCase().slice(-4)
                    + Math.random().toString(36).toUpperCase().slice(2,4);
     const code = 'TKT-P' + _tsuffix; // código provisional — el servidor asigna el real
-    // Actualizar contador local como respaldo
-    let cntReal = 0;
-    try{
-      const _r = await apiGet('tickets');
-      cntReal = Array.isArray(_r) ? _r.length : cntTickets;
-      if(cntReal >= cntTickets) cntTickets = cntReal;
-    }catch(e){ cntReal = cntTickets; }
-    cntTickets = cntReal + 1;
     const aId=document.getElementById('et-activo').value;
     const aNom=aId?(activos.find(a=>a.codigo===aId)||{nombre:'—'}).nombre:'—';
     const t={id:code,codigo:code,titulo,activoId:aId||'',activoNombre:aNom,resp:document.getElementById('et-resp').value||'—',tipo:document.getElementById('et-tipo').value,prior:document.getElementById('et-prior').value,estado:document.getElementById('et-estado').value,avance:Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0)),dead:document.getElementById('et-dead').value||'—',proy:document.getElementById('et-proy').value.trim()||'—',desc:document.getElementById('et-desc').value.trim(),fotos:JSON.stringify(_etFotosActuales),foto:_etFotosActuales.length?_etFotosActuales[0].url:'—',historial:[{tipo:'Creación',desc:'Creado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
     tickets.push(t);
-    if(aId){const act=activos.find(a=>a.codigo===aId);if(act){act.historial=act.historial||[];act.historial.push({tipo:'Ticket vinculado',desc:code+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});await apiPost('activos','update',act);if(t.tipo==='mantenimiento')act.estado='mantenimiento';}}
-    const insertOk = await apiPost('tickets','insert',t);
-    window._savingTicket = false;
-    if(!insertOk){ showToast('⚠ Error guardando ticket, reintenta','error'); return; }
-    audit('CREAR','Ticket',code,'Creado: '+titulo);
+
+    const res = await apiPostAsync('tickets','insert',t,30000);
+
+    if(res && res.ok===false && res.error==='TIMEOUT'){
+      // No se pudo confirmar. NO se reintenta a ciegas: se recarga la lista
+      // desde el servidor para que el usuario vea si el ticket entró o no.
+      // Reintentar aquí sin confirmar es justamente lo que duplicaba filas.
+      tickets = tickets.filter(x=>x.codigo!==code);
+      showToast('⏱ El servidor tardó en confirmar. Actualizando la lista para verificar si el ticket se creó...','error');
+      await recargarTickets();
+      return;
+    }
+    if(res && res.ok===false){
+      tickets = tickets.filter(x=>x.codigo!==code);
+      showToast('⚠ No se pudo crear el ticket: '+(res.message||res.error||'error desconocido'),'error');
+      return;
+    }
+
+    // Adoptar el código REAL asignado por el servidor
+    const codigoReal = (res && res.codigo) ? res.codigo : code;
+    t.codigo = codigoReal; t.id = codigoReal;
+    if(res && res.duplicadoEvitado){
+      showToast('ℹ Este ticket ya se había registrado como '+codigoReal+'. No se creó un duplicado.','');
+    }else{
+      showToast('✅ Ticket '+codigoReal+' creado correctamente','success');
+    }
+
+    // Vincular el activo DESPUÉS de conocer el código real, para que su
+    // hoja de vida no quede apuntando a un código provisional inexistente.
+    if(aId){
+      const act=activos.find(a=>a.codigo===aId);
+      if(act){
+        act.historial=act.historial||[];
+        act.historial.push({tipo:'Ticket vinculado',desc:codigoReal+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});
+        if(t.tipo==='mantenimiento')act.estado='mantenimiento';
+        await apiPost('activos','update',act);
+      }
+    }
+    audit('CREAR','Ticket',codigoReal,'Creado: '+titulo);
   }
   closeModals();renderAll();
+  }catch(err){
+    showToast('⚠ Error al guardar: '+(err&&err.message?err.message:'desconocido'),'error');
+  }finally{
+    // Sin este finally, cualquier excepción intermedia dejaba el candado
+    // activado para siempre y el botón Guardar quedaba muerto hasta
+    // recargar la página.
+    window._savingTicket = false;
+    ocultarGuardando();
+  }
+}
+
+// Recarga la lista de tickets desde el servidor. Se usa cuando una
+// operación no pudo confirmarse, para que el usuario vea el estado real
+// en vez de tener que adivinar si guardó o no.
+async function recargarTickets(){
+  try{
+    const raw = await apiGet('tickets');
+    if(Array.isArray(raw) && !raw._failed){
+      tickets = raw.map(r=>({...r, id:r.codigo, avance:parseInt(r.avance)||0, historial:parseHist(r.historial)}));
+      renderAll();
+    }
+  }catch(e){ /* si falla, el sondeo periódico lo corregirá */ }
 }
 
 function openDelete(type,id){
@@ -6497,6 +6657,10 @@ async function _ejecutarPoll(){
   // No consultar si la pestaña está oculta o en paneles no relevantes
   if(document.hidden){ _programarSiguientePoll(); return; }
   if(!_POLLING_PANELS.includes(_pollingPanel)){ _programarSiguientePoll(); return; }
+  // No consultar mientras se está guardando: la respuesta del sondeo podía
+  // reemplazar el arreglo de tickets justo en medio de la operación y
+  // competir por la cuota de ejecución de Apps Script, alargando la espera.
+  if(_pausarPollingPorGuardado){ _programarSiguientePoll(); return; }
 
   try{
     // Solo consultar tickets — es el dato más dinámico
@@ -8135,6 +8299,49 @@ async function instalarTriggerAlertasUI(){
     showToast('Error: '+e.message,'');
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='⏰ Activar alertas automáticas diarias'; }
+  }
+}
+
+// ── Cola de notificaciones (correos asíncronos) ──────────────────────
+async function instalarTriggerNotifUI(){
+  const btn = document.getElementById('btn-notif-trigger');
+  const status = document.getElementById('notif-queue-status');
+  if(btn){ btn.disabled=true; btn.textContent='📬 Instalando...'; }
+  try{
+    const res = await apiPostAsync('sistema','install_notif_trigger',{},20000);
+    if(res && res.ok){
+      if(status) status.textContent = '✅ Trigger instalado — los correos se envían cada 1 minuto';
+      showToast('✅ Cola de notificaciones activada','success');
+    }else{
+      showToast('⚠ '+(res&&res.error?res.error:'No se pudo instalar'),'error');
+    }
+  }catch(e){
+    showToast('Error: '+e.message,'error');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='📬 Activar cola de notificaciones'; }
+  }
+}
+
+async function verificarColaNotifUI(){
+  const btn = document.getElementById('btn-notif-check');
+  const status = document.getElementById('notif-queue-status');
+  if(btn){ btn.disabled=true; btn.textContent='🔍 Consultando...'; }
+  try{
+    const res = await apiPostAsync('sistema','estado_cola_notif',{},15000);
+    if(res && res.ok!==undefined){
+      const ico = res.triggerInstalado ? '✅' : '⚠️';
+      const trig = res.triggerInstalado ? 'Trigger activo' : 'Trigger NO instalado';
+      const pend = res.pendientes || 0;
+      const modo = res.asincrono ? 'asíncrono' : 'síncrono';
+      if(status) status.textContent = ico+' '+trig+' | '+pend+' correo(s) pendiente(s) | Modo: '+modo;
+      showToast(trig+' — '+pend+' pendiente(s)','success');
+    }else{
+      showToast('⚠ No se pudo consultar','error');
+    }
+  }catch(e){
+    showToast('Error: '+e.message,'error');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='🔍 Verificar estado de la cola'; }
   }
 }
 
