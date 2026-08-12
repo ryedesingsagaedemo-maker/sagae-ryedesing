@@ -1595,26 +1595,20 @@ async function _cargarEnLotesMobile(tareas, lote=3, pausaMs=250){
 // Carga los datos operativos DESPUÉS de tener sesión (llamado desde doLogin)
 async function cargarDatosPostLogin(){
   try{
-    const [rawT,rawA,rawDep,rawEsp,rawPer]=await _cargarEnLotesMobile([
+    // ── FASE 1: solo tickets + activos + responsables ──────────────
+    // Es lo mínimo para que el dashboard sea útil. Departamentos,
+    // espacios y personas se cargan en background (Fase 2) porque
+    // el técnico no los necesita de entrada.
+    const [rawT, rawA] = await _cargarEnLotesMobile([
       ()=> apiGetTimeout("tickets"),
       ()=> apiGetTimeout("activos"),
-      ()=> apiGetTimeout("departamentos"),
-      ()=> apiGetTimeout("espacios"),
-      ()=> apiGetTimeout("personas"),
       ()=> cargarResponsablesMobile()
-    ], 3, 250);
+    ], 3, 100);
+
     if(rawT){tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));cntTickets=tickets.length;}
     if(rawA){activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));}
-    if(rawDep){departamentos=rawDep.map(r=>({...r}));}
-    if(rawEsp){espacios=rawEsp.map(r=>({...r}));}
-    if(rawPer){personas=rawPer.map(r=>({...r}));}
     saveCache();
-    // ── AVISO DE CARGA PARCIAL ──────────────────────────────────
-    // apiGetTimeout puede devolver null si, incluso con el reintento
-    // interno de apiGet, no hubo respuesta a tiempo. Antes esto se
-    // ignoraba en silencio y de todos modos se marcaba "sincronizado":
-    // el técnico veía un dashboard vacío pensando que era la realidad,
-    // sin ninguna señal de que en verdad falló la carga.
+
     const fallaron=[];
     if(rawT===null) fallaron.push("tickets");
     if(rawA===null) fallaron.push("activos");
@@ -1626,11 +1620,32 @@ async function cargarDatosPostLogin(){
     }
     setSyncStatus(true);
     document.getElementById("offline-banner").classList.remove("show");
+
+    // ── FASE 2: datos secundarios en background ───────────────────
+    _cargarDatosSecundariosMobile();
+
     return true;
   }catch(e){
     setSyncStatus(false);
     document.getElementById("offline-banner").classList.add("show");
     return false;
+  }
+}
+
+// Carga departamentos, espacios y personas sin bloquear la pantalla.
+async function _cargarDatosSecundariosMobile(){
+  try{
+    const [rawDep, rawEsp, rawPer] = await _cargarEnLotesMobile([
+      ()=> apiGetTimeout("departamentos"),
+      ()=> apiGetTimeout("espacios"),
+      ()=> apiGetTimeout("personas"),
+    ], 3, 300);
+    if(rawDep){departamentos=rawDep.map(r=>({...r}));}
+    if(rawEsp){espacios=rawEsp.map(r=>({...r}));}
+    if(rawPer){personas=rawPer.map(r=>({...r}));}
+    saveCache();
+  }catch(e){
+    console.warn('[SAGAE] Carga secundaria móvil parcial:', e.message);
   }
 }
 
