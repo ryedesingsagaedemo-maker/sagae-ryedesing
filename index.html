@@ -2585,75 +2585,65 @@ async function loadFromSheets(){
   const lt=document.getElementById('loading-text'),ls=document.getElementById('loading-sub');
   const cancelBtn=document.getElementById('loading-cancel-btn');
   cancelBtn.style.display='none';
-  // Si la carga se alarga, avisar que sigue trabajando (no se congeló) y,
-  // pasado más tiempo, ofrecer una salida manual — para que la persona
-  // nunca se quede mirando una pantalla estática sin ninguna opción.
   const _avisoLargo = setTimeout(()=>{ ls.textContent='Esto está tardando más de lo normal, seguimos intentando...'; }, 8000);
   const _avisoCancelar = setTimeout(()=>{ cancelBtn.style.display='inline-block'; }, 20000);
   try{
-  // ── CARGA POR LOTES — antes se disparaban 10 peticiones simultáneas al
-  // iniciar sesión (Promise.all). Con varias sesiones activas al mismo
-  // tiempo, esto agota la cuota de ejecuciones simultáneas de Apps Script
-  // y el servidor responde 503 — el cliente lo ve como "TIMEOUT" o login
-  // lento/fallido, aunque el código de login en sí funcione bien.
-  // Ahora se cargan en lotes pequeños (máx. 3 en paralelo) con una breve
-  // pausa entre lotes, para no saturar la cuota del lado del servidor.
-  lt.textContent='Cargando datos del sistema...';
-  ls.textContent='Cargando datos en lotes...';
-  const [rawU, rawA, rawT, rawAud, rawMob0, rawLic0, rawPer0, rawEsp0, rawDep0] = await _cargarEnLotes([
-    ()=> (session && session.rol==='admin') ? apiGet('usuarios') : Promise.resolve([]),
+  // ═══════════════════════════════════════════════════════════════════
+  // CARGA DIFERIDA EN DOS FASES
+  // ═══════════════════════════════════════════════════════════════════
+  // ANTES: se descargaban 9 hojas en lotes de 3 ANTES de mostrar algo.
+  // Con 139+ tickets y todo su historial+fotos en JSON, la descarga
+  // podía tardar 30-60 s y el técnico pensaba que el sistema no entraba.
+  //
+  // AHORA:
+  //   Fase 1 (bloqueante): activos + tickets + responsables (~2-4 s)
+  //          → se cierra el overlay, se renderiza el dashboard
+  //   Fase 2 (background): usuarios, auditoría, mobiliario, licencias,
+  //          personas, espacios, departamentos → se cargan sin bloquear
+  //          la pantalla. Si el técnico navega a esos módulos antes de
+  //          que terminen, los encuentra vacíos temporalmente.
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ── FASE 1: lo mínimo para que el dashboard sea útil ──────────────
+  lt.textContent='Cargando datos esenciales...';
+  ls.textContent='Activos y tickets...';
+
+  const [rawA, rawT] = await _cargarEnLotes([
     ()=> apiGet('activos'),
     ()=> apiGet('tickets'),
-    ()=> apiGet('auditoria'),
-    ()=> apiGet('mobiliario').catch(()=>[]),
-    ()=> apiGet('licencias').catch(()=>[]),
-    ()=> apiGet('personas').catch(()=>[]),
-    ()=> apiGet('espacios').catch(()=>[]),
-    ()=> apiGet('departamentos').catch(()=>[]),
     ()=> cargarResponsablesLista()
-  ], 3, 250);
-  lt.textContent='Procesando datos...';
-  usuarios = rawU.map(r=>({...r}));
+  ], 3, 100);
+
   activos  = rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));
   cntActivos = activos.length;
   tickets  = rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));
   cntTickets = tickets.length;
-  auditLog = rawAud.slice().reverse();
-  // ── Procesar datos cargados en Promise.all ──
-  mobiliario = Array.isArray(rawMob0) ? rawMob0.map(r=>({
-    ...r, cantidad:parseInt(r.cantidad)||1, valor:parseFloat(r.valor)||0, historial:parseHist(r.historial)
-  })) : [];
-  licencias = Array.isArray(rawLic0) ? rawLic0.map(r=>({
-    ...r, costoAnual:parseFloat(r.costoAnual)||0, cantidadTotal:parseInt(r.cantidadTotal)||0,
-    instalaciones: parseHist(r.instalaciones), historial: parseHist(r.historial)
-  })) : [];
-  personas     = Array.isArray(rawPer0) ? rawPer0.map(r=>({...r})) : [];
-  espacios     = Array.isArray(rawEsp0) ? rawEsp0.map(r=>({...r})) : [];
-  departamentos= Array.isArray(rawDep0) ? rawDep0.map(r=>({...r})) : [];
-  // Limpiar caché de depreciación y reconstruir selects
-  if(typeof _depreCache !== 'undefined') _depreCache.clear();
-  if(typeof buildDataLists === 'function') buildDataLists();
-  // NOTA: No se crea admin automáticamente para evitar duplicados
-  // Si no hay usuarios, mostrar aviso y dejar entrar igual
 
-  // ── AVISO DE CARGA PARCIAL ──────────────────────────────────────
-  // apiGet ya reintenta una vez automáticamente por hoja. Si aun así
-  // alguna quedó marcada como fallida, es una falla real de conexión,
-  // no "no hay datos" — hay que decírselo a la persona en vez de dejar
-  // que vea un dashboard en ceros pensando que esa es la realidad.
+  // Avisar si hubo falla parcial en lo esencial
   const hojasFallidas = [];
-  if(rawA._failed)   hojasFallidas.push('Activos');
-  if(rawT._failed)   hojasFallidas.push('Tickets');
-  if(rawAud._failed) hojasFallidas.push('Auditoría');
+  if(rawA._failed) hojasFallidas.push('Activos');
+  if(rawT._failed) hojasFallidas.push('Tickets');
   if(hojasFallidas.length){
     setSyncStatus(false, '⚠ No se pudo cargar: '+hojasFallidas.join(', ')+'. Toca para reintentar.');
     setTimeout(()=>showToast('⚠ Algunos datos no cargaron ('+hojasFallidas.join(', ')+'). Usa el botón de sincronizar para reintentar.', 'error'), 800);
   } else {
-    ls.textContent=`✅ ${activos.length} activos · ${tickets.length} tickets`;
-    lt.textContent='¡Sistema listo!';
     setSyncStatus(true,'Conectado a Google Sheets');
   }
+
+  // Renderizar el dashboard inmediatamente con lo que ya hay
+  lt.textContent='¡Sistema listo!';
+  ls.textContent=`✅ ${activos.length} activos · ${tickets.length} tickets`;
+  if(typeof buildDataLists === 'function') buildDataLists();
+  renderAll();
+
   clearTimeout(_avisoLargo); clearTimeout(_avisoCancelar); cancelBtn.style.display='none';
+
+  // ── FASE 2: el resto en segundo plano, sin bloquear ───────────────
+  // Se ejecuta DESPUÉS de que el overlay se cierra y el dashboard
+  // es visible. Los módulos que dependen de estos datos (auditoría,
+  // mobiliario, licencias, etc.) se renderizan al completar.
+  _cargarDatosSecundarios();
+
   return true;
   }catch(err){
     clearTimeout(_avisoLargo); clearTimeout(_avisoCancelar); cancelBtn.style.display='none';
@@ -2662,6 +2652,43 @@ async function loadFromSheets(){
     ls.textContent='Verifica tu conexión e intenta de nuevo.';
     setSyncStatus(false,'Error de conexión');
     return false;
+  }
+}
+
+// Carga datos que NO son necesarios para el dashboard inicial.
+// No bloquea la pantalla. Se ejecuta en segundo plano.
+async function _cargarDatosSecundarios(){
+  try{
+    const [rawU, rawAud, rawMob0, rawLic0, rawPer0, rawEsp0, rawDep0] = await _cargarEnLotes([
+      ()=> (session && session.rol==='admin') ? apiGet('usuarios') : Promise.resolve([]),
+      ()=> apiGet('auditoria').catch(()=>[]),
+      ()=> apiGet('mobiliario').catch(()=>[]),
+      ()=> apiGet('licencias').catch(()=>[]),
+      ()=> apiGet('personas').catch(()=>[]),
+      ()=> apiGet('espacios').catch(()=>[]),
+      ()=> apiGet('departamentos').catch(()=>[]),
+    ], 3, 300);
+
+    usuarios = rawU.map(r=>({...r}));
+    auditLog = rawAud.slice().reverse();
+    mobiliario = Array.isArray(rawMob0) ? rawMob0.map(r=>({
+      ...r, cantidad:parseInt(r.cantidad)||1, valor:parseFloat(r.valor)||0, historial:parseHist(r.historial)
+    })) : [];
+    licencias = Array.isArray(rawLic0) ? rawLic0.map(r=>({
+      ...r, costoAnual:parseFloat(r.costoAnual)||0, cantidadTotal:parseInt(r.cantidadTotal)||0,
+      instalaciones: parseHist(r.instalaciones), historial: parseHist(r.historial)
+    })) : [];
+    personas     = Array.isArray(rawPer0) ? rawPer0.map(r=>({...r})) : [];
+    espacios     = Array.isArray(rawEsp0) ? rawEsp0.map(r=>({...r})) : [];
+    departamentos= Array.isArray(rawDep0) ? rawDep0.map(r=>({...r})) : [];
+
+    if(typeof _depreCache !== 'undefined') _depreCache.clear();
+    if(typeof buildDataLists === 'function') buildDataLists();
+    // Re-renderizar ahora que hay datos completos (auditoría, kanban, etc.)
+    renderAll();
+  }catch(e){
+    console.warn('[SAGAE] Carga secundaria parcial:',e.message);
+    // No bloquear nada: el dashboard ya está visible y funcional
   }
 }
 
