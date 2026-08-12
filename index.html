@@ -2169,10 +2169,10 @@ function _generarOpId(){
 
 async function apiPost(sheet,action,payload){
   // uploadFoto no necesita sheet
+  const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _sessionToken: session?session.token:null,
+                         _opId: (payload&&payload._opId) || _generarOpId()};
+  const body = JSON.stringify({sheet,action,payload:securePayload});
   try{
-    const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _sessionToken: session?session.token:null,
-                           _opId: (payload&&payload._opId) || _generarOpId()};
-    const body = JSON.stringify({sheet,action,payload:securePayload});
 
     if(!_isOnline){
       // Sin conexión: encolar y mostrar indicador
@@ -2634,7 +2634,7 @@ async function loadFromSheets(){
   lt.textContent='¡Sistema listo!';
   ls.textContent=`✅ ${activos.length} activos · ${tickets.length} tickets`;
   if(typeof buildDataLists === 'function') buildDataLists();
-  renderAll();
+  if(session) renderAll();
 
   clearTimeout(_avisoLargo); clearTimeout(_avisoCancelar); cancelBtn.style.display='none';
 
@@ -2642,7 +2642,7 @@ async function loadFromSheets(){
   // Se ejecuta DESPUÉS de que el overlay se cierra y el dashboard
   // es visible. Los módulos que dependen de estos datos (auditoría,
   // mobiliario, licencias, etc.) se renderizan al completar.
-  _cargarDatosSecundarios();
+  if(session) _cargarDatosSecundarios();
 
   return true;
   }catch(err){
@@ -2685,7 +2685,8 @@ async function _cargarDatosSecundarios(){
     if(typeof _depreCache !== 'undefined') _depreCache.clear();
     if(typeof buildDataLists === 'function') buildDataLists();
     // Re-renderizar ahora que hay datos completos (auditoría, kanban, etc.)
-    renderAll();
+    // Proteger contra sesión expirada durante la carga en background
+    if(session) renderAll();
   }catch(e){
     console.warn('[SAGAE] Carga secundaria parcial:',e.message);
     // No bloquear nada: el dashboard ya está visible y funcional
