@@ -1390,9 +1390,18 @@ function _generarRequestId(){
 // Google Apps Script NO agrega encabezados CORS a las respuestas de
 // POST (sí lo hace en GET) — confirmado en pruebas reales. Este patrón
 // dispara el POST "a ciegas" (no-cors) y sondea el resultado con GET.
+// Identificador único de OPERACIÓN, reutilizado en todos los reintentos.
+// El servidor recuerda su resultado 10 minutos y no vuelve a escribir si
+// el mismo _opId llega otra vez: un doble envío ya no crea dos tickets.
+function _generarOpId(){
+  return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12);
+}
+
 async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
   const requestId = _generarRequestId();
-  const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
+  const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId,
+                         _sessionToken: (typeof session!=='undefined'&&session)?session.token:null,
+                         _opId: (payload&&payload._opId) || _generarOpId()};
   fetch(API, {
     method:'POST', mode:'no-cors',
     headers:{'Content-Type':'application/json'},
@@ -1446,7 +1455,7 @@ async function _flushMobQueue(){
     const op=_mobQueue[0];
     try{
       await fetch(API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
-        body:op.body, signal:AbortSignal.timeout(12000)});
+        body:op.body, signal:AbortSignal.timeout(30000)});
       _mobQueue.shift();
     }catch(e){ break; }
   }
@@ -1455,16 +1464,20 @@ setInterval(()=>{ if(_mobOnline && _mobQueue.length>0) _flushMobQueue(); }, 3000
 
 function apiPost(sheet,action,payload){
   try{
-    const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _sessionToken: (typeof session!=='undefined'&&session)?session.token:null};
+    const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _sessionToken: (typeof session!=='undefined'&&session)?session.token:null,
+                           _opId: (payload&&payload._opId) || _generarOpId()};
     const body = JSON.stringify({sheet,action,payload:securePayload});
     if(!_mobOnline){
       _mobQueue.push({body}); setSyncStatus(false); return Promise.resolve(true);
     }
-    // Retry 3 veces con backoff
+    // Retry 3 veces con backoff. Ahora es seguro: el _opId viaja dentro del
+    // cuerpo, así que el servidor reconoce el reintento y no vuelve a
+    // escribir. Antes, en redes celulares lentas, cada reintento por tiempo
+    // agotado creaba una fila nueva.
     const attempt = async(n)=>{
       try{
         await fetch(API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
-          body, signal:AbortSignal.timeout(12000)});
+          body, signal:AbortSignal.timeout(30000)});
         setSyncStatus(true);
       }catch(e){
         if(n<3){ await new Promise(r=>setTimeout(r,n*1500)); return attempt(n+1); }
@@ -2461,16 +2474,51 @@ async function _propagarSolicitudPiezasAlActivo(activoId, entry){
   await apiPost("activos","update",a);
 }
 
+// ── BLOQUEO VISUAL DE GUARDADO (móvil) ──────────────────────────────
+// En celular la espera se siente aún más larga y el toque repetido es
+// casi automático. Este overlay deja claro que el sistema está trabajando
+// e impide cualquier toque adicional hasta que la operación termine.
+let _mobSaveOverlay = null;
+function mostrarGuardandoMob(mensaje){
+  if(_mobSaveOverlay) return;
+  const ov=document.createElement('div');
+  ov.id='mob-save-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;'
+    +'background:rgba(255,255,255,.78);backdrop-filter:blur(2px);';
+  ov.innerHTML='<div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.2);'
+    +'padding:22px 26px;display:flex;align-items:center;gap:14px;font-size:14px;font-weight:600;color:#1C1C1C;max-width:80vw">'
+    +'<div style="width:22px;height:22px;border:3px solid #E5E7EB;border-top-color:#1B3A6B;border-radius:50%;'
+    +'animation:mobsaverot .8s linear infinite;flex-shrink:0"></div><div>'+(mensaje||'Guardando...')
+    +'<span style="display:block;font-weight:400;font-size:11px;color:#6B7280;margin-top:3px">'
+    +'No cierres la app. Los correos se envían aparte.</span></div></div>'
+    +'<style>@keyframes mobsaverot{to{transform:rotate(360deg)}}</style>';
+  document.body.appendChild(ov);
+  _mobSaveOverlay=ov;
+}
+function ocultarGuardandoMob(){
+  if(_mobSaveOverlay){ _mobSaveOverlay.remove(); _mobSaveOverlay=null; }
+}
+
 async function saveTicket(){
+  // Candado único para creación Y edición. Antes solo protegía la creación:
+  // en "Guardar cambios" cada toque repetido disparaba otra actualización.
+  if(window._savingTicket){ showToast('El ticket se está guardando, espera...',''); return; }
+
   const titulo=document.getElementById("mt-titulo").value.trim();
   if(!titulo){showToast("El título es obligatorio","error");return;}
   const solicitudPiezas = _leerSolicitudPiezasTicket();
   if(solicitudPiezas === undefined) return; // faltan datos obligatorios de piezas
   const editId=document.getElementById("mt-id").value;
   const isEdit=editId!=="";
+  if(isEdit && !document.getElementById("mt-motivo").value.trim()){
+    showToast("El motivo es obligatorio","error");return;
+  }
+
+  window._savingTicket = true;
+  mostrarGuardandoMob(isEdit?'Guardando cambios...':'Creando ticket...');
+  try{
   if(isEdit){
     const motivo=document.getElementById("mt-motivo").value.trim();
-    if(!motivo){showToast("El motivo es obligatorio","error");return;}
     const t=tickets.find(x=>x.codigo===editId);if(!t)return;
     const estadoAntes=t.estado;
     const respAntes=t.resp;
@@ -2504,21 +2552,13 @@ async function saveTicket(){
     await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Ticket",codigo:t.codigo,detalle:`Motivo: ${motivo}${solicitudPiezas?" | Solicitud de compra":""} | App Móvil`});
     showToast("Ticket actualizado"+(solicitudPiezas?" + solicitud de compra":"")+" ✓","success");
   } else {
-    // Protección anti-doble-submit
-    if(window._savingTicket){ showToast('Ya hay un ticket guardándose, espera...',''); return; }
-    window._savingTicket = true;
-    // Consultar Sheets en tiempo real para el consecutivo real
-    let cntRealM = 0;
-    try{
-      const _rm = await apiGet("tickets");
-      cntRealM = Array.isArray(_rm) ? _rm.length : cntTickets;
-      if(cntRealM >= cntTickets) cntTickets = cntRealM;
-    }catch(e){ cntRealM = cntTickets; }
+    // Se eliminó la descarga completa de la hoja Tickets que se hacía solo
+    // para contar filas: el servidor ya asigna el consecutivo real con
+    // LockService. En red celular esa descarga costaba 10-20 segundos.
     // Código provisional único — el servidor asigna el real con LockService
     const _sfxM = Date.now().toString(36).toUpperCase().slice(-4)
                + Math.random().toString(36).toUpperCase().slice(2,4);
     const code = 'TKT-P'+_sfxM;
-    cntTickets = cntRealM + 1;
     const aId=document.getElementById("mt-activo").value;
     const aNom=aId?(activos.find(a=>a.codigo===aId)||{nombre:"—"}).nombre:"—";
     const respSelected = document.getElementById("mt-resp")?.value || session.nombre;
@@ -2526,16 +2566,50 @@ async function saveTicket(){
     if(solicitudPiezas) histInicial.push(solicitudPiezas);
     const t={id:code,codigo:code,titulo,activoId:aId||"",activoNombre:aNom,resp:respSelected,tipo:document.getElementById("mt-tipo").value,prior:document.getElementById("mt-prior").value,estado:document.getElementById("mt-estado").value,avance:parseInt(document.getElementById("mt-avance").value)||0,dead:document.getElementById("mt-dead").value||"—",proy:"—",desc:document.getElementById("mt-desc").value.trim(),foto:_mtFotosActuales.length?_mtFotosActuales[0].url:"—",fotos:JSON.stringify(_mtFotosActuales),historial:histInicial,fechaCreacion:ts()};
     tickets.push(t);
-    const _tOkM = await apiPost("tickets","insert",t);
+
+    // POST + consulta del resultado: el móvil ahora SABE si el ticket se
+    // creó y con qué código. Antes solo podía suponerlo.
+    const resM = await apiPostAsync("tickets","insert",t,30000);
+
+    if(resM && resM.ok===false && resM.error==='TIMEOUT'){
+      tickets = tickets.filter(x=>x.codigo!==code);
+      showToast("⏱ No se pudo confirmar. Actualizando lista para verificar...","error");
+      try{
+        const raw = await apiGet("tickets");
+        if(Array.isArray(raw) && raw.length){
+          tickets = raw.map(r=>({...r, id:r.codigo, avance:parseInt(r.avance)||0, historial:parseHist(r.historial)}));
+        }
+      }catch(e){}
+      saveCache(); renderTickets(); renderDashboard();
+      return;
+    }
+    if(resM && resM.ok===false){
+      tickets = tickets.filter(x=>x.codigo!==code);
+      showToast("⚠ No se pudo crear el ticket: "+(resM.message||resM.error||"error"),"error");
+      return;
+    }
+
+    const codigoRealM = (resM && resM.codigo) ? resM.codigo : code;
+    t.codigo = codigoRealM; t.id = codigoRealM;
+
     if(solicitudPiezas) await _propagarSolicitudPiezasAlActivo(t.activoId, solicitudPiezas);
-    window._savingTicket = false;
-    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"CREAR",tipo:"Ticket",codigo:code,detalle:"Creado desde app móvil: "+titulo+(solicitudPiezas?" | Solicitud de compra":"")});
-    showToast("Ticket creado"+(solicitudPiezas?" + solicitud de compra":"")+" ✓","success");
+    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"CREAR",tipo:"Ticket",codigo:codigoRealM,detalle:"Creado desde app móvil: "+titulo+(solicitudPiezas?" | Solicitud de compra":"")});
+    showToast(resM && resM.duplicadoEvitado
+      ? "Ya estaba registrado como "+codigoRealM+" — no se duplicó"
+      : "Ticket "+codigoRealM+" creado ✓","success");
   }
   saveCache();
   closeModal();
   renderTickets();
   renderDashboard();
+  }catch(err){
+    showToast("⚠ Error al guardar: "+(err&&err.message?err.message:"desconocido"),"error");
+  }finally{
+    // Sin este finally, una excepción intermedia dejaba el candado puesto
+    // y el botón Guardar quedaba inutilizado hasta reiniciar la app.
+    window._savingTicket = false;
+    ocultarGuardandoMob();
+  }
 }
 
 function closeModal(){
@@ -2924,7 +2998,7 @@ window.addEventListener("offline",()=>{
 
 // ── SERVICE WORKER ────────────────────────────────────────────
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=2.0").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=2.2").then(reg=>{
     console.log("[SAGAE] SW registrado v2.0:", reg.scope);
 
     // Detectar cuando hay un nuevo SW esperando (actualización disponible)
