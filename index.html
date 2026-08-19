@@ -1642,6 +1642,7 @@ tbody tr.clickable{cursor:pointer;}
             <option value="garantia">Garantías y licencias próximas a vencer</option>
             <option value="hojavida">Hoja de vida individual por activo</option>
             <option value="tickets">Tickets por período / responsable</option>
+            <option value="tickets_supervision">Tickets — Reporte de supervisión (Excel)</option>
             <option value="mantenimientos">Mantenimientos y costos</option>
             <option value="danos">Reporte de daños / descartes</option>
             <option value="trazabilidad">Trazabilidad por persona asignada</option>
@@ -1651,7 +1652,7 @@ tbody tr.clickable{cursor:pointer;}
           </select>
           <div id="rep-filtros" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
           <div style="margin-left:auto;display:flex;gap:7px;">
-            <button class="btn" id="btn-csv" onclick="exportCSV()" style="display:none">⬇ CSV / Excel</button>
+            <button class="btn" id="btn-csv" onclick="exportReporte()" style="display:none">⬇ CSV / Excel</button>
             <button class="btn btn-p" id="btn-pdf" onclick="exportPDF()" style="display:none">⬇ PDF</button>
           </div>
         </div>
@@ -2273,15 +2274,19 @@ async function cargarResponsablesLista(){
   }catch(e){ /* silencioso: el select queda solo con "Sin asignar" si falla */ }
 }
 
-async function apiGet(sheet, intento=1){
+async function apiGet(sheet, intento=1, params=''){
   try{
+    // Tickets en modo ligero: sin fotos ni historial completo.
+    // Reduce el payload de MB a KB y la respuesta llega en <2s.
+    const modoLigero = (sheet === 'tickets' && !params.includes('mode=')) ? '&mode=light' : '';
     const controller = new AbortController();
-    const timer = setTimeout(()=>controller.abort(), 15000);
+    const timeoutMs = (sheet === 'tickets' || sheet === 'activos') ? 25000 : 15000;
+    const timer = setTimeout(()=>controller.abort(), timeoutMs);
     const tok = session && session.token ? '&session='+encodeURIComponent(session.token) : '';
-    const r = await fetch(API+'?sheet='+sheet+tok, {mode:'cors', signal:controller.signal});
+    const r = await fetch(API+'?sheet='+sheet+tok+modoLigero+params, {mode:'cors', signal:controller.signal});
     clearTimeout(timer);
     if(!r.ok){
-      if(intento < 2) return apiGet(sheet, intento+1);
+      if(intento < 2) return apiGet(sheet, intento+1, params);
       const fallo=[]; fallo._failed=true; return fallo;
     }
     const d = await r.json();
@@ -2293,13 +2298,22 @@ async function apiGet(sheet, intento=1){
   }
   catch(e){
     if(e.name==='AbortError') console.warn('Timeout cargando '+sheet+' (intento '+intento+')');
-    // Reintento automático único: los "cold starts" de Apps Script a veces
-    // tardan más que el tiempo límite en el primer intento, pero responden
-    // normalmente al segundo. Esto evita mostrar un dashboard vacío por
-    // una demora puntual del servidor.
-    if(intento < 2) return apiGet(sheet, intento+1);
+    if(intento < 2) return apiGet(sheet, intento+1, params);
     const fallo=[]; fallo._failed=true; return fallo;
   }
+}
+
+// Carga el detalle completo de UN ticket (con fotos e historial).
+// Se usa al abrir el modal de edición/visualización de un ticket.
+async function apiGetTicketDetail(codigo){
+  try{
+    const tok = session && session.token ? '&session='+encodeURIComponent(session.token) : '';
+    const r = await fetch(API+'?action=ticket_detail&codigo='+encodeURIComponent(codigo)+tok, {mode:'cors'});
+    if(!r.ok) return null;
+    const d = await r.json();
+    if(d && d.ok && d.ticket) return d.ticket;
+    return null;
+  }catch(e){ return null; }
 }
 
 function _generarRequestId(){
@@ -4955,7 +4969,7 @@ function cambiarReporte(tipo){
     const opts=activos.filter(a=>a.estado!=='eliminado').map(a=>`<option value="${a.codigo}">${a.codigo} — ${sanitizeHTML(a.nombre||'')}</option>`).join('');
     filtros.innerHTML=`<select class="f-sel" id="fil-activo" onchange="generarReporte()" style="max-width:280px"><option value="">— Selecciona un activo —</option>${opts}</select>`;
   }
-  if(tipo==='tickets'){
+  if(tipo==='tickets'||tipo==='tickets_supervision'){
     // Áreas únicas desde activos (para trazabilidad área → tickets)
     const areasUnicas=[...new Set(activos.map(a=>a.depto||'Sin departamento'))].sort();
     filtros.innerHTML=`
@@ -5023,6 +5037,7 @@ function generarReporte(){
   else if(tipo==='garantia') repGarantias(content, ahora);
   else if(tipo==='hojavida') repHojaVida(content, ahora);
   else if(tipo==='tickets') repTickets(content, ahora);
+  else if(tipo==='tickets_supervision') repTicketsSupervision(content, ahora);
   else if(tipo==='mantenimientos') repMantenimientos(content, ahora);
   else if(tipo==='trazabilidad') repTrazabilidad(content, ahora);
   else if(tipo==='mobiliario_inv') repMobiliarioInventario(content, ahora);
@@ -5329,6 +5344,136 @@ function repTickets(el, ts){
         </tr>`).join('')}</tbody>
       </table></div>
     </div>`;
+}
+
+// ── REPORTE 5b: TICKETS — SUPERVISIÓN (solo columnas de gestión) ────
+// Reporte pensado para entregar a supervisión: sin gráficos ni resumen
+// interno, solo el detalle completo de cada ticket (incluye descripción
+// completa, sin truncar) para que quede constancia de lo atendido.
+// Reutiliza los mismos filtros que "tickets" (fil-desde, fil-hasta,
+// fil-resp, fil-area, fil-tipo-tkt) para no duplicar controles en la UI.
+function repTicketsSupervision(el, ts){
+  const desde=document.getElementById('fil-desde')?.value||'';
+  const hasta=document.getElementById('fil-hasta')?.value||'';
+  const resp=document.getElementById('fil-resp')?.value||'';
+  const area=document.getElementById('fil-area')?.value||'';
+  const tipoTkt=document.getElementById('fil-tipo-tkt')?.value||'';
+  let lista=tickets.filter(t=>t.estado!=='eliminado');
+  if(desde||hasta) lista=lista.filter(t=>fechaEnRango(t.fechaCreacion,desde,hasta));
+  if(resp) lista=lista.filter(t=>t.resp===resp);
+  if(tipoTkt) lista=lista.filter(t=>t.tipo===tipoTkt);
+  if(area){
+    const activosDeArea=new Set(activos.filter(a=>(a.depto||'Sin departamento')===area).map(a=>a.codigo));
+    lista=lista.filter(t=>{
+      if(t.activoId && activosDeArea.has(t.activoId)) return true;
+      const act=activos.find(a=>a.codigo===t.activoId);
+      return act && (act.depto||'Sin departamento')===area;
+    });
+  }
+  repDatosActuales=lista;
+  el.innerHTML=`
+    <div class="rep-header">
+      <div><div class="rep-title">Tickets — Reporte de supervisión${resp?' — '+resp:''}</div>
+      <div class="rep-meta">Generado: ${ts}${desde?' · Desde: '+desde:''}${hasta?' · Hasta: '+hasta:''}${area?' · Área: '+area:''}${tipoTkt?' · Tipo: '+tipoTkt:''} · Total: ${lista.length} tickets</div></div>
+    </div>
+    <div class="rep-section">
+      <div class="rep-sec-title">Detalle de tickets atendidos (${lista.length})</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Código</th><th>Título</th><th>Responsable</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Avance</th><th>Proyecto / Responsable</th><th>Descripción</th><th>Foto</th><th>Fecha de creación</th></tr></thead>
+        <tbody>${lista.map(t=>`<tr>
+          <td class="code-cell">${t.codigo}</td>
+          <td style="font-weight:600;max-width:160px">${sanitizeHTML(t.titulo||'')}</td>
+          <td>${t.resp||'—'}</td>
+          <td>${t.tipo||'—'}</td>
+          <td><span class="badge s-${t.prior}">${t.prior}</span></td>
+          <td><span class="badge s-${t.estado}">${t.estado}</span></td>
+          <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${t.avance||0}%"></div></div><span class="prog-t">${t.avance||0}%</span></div></td>
+          <td style="font-size:11px">${t.proy||'—'}</td>
+          <td style="font-size:11px;max-width:260px;white-space:pre-wrap">${sanitizeHTML(t.desc||'—')}</td>
+          <td>${t.foto&&t.foto!=='—'?`<a href="${sanitizeHTML(t.foto)}" target="_blank" title="Ver foto/doc" style="text-decoration:none">📎</a>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+          <td style="font-size:10px;color:var(--text3);white-space:nowrap">${t.fechaCreacion||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
+}
+
+// ── EXPORTAR — TICKETS SUPERVISIÓN A EXCEL REAL (.xlsx, no CSV) ─────
+// A diferencia de exportCSV() (que genera un .csv de texto separado por
+// comas), aquí se usa SheetJS para generar un libro .xlsx verdadero, con
+// cada dato en su propia celda/columna, y una fila de encabezado con el
+// filtro aplicado (responsable e institución/proyecto si corresponde).
+function exportTicketsSupervisionExcel(){
+  if(!repDatosActuales.length){alert('No hay datos para exportar.');return;}
+  cargarSheetJS(()=>{
+    const desde=document.getElementById('fil-desde')?.value||'';
+    const hasta=document.getElementById('fil-hasta')?.value||'';
+    const resp=document.getElementById('fil-resp')?.value||'';
+    const area=document.getElementById('fil-area')?.value||'';
+    const tipoTkt=document.getElementById('fil-tipo-tkt')?.value||'';
+    const lista=repDatosActuales;
+
+    // Institución/proyecto del encabezado: si el filtro está por un solo
+    // responsable y todos sus tickets comparten el mismo proyecto, se
+    // muestra ese valor; si hay varios, se indica "Varios".
+    let institucionHdr='—';
+    if(lista.length){
+      const proys=[...new Set(lista.map(t=>t.proy||'—'))];
+      institucionHdr = proys.length===1 ? proys[0] : 'Varios';
+    }
+
+    const filtrosTxt = [
+      desde?('Desde: '+desde):null,
+      hasta?('Hasta: '+hasta):null,
+      area?('Área: '+area):null,
+      tipoTkt?('Tipo: '+tipoTkt):null
+    ].filter(Boolean).join('  ·  ') || 'Sin filtros adicionales';
+
+    const encabezado = [
+      ['SAGAE — Reporte de tickets para supervisión'],
+      ['Responsable filtrado:', resp || 'Todos'],
+      ['Proyecto / Institución:', institucionHdr],
+      ['Filtros aplicados:', filtrosTxt],
+      ['Generado:', new Date().toLocaleString('es-PA')],
+      ['Total de tickets:', lista.length],
+      [] // fila en blanco antes de la tabla
+    ];
+
+    const columnas=['CÓDIGO','TÍTULO','RESPONSABLE','TIPO','PRIORIDAD','ESTADO','AVANCE','PROYECTO / RESPONSABLE','DESCRIPCIÓN','FOTO','FECHA DE CREACIÓN'];
+    const filas = lista.map(t=>[
+      t.codigo||'',
+      t.titulo||'',
+      t.resp||'—',
+      t.tipo||'',
+      t.prior||'',
+      t.estado||'',
+      (t.avance||0)+'%',
+      t.proy||'—',
+      t.desc||'',
+      t.foto&&t.foto!=='—'?t.foto:'',
+      t.fechaCreacion||''
+    ]);
+
+    const aoa=[...encabezado, columnas, ...filas];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // Ancho de columnas legible — Descripción y Foto más anchas
+    ws['!cols']=[{wch:12},{wch:28},{wch:18},{wch:14},{wch:12},{wch:12},{wch:9},{wch:22},{wch:50},{wch:30},{wch:18}];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Tickets supervisión');
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob  = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url   = URL.createObjectURL(blob);
+    const a     = document.createElement('a');
+    a.href=url; a.download=`SAGAE_tickets_supervision_${new Date().toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+}
+
+// Dispatcher del botón "⬇ CSV / Excel": envía cada reporte a su exportador
+function exportReporte(){
+  if(repActual==='tickets_supervision') exportTicketsSupervisionExcel();
+  else exportCSV();
 }
 
 // ── REPORTE 6: MANTENIMIENTOS ──────────────────────────────────────
