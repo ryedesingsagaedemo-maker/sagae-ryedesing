@@ -5352,6 +5352,19 @@ function repTickets(el, ts){
 // completa, sin truncar) para que quede constancia de lo atendido.
 // Reutiliza los mismos filtros que "tickets" (fil-desde, fil-hasta,
 // fil-resp, fil-area, fil-tipo-tkt) para no duplicar controles en la UI.
+
+// El portal público de reportes le agrega al final de t.desc un bloque
+// "--- Reportado por: Nombre (correo) | Ubicación: X | Departamento: Y ---"
+// (ver SAGAE_portal_reportes.html). Ese bloque es necesario para que el
+// backend identifique al reportador (getReportadorEmail/getReportadorNombre
+// en Apps Script), así que NO se borra del dato guardado — solo se oculta
+// aquí, al mostrar/exportar este reporte, porque supervisión pidió ver
+// únicamente la descripción del problema.
+function limpiarDescTicket(desc){
+  if(!desc) return '—';
+  return String(desc).replace(/\s*---\s*Reportado por:[\s\S]*?---\s*$/i,'').trim() || '—';
+}
+
 function repTicketsSupervision(el, ts){
   const desde=document.getElementById('fil-desde')?.value||'';
   const hasta=document.getElementById('fil-hasta')?.value||'';
@@ -5389,7 +5402,7 @@ function repTicketsSupervision(el, ts){
           <td><span class="badge s-${t.estado}">${t.estado}</span></td>
           <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${t.avance||0}%"></div></div><span class="prog-t">${t.avance||0}%</span></div></td>
           <td style="font-size:11px">${t.proy||'—'}</td>
-          <td style="font-size:11px;max-width:260px;white-space:pre-wrap">${sanitizeHTML(t.desc||'—')}</td>
+          <td style="font-size:11px;max-width:260px;white-space:pre-wrap">${sanitizeHTML(limpiarDescTicket(t.desc))}</td>
           <td>${t.foto&&t.foto!=='—'?`<a href="${sanitizeHTML(t.foto)}" target="_blank" title="Ver foto/doc" style="text-decoration:none">📎</a>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
           <td style="font-size:10px;color:var(--text3);white-space:nowrap">${t.fechaCreacion||'—'}</td>
         </tr>`).join('')}</tbody>
@@ -5448,7 +5461,7 @@ function exportTicketsSupervisionExcel(){
       t.estado||'',
       (t.avance||0)+'%',
       t.proy||'—',
-      t.desc||'',
+      limpiarDescTicket(t.desc),
       t.foto&&t.foto!=='—'?t.foto:'',
       t.fechaCreacion||''
     ]);
