@@ -291,6 +291,10 @@ tbody tr.clickable{cursor:pointer;}
 .k-hdr{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
 .k-cnt{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 7px;font-size:10px;color:var(--text3);}
 .k-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);padding:9px;margin-bottom:6px;}
+.k-card-accent{height:3px;width:24px;border-radius:2px;margin-bottom:5px;background:#1B4AA5;}
+.k-card-accent.pri-alta{background:#5B21B5;}
+.k-card-accent.pri-media{background:#924D02;}
+.k-card-accent.pri-baja{background:#177A51;}
 .k-card-t{font-size:11px;font-weight:600;color:var(--text);margin-bottom:5px;}
 .k-card-m{font-size:10px;color:var(--text3);display:flex;justify-content:space-between;margin-top:3px;}
 .k-prog{height:3px;background:var(--bg3);border-radius:2px;margin-top:6px;overflow:hidden;}
@@ -4445,6 +4449,7 @@ function renderKanban(){
     document.getElementById('k-'+col).innerHTML=items.length?items.map(t=>`<div class="k-card" style="cursor:pointer;position:relative" onclick="openTicket('${t.codigo}',true)" title="Ver historial y trazabilidad (solo lectura)">
       ${((PERMS[session.rol]||{}).edit)?`<button onclick="event.stopPropagation();openTicket('${t.codigo}')" title="Editar" style="position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px">✎</button>`:''}
       <button onclick="event.stopPropagation();imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo" style="position:absolute;top:6px;right:${((PERMS[session.rol]||{}).edit)?'24':'6'}px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px">📄</button>
+      <div class="k-card-accent ${t.prior==='urgente'?'pri-alta':t.prior==='importante'?'pri-media':'pri-baja'}"></div>
       <div class="code-cell" style="font-size:9px;margin-bottom:3px">${t.codigo}</div>
       <div class="k-card-t">${t.titulo}</div>
       <div class="k-card-m"><span>${t.activoNombre&&t.activoNombre!=='—'?t.activoNombre:t.proy||'—'}</span><span class="badge s-${t.prior}" style="font-size:9px">${t.prior}</span></div>
