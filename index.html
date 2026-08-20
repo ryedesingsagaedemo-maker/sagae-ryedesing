@@ -51,6 +51,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-
 .sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);user-select:none;border-radius:0 20px 20px 0;margin-right:8px;}
 .nav-ico{width:15px;height:15px;flex-shrink:0;display:inline-flex;}
 .nav-ico svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.pnl-title{display:flex;align-items:center;gap:9px;}
+.pnl-title .nav-ico{width:20px;height:20px;color:var(--navy);}
 .sb-item:hover{background:rgba(27,58,107,.06);color:var(--navy);}
 .sb-item.on{background:#E8F0FB;color:var(--navy);border-left-color:var(--navy);font-weight:600;box-shadow:0 1px 4px rgba(27,58,107,.10) inset;}
 .sb-item.locked{opacity:.3;cursor:not-allowed;pointer-events:none;}
@@ -980,7 +982,7 @@ tbody tr.clickable{cursor:pointer;}
 
     <!-- KPIs Mobiliario -->
     <div class="pbi-card">
-      <div class="pbi-card-title">🪑 Resumen de Mobiliario</div>
+      <div class="pbi-card-title" style="display:flex;align-items:center;gap:7px"><span class="nav-ico" style="width:13px;height:13px"><svg viewBox="0 0 24 24"><path d="M6 11V6a3 3 0 013-3h6a3 3 0 013 3v5"/><path d="M4 11h16v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"/><path d="M6 18v3M18 18v3"/></svg></span> Resumen de Mobiliario</div>
       <div class="pbi-kpi-bar" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;" id="dash-mob-kpis">
         <div class="pbi-kpi-card" style="cursor:pointer" onclick="go('mobiliario',document.getElementById('nav-mobiliario'))">
           <div class="pbi-kpi-label">Total elementos</div>
@@ -1063,7 +1065,7 @@ tbody tr.clickable{cursor:pointer;}
       <!-- ═══ PANEL DEPARTAMENTOS ═══ -->
   <div class="pnl" id="pnl-departamentos">
     <div class="pnl-header">
-      <h2 class="pnl-title">🏷️ Catálogo de Departamentos</h2>
+      <h2 class="pnl-title"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 2l9 9-9 9-9-9 9-9z"/><circle cx="12" cy="11" r="1.5"/></svg></span> Catálogo de Departamentos</h2>
       <p class="pnl-sub">Define los departamentos una sola vez. Todos los demás módulos usarán esta lista para evitar errores de escritura.</p>
     </div>
     <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:8px 12px;font-size:11px;color:#1E40AF;margin-bottom:12px;">
@@ -1121,7 +1123,7 @@ tbody tr.clickable{cursor:pointer;}
   <!-- ═══ PANEL PERSONAS ═══ -->
   <div class="pnl" id="pnl-personas">
     <div class="pnl-header">
-      <h2 class="pnl-title">👤 Personas y Beneficiarios</h2>
+      <h2 class="pnl-title"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span> Personas y Beneficiarios</h2>
       <p class="pnl-sub">Personas que tienen equipos asignados o son responsables de un espacio. No necesitan acceso al sistema.</p>
     </div>
     <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:6px 12px;font-size:11px;color:#1E40AF;margin-bottom:10px;">
@@ -1216,7 +1218,7 @@ tbody tr.clickable{cursor:pointer;}
   <!-- ═══ PANEL ESPACIOS ═══ -->
   <div class="pnl" id="pnl-espacios">
     <div class="pnl-header">
-      <h2 class="pnl-title">🏫 Espacios y Aulas</h2>
+      <h2 class="pnl-title"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/><path d="M4 11h16"/></svg></span> Espacios y Aulas</h2>
       <p class="pnl-sub">Aulas, laboratorios, oficinas y cualquier espacio físico con equipos a cargo de un responsable</p>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
@@ -1317,7 +1319,7 @@ tbody tr.clickable{cursor:pointer;}
   <!-- ═══ PANEL MOBILIARIO ═══ -->
   <div class="pnl" id="pnl-mobiliario">
     <div class="pnl-header">
-      <h2 class="pnl-title">🪑 Inventario de Mobiliario</h2>
+      <h2 class="pnl-title"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 11V6a3 3 0 013-3h6a3 3 0 013 3v5"/><path d="M4 11h16v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"/><path d="M6 18v3M18 18v3"/></svg></span> Inventario de Mobiliario</h2>
       <p class="pnl-sub">Muebles, equipamiento físico y bienes no tecnológicos de la institución</p>
     </div>
     <!-- Filtros -->
@@ -1460,7 +1462,7 @@ tbody tr.clickable{cursor:pointer;}
 
   <div class="pnl" id="pnl-licencias">
     <div class="pnl-header">
-      <h2 class="pnl-title">🔑 Licencias de Software</h2>
+      <h2 class="pnl-title"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M14 9l2 2"/></svg></span> Licencias de Software</h2>
       <p class="pnl-sub">Paquetes de licencias (compradas por cantidad) y los equipos donde están instaladas</p>
     </div>
     <!-- Filtros -->
