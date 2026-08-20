@@ -7,6 +7,9 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAGAE — Sistema de Activos y Gestión Administrativa Educativa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:linear-gradient(160deg,#EEF1F6 0%,#E4E9F1 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;-webkit-font-smoothing:antialiased;}
@@ -45,7 +48,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-
 .role-consultor{background:var(--green-l);color:var(--green);}
 .role-inventario{background:var(--amber-l);color:var(--amber);}
 .sb-sec{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;padding:14px 16px 4px;}
-.sb-item{display:flex;align-items:center;gap:9px;padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);user-select:none;border-radius:0 20px 20px 0;margin-right:8px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);user-select:none;border-radius:0 20px 20px 0;margin-right:8px;}
+.nav-ico{width:15px;height:15px;flex-shrink:0;display:inline-flex;}
+.nav-ico svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 .sb-item:hover{background:rgba(27,58,107,.06);color:var(--navy);}
 .sb-item.on{background:#E8F0FB;color:var(--navy);border-left-color:var(--navy);font-weight:600;box-shadow:0 1px 4px rgba(27,58,107,.10) inset;}
 .sb-item.locked{opacity:.3;cursor:not-allowed;pointer-events:none;}
@@ -803,24 +808,24 @@ tbody tr.clickable{cursor:pointer;}
       <span class="sb-role" id="sb-role-badge">—</span>
     </div>
     <div class="sb-sec">General</div>
-    <div class="sb-item on" id="nav-dashboard" onclick="go('dashboard',this)">◈ Dashboard</div>
+    <div class="sb-item on" id="nav-dashboard" onclick="go('dashboard',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span> Dashboard</div>
     <div class="sb-sec">Personas y Espacios</div>
-    <div class="sb-item" id="nav-departamentos" onclick="go('departamentos',this)">🏷️ Departamentos</div>
-    <div class="sb-item" id="nav-personas" onclick="go('personas',this)">👤 Personas</div>
-    <div class="sb-item" id="nav-espacios" onclick="go('espacios',this)">🏫 Espacios</div>
+    <div class="sb-item" id="nav-departamentos" onclick="go('departamentos',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 2l9 9-9 9-9-9 9-9z"/><circle cx="12" cy="11" r="1.5"/></svg></span> Departamentos</div>
+    <div class="sb-item" id="nav-personas" onclick="go('personas',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span> Personas</div>
+    <div class="sb-item" id="nav-espacios" onclick="go('espacios',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/><path d="M4 11h16"/></svg></span> Espacios</div>
     <div class="sb-sec">Activos</div>
-    <div class="sb-item" id="nav-activos" onclick="go('activos',this)">▤ Inventario</div>
-    <div class="sb-item" id="nav-detalle" style="display:none;" onclick="go('detalle',this)">◉ Detalle activo</div>
+    <div class="sb-item" id="nav-activos" onclick="go('activos',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span> Inventario</div>
+    <div class="sb-item" id="nav-detalle" style="display:none;" onclick="go('detalle',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span> Detalle activo</div>
     <div class="sb-sec">Mobiliario</div>
-    <div class="sb-item" id="nav-mobiliario" onclick="go('mobiliario',this)">🪑 Mobiliario</div>
-    <div class="sb-item" id="nav-licencias" onclick="go('licencias',this)">🔑 Licencias</div>
+    <div class="sb-item" id="nav-mobiliario" onclick="go('mobiliario',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 11V6a3 3 0 013-3h6a3 3 0 013 3v5"/><path d="M4 11h16v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"/><path d="M6 18v3M18 18v3"/></svg></span> Mobiliario</div>
+    <div class="sb-item" id="nav-licencias" onclick="go('licencias',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M14 9l2 2"/></svg></span> Licencias</div>
     <div class="sb-sec">Tickets</div>
-    <div class="sb-item" id="nav-tickets" onclick="go('tickets',this)">◉ Tickets</div>
-    <div class="sb-item" id="nav-kanban" onclick="go('kanban',this)">▦ Kanban</div>
+    <div class="sb-item" id="nav-tickets" onclick="go('tickets',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9a2 2 0 012-2h14a2 2 0 012 2v1.5a1.5 1.5 0 000 3V15a2 2 0 01-2 2H5a2 2 0 01-2-2v-1.5a1.5 1.5 0 000-3V9z"/><path d="M9 7v12"/></svg></span> Tickets</div>
+    <div class="sb-item" id="nav-kanban" onclick="go('kanban',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M9 4v17M15 4v17"/></svg></span> Kanban</div>
     <div class="sb-sec">Sistema</div>
-    <div class="sb-item" id="nav-usuarios" onclick="go('usuarios',this)">👤 Usuarios</div>
-    <div class="sb-item" id="nav-reportes" onclick="go('reportes',this)">📊 Reportes</div>
-    <div class="sb-item" id="nav-auditoria" onclick="go('auditoria',this)">📋 Auditoría</div>
+    <div class="sb-item" id="nav-usuarios" onclick="go('usuarios',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><circle cx="18" cy="9" r="2.5"/><path d="M15.5 14.2c2.9.5 5 2.6 5 5.8"/></svg></span> Usuarios</div>
+    <div class="sb-item" id="nav-reportes" onclick="go('reportes',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 20V10M11 20V4M18 20v-7"/><path d="M2 20h20"/></svg></span> Reportes</div>
+    <div class="sb-item" id="nav-auditoria" onclick="go('auditoria',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3M8 10h8M8 14h8M8 18h5"/></svg></span> Auditoría</div>
     <div class="sb-profile" onclick="go('miperfil',document.getElementById('nav-miperfil'))">
       <div class="sb-avatar" id="sb-avatar">—</div>
       <div style="flex:1;min-width:0;">
@@ -828,7 +833,7 @@ tbody tr.clickable{cursor:pointer;}
         <div class="sb-profile-role" id="sb-profile-role">—</div>
       </div>
     </div>
-    <div class="sb-item" id="nav-miperfil" style="display:none;" onclick="go('miperfil',this)">🪪 Mi perfil</div>
+    <div class="sb-item" id="nav-miperfil" style="display:none;" onclick="go('miperfil',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="12" r="2.2"/><path d="M5.8 16c.5-1.5 1.6-2.3 2.7-2.3s2.2.8 2.7 2.3"/><path d="M14 10h5M14 13h5"/></svg></span> Mi perfil</div>
     <div class="sb-logout"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
   </div>
   <div class="main">
@@ -836,14 +841,14 @@ tbody tr.clickable{cursor:pointer;}
     <div class="topbar">
       <div class="topbar-title" id="tb-title">Dashboard</div>
       <div class="global-search-wrap" id="search-wrap">
-        <span class="global-search-icon">🔍</span>
-        <input class="global-search" id="global-search" placeholder="Buscar o escanear código..." 
+        <span class="global-search-icon nav-ico" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:13px;height:13px;pointer-events:none"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+        <input class="global-search" id="global-search" placeholder="Buscar o escanear código..."
           oninput="globalSearch(this.value)" onblur="setTimeout(()=>closeSearch(),200)" onkeydown="searchKeyNav(event)">
         <div class="search-results" id="search-results"></div>
       </div>
       <button id="scan-mode-btn" onclick="activarModoEscaneo()" title="Activar modo escaneo de código de barras/QR"
-        style="display:none;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;margin-left:6px;white-space:nowrap">
-        📷 Escanear
+        style="display:none;align-items:center;gap:6px;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;margin-left:6px;white-space:nowrap">
+        <span class="nav-ico" style="width:14px;height:14px"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2M20 8V6a2 2 0 00-2-2h-2M20 16v2a2 2 0 01-2 2h-2"/><path d="M7 12h10"/></svg></span> Escanear
       </button>
       <div id="tb-buttons"></div>
     </div>
@@ -1860,7 +1865,7 @@ tbody tr.clickable{cursor:pointer;}
 
 <!-- MODAL TICKET -->
 <div class="modal-bg" id="mod-ticket"><div class="modal">
-  <div class="modal-title"><span id="mod-ticket-title">Nuevo ticket</span><button id="et-expediente-btn" class="btn" style="display:none;font-size:11px;padding:4px 10px;margin-left:8px;" onclick="imprimirExpedienteTicket(document.getElementById('et-id').value)">📄 Expediente</button><button class="modal-close" onclick="closeModals()">✕</button></div>
+  <div class="modal-title"><span id="mod-ticket-title">Nuevo ticket</span><button id="et-expediente-btn" class="btn" style="display:none;font-size:11px;padding:4px 10px;margin-left:8px;" onclick="imprimirExpedienteTicket(document.getElementById('et-id').value)"><span class="nav-ico" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span> Expediente</button><button class="modal-close" onclick="closeModals()">✕</button></div>
   <input type="hidden" id="et-id">
   <div class="f-row"><div class="f-lbl">Título *</div><input class="f-inp" id="et-titulo" placeholder="Describe el problema o tarea..."></div>
   <div class="f-2">
@@ -2888,7 +2893,7 @@ function renderTopbarBtns(p){
   }
   if(p==='detalle'&&activoActual){
     if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openActivo(activoActual.codigo)" style="margin-right:6px">✎ Editar</button><button class="btn" onclick="openMant()" style="margin-right:6px">+ Mantenimiento</button>';
-    c.innerHTML+='<button class="btn" onclick="imprimirExpedienteActivo(activoActual.codigo)" style="margin-right:6px" title="Historial completo con fotos, listo para imprimir o guardar como PDF">📄 Expediente</button>';
+    c.innerHTML+='<button class="btn" onclick="imprimirExpedienteActivo(activoActual.codigo)" style="margin-right:6px" title="Historial completo con fotos, listo para imprimir o guardar como PDF"><span class="nav-ico" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span> Expediente</button>';
     if(per.delete&&activoActual.estado!=='eliminado')c.innerHTML+='<button class="btn btn-warn" onclick="openDelete(\'activo\',activoActual.codigo)">Eliminar</button>';
   }
 }
@@ -4437,7 +4442,7 @@ function renderTickets(){
         `<button class="act-btn" style="background:#1B3A6B;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600" onclick="tomarTicket('${t.codigo}')">Tomar</button>`:
         (t.resp===session.nombre&&t.estado!=='cerrado'?`<span style="font-size:9px;color:#1A7A4A;font-weight:600">✓ Tuyo</span>`:'')}
       <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial y trazabilidad (solo lectura)">👁</button>
-      <button class="act-btn" onclick="imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo (historial + fotos, para imprimir o guardar como PDF)">📄</button>
+      <button class="act-btn" onclick="imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo (historial + fotos, para imprimir o guardar como PDF)"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
       ${per.edit&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openTicket('${t.codigo}')" title="Editar">✎</button>`:''}
       ${per.delete&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openDelete('ticket','${t.codigo}')" style="color:var(--red)">×</button>`:''}
     </td></tr>`).join('');
@@ -4448,7 +4453,7 @@ function renderKanban(){
     const items=tickets.filter(t=>t.estado===col);document.getElementById('kc-'+col).textContent=items.length;
     document.getElementById('k-'+col).innerHTML=items.length?items.map(t=>`<div class="k-card" style="cursor:pointer;position:relative" onclick="openTicket('${t.codigo}',true)" title="Ver historial y trazabilidad (solo lectura)">
       ${((PERMS[session.rol]||{}).edit)?`<button onclick="event.stopPropagation();openTicket('${t.codigo}')" title="Editar" style="position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px">✎</button>`:''}
-      <button onclick="event.stopPropagation();imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo" style="position:absolute;top:6px;right:${((PERMS[session.rol]||{}).edit)?'24':'6'}px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px">📄</button>
+      <button onclick="event.stopPropagation();imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo" style="position:absolute;top:6px;right:${((PERMS[session.rol]||{}).edit)?'24':'6'}px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
       <div class="k-card-accent ${t.prior==='urgente'?'pri-alta':t.prior==='importante'?'pri-media':'pri-baja'}"></div>
       <div class="code-cell" style="font-size:9px;margin-bottom:3px">${t.codigo}</div>
       <div class="k-card-t">${t.titulo}</div>
@@ -5317,7 +5322,7 @@ function repTickets(el, ts){
             <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial completo (${(t.historial||[]).length} eventos)">
               👁 ${(t.historial||[]).length}
             </button>
-            <button class="act-btn" onclick="imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo (historial + fotos)">📄</button>
+            <button class="act-btn" onclick="imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo (historial + fotos)"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
           </td>
         </tr>`).join('')}</tbody>
       </table></div>
