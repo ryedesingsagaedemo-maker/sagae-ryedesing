@@ -1029,7 +1029,7 @@ tbody tr.clickable{cursor:pointer;}
   <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;padding:4px 8px;align-self:center;">Estado:</span>
   <button class="tab-btn on" onclick="filterA('todos',this)">Todos</button>
   <button class="tab-btn" onclick="filterA('activo',this)">Activos</button>
-  <button class="tab-btn" onclick="filterA('asignado',this)">Asignados</button>
+  <button class="tab-btn" onclick="filterA('asignado',this)">Asignados a alguien</button>
   <button class="tab-btn" onclick="filterA('mantenimiento',this)">Mantenimiento</button>
   <button class="tab-btn" onclick="filterA('descarte',this)">Descarte</button>
   <button class="tab-btn" onclick="filterA('eliminado',this)">Eliminados</button>
@@ -1757,7 +1757,7 @@ tbody tr.clickable{cursor:pointer;}
     <option>Otro</option>
   </optgroup>
 </select></div>
-    <div class="f-row"><div class="f-lbl">Estado *</div><select class="f-inp f-sel" id="ea-estado"><option value="activo">Activo</option><option value="asignado">Asignado</option><option value="disponible">Disponible</option><option value="mantenimiento">Mantenimiento</option><option value="descarte">Descarte</option></select></div>
+    <div class="f-row"><div class="f-lbl">Estado *</div><select class="f-inp f-sel" id="ea-estado"><option value="activo">Activo</option><option value="disponible">Disponible</option><option value="mantenimiento">Mantenimiento</option><option value="descarte">Descarte</option></select></div>
   </div>
   <div class="f-2">
     <div class="f-row"><div class="f-lbl" id="lbl-ea-marca">Marca</div><input class="f-inp" id="ea-marca" list="dl-marcas" autocomplete="off" placeholder="Dell, HP..."></div>
@@ -3078,8 +3078,14 @@ function openActivo(id){
   document.getElementById('ea-motivo').value='';document.getElementById('ea-id').value=id||'';
   if(isEdit){
     const a=activos.find(x=>x.codigo===id);if(!a)return;
+    // Migración silenciosa de datos legados: "asignado" ya no es un valor
+    // válido de estado (era redundante con el campo "Asignado a" — ver
+    // auditoría). Si un activo antiguo quedó guardado con estado="asignado",
+    // se trata como "activo" al abrir el formulario, para no dejar el
+    // select en blanco. El campo Asignado a (persona) no se toca.
+    const estadoNormalizado = a.estado==='asignado' ? 'activo' : a.estado;
     const fs={nombre:'ea-nombre',tipo:'ea-tipo',estado:'ea-estado',marca:'ea-marca',modelo:'ea-modelo',serial:'ea-serial',obs:'ea-obs',asignadoEmail:'ea-asignado-email',asignadoCargo:'ea-asignado-cargo'};
-    Object.entries(fs).forEach(([k,fid])=>document.getElementById(fid).value=a[k]||'');
+    Object.entries(fs).forEach(([k,fid])=>document.getElementById(fid).value=(k==='estado'?estadoNormalizado:a[k])||'');
     // Selects que se pueblan con buildDataLists necesitan timeout
     setTimeout(()=>{
       const selUbic = document.getElementById('ea-ubicacion');
@@ -4394,8 +4400,13 @@ function showDetalle(id){
 
 function renderActivos(){
   const tb=document.getElementById('tb-activos'),per=PERMS[session.rol]||{};
-  // Filtrar por estado
-  let list = filtroA==='todos' ? activos : activos.filter(a=>a.estado===filtroA);
+  // Filtrar por estado. Caso especial "asignado": ya no es un valor del
+  // campo estado (se eliminó del dropdown por ser redundante) — ahora
+  // significa "tiene una persona en el campo Asignado a", sin importar
+  // el estado real del ciclo de vida del activo.
+  let list = filtroA==='todos' ? activos
+    : filtroA==='asignado' ? activos.filter(a=>a.asignado && a.asignado!=='—')
+    : activos.filter(a=>a.estado===filtroA);
   // Filtrar por tipo (combinado con estado)
   if(filtroTipo!=='todos') list = list.filter(a=>a.tipo===filtroTipo);
   if(!list.length){tb.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text3);font-size:12px">Sin activos${filtroA!=='todos'?' en este estado':'. Usa "+ Nuevo activo"'}.</td></tr>`;return;}
@@ -4492,7 +4503,7 @@ function renderDash(){
   const cntAct=av.length, cntTkt=tktV.length;
   const cntMnt=activos.filter(a=>a.estado==='mantenimiento').length;
   const cntDescarte=activos.filter(a=>a.estado==='descarte').length;
-  const cntOk=activos.filter(a=>a.estado==='activo'||a.estado==='asignado').length;
+  const cntOk=activos.filter(a=>a.estado==='activo').length;
   const cntUrg=tktV.filter(t=>t.prior==='urgente').length;
   const cntCerr=tktC.length;
   const valTot=av.reduce((s,a)=>s+calcDepre(a),0);
@@ -6196,7 +6207,9 @@ function actualizarPreviewEtiq(){
 
   if(modo === 'filtro'){
     // Igual que renderActivos: estado + tipo filtrados
-    lista = filtroA==='todos' ? activos : activos.filter(a=>a.estado===filtroA);
+    lista = filtroA==='todos' ? activos
+      : filtroA==='asignado' ? activos.filter(a=>a.asignado && a.asignado!=='—')
+      : activos.filter(a=>a.estado===filtroA);
     if(filtroTipo!=='todos') lista = lista.filter(a=>a.tipo===filtroTipo);
     lista = lista.filter(a=>a.estado!=='eliminado');
   }
