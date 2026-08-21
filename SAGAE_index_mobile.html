@@ -232,7 +232,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <div class="splash-sub" style="font-size:10px;opacity:.6;margin-top:2px;">Desarrollado por RYE Design</div>
   <div class="splash-spinner"></div>
 </div>
-<div class="offline-banner" id="offline-banner">📡 Sin conexión — mostrando datos en caché</div>
+<div class="offline-banner" id="offline-banner" onclick="reintentarSync()" role="button" tabindex="0" aria-live="polite"><span id="offline-banner-txt">📡 Sin conexión — mostrando datos en caché</span></div>
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">SAGAE</div>
@@ -774,7 +774,153 @@ function filtrarMantenimientos(tipo){
   const el=document.getElementById('mant-list');
   if(el) el.innerHTML=renderListaMant(todos);
 }
-function initials(n){if(!n)return"?";const p=n.trim().split(" ");return(p[0][0]+(p[1]?p[1][0]:"")).toUpperCase();}
+function initials(n){
+  const s=_limpiarNombre_(n);
+  if(!s) return "?";
+  const p=s.split(" ").filter(Boolean);
+  return ((p[0]||"")[0]||"?").toUpperCase()+((p[1]||"")[0]||"").toUpperCase();
+}
+/* ══════════════════════════════════════════════════════════════════
+   SAGAE v2.4 — IDENTIDAD CANÓNICA DEL RESPONSABLE
+   ------------------------------------------------------------------
+   Problema corregido: la app comparaba el responsable del ticket con
+   el nombre de la sesión usando igualdad estricta de cadenas
+   (t.resp === session.nombre). Cualquier diferencia invisible entre
+   el nombre guardado en la hoja "usuarios" y el texto guardado en la
+   columna "resp" de la hoja "tickets" — espacio doble, espacio final,
+   espacio duro (NBSP), tilde compuesta (NFD vs NFC), mayúsculas o un
+   tratamiento como "Licdo." — hacía que el sistema NO reconociera los
+   tickets propios: métricas del dashboard en 0 y botón "Tomar este
+   ticket" ofrecido sobre tickets que ya son del propio usuario.
+
+   Esta capa NO cambia el dato almacenado (sigue siendo el nombre para
+   mostrar, sin migración de la hoja): solo hace la comparación
+   tolerante. La corrección definitiva —guardar el "username" en la
+   columna del ticket— queda documentada como deuda técnica (R-01).
+   ══════════════════════════════════════════════════════════════════ */
+const _RX_TRATAMIENTO_ = /^(lic|licdo|licda|licenciad[oa]|prof|profesor[a]?|ing|ingenier[oa]|dr|dra|doctor[a]?|mgtr|mgter|magister|sr|sra|srta)\.?\s+/i;
+function _limpiarNombre_(v){
+  let s = String(v==null?"":v);
+  s = s.replace(/[\u00A0\u2007\u202F]/g," ");
+  s = s.replace(/\s+/g," ").trim();
+  return s;
+}
+function _normId_(v){
+  let s = _limpiarNombre_(v);
+  try{ s = s.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }catch(e){}
+  while(_RX_TRATAMIENTO_.test(s)) s = s.replace(_RX_TRATAMIENTO_,"");
+  return s.toLowerCase();
+}
+function _respLibre_(v){
+  const s = _normId_(v);
+  return s==="" || s==="-" || s==="—" || s==="sin asignar";
+}
+let _idsSesionCache = null, _idsSesionFuente = "";
+function _idsSesion_(){
+  if(!session) return null;
+  const fuente = (session.username||"")+"|"+(session.nombre||"");
+  if(_idsSesionCache && _idsSesionFuente===fuente) return _idsSesionCache;
+  const ids = new Set();
+  [session.nombre, session.username].forEach(v=>{
+    const n = _normId_(v);
+    if(n) ids.add(n);
+  });
+  _idsSesionFuente = fuente;
+  _idsSesionCache  = ids;
+  return ids;
+}
+let _avisoIdentidadMostrado = false;
+/* Devuelve true si el ticket pertenece al usuario de la sesión. */
+function esMiTicket(t){
+  if(!t || !session) return false;
+  const resp = t.resp;
+  if(_respLibre_(resp)) return false;
+  const ids = _idsSesion_();
+  if(!ids || !ids.size) return false;
+  const r = _normId_(resp);
+  const coincide = ids.has(r);
+  if(coincide && String(resp)!==String(session.nombre) && !_avisoIdentidadMostrado){
+    _avisoIdentidadMostrado = true;
+    console.warn("[SAGAE][identidad] El responsable del ticket y el nombre de la sesión "
+      + "coinciden solo tras normalizar. Revisar datos en las hojas.",
+      {ticket:t.codigo, resp:JSON.stringify(resp), sesion:JSON.stringify(session.nombre)});
+  }
+  return coincide;
+}
+/* Diagnóstico manual: escribir SAGAE_diagIdentidad() en la consola. */
+function SAGAE_diagIdentidad(){
+  if(!session){ console.log("Sin sesión activa"); return; }
+  const filas = tickets.map(t=>({
+    codigo:t.codigo, resp:JSON.stringify(t.resp),
+    respNorm:_normId_(t.resp), mio:esMiTicket(t),
+    estrictoIgual: t.resp===session.nombre
+  }));
+  console.log("session.nombre =", JSON.stringify(session.nombre),
+              "| username =", JSON.stringify(session.username),
+              "| normalizado =", _normId_(session.nombre));
+  console.table(filas);
+  return filas;
+}
+/* ══════════════════════════════════════════════════════════════════
+   SAGAE v2.4 — ESTADO DE CONEXIÓN / SINCRONIZACIÓN
+   Antes existía un solo aviso ("Sin conexión") que se encendía tanto
+   por falta de red real como por un fallo o timeout del backend, y
+   que solo se apagaba con el evento "online" del navegador. Si el
+   dispositivo nunca perdió la red, el aviso quedaba encendido de
+   forma permanente aunque los datos sí se estuvieran cargando.
+   Ahora hay tres estados y el aviso se apaga con cualquier lectura
+   exitosa del backend; además es tocable para reintentar.
+   ══════════════════════════════════════════════════════════════════ */
+let _estadoConexion = "ok";          /* ok | sin-red | desincronizado */
+let _ultimaSyncOk   = null;
+let _reintentandoSync = false;
+function _hace_(msIni){
+  if(!msIni) return "";
+  const m = Math.floor((Date.now()-msIni)/60000);
+  if(m<1) return "hace menos de 1 min";
+  if(m<60) return "hace "+m+" min";
+  const h = Math.floor(m/60);
+  return "hace "+h+" h";
+}
+function setEstadoConexion(estado){
+  if(estado==="ok") _ultimaSyncOk = Date.now();
+  _estadoConexion = estado;
+  const b   = document.getElementById("offline-banner");
+  const txt = document.getElementById("offline-banner-txt");
+  if(!b) return;
+  if(estado==="ok"){ b.classList.remove("show"); return; }
+  if(txt){
+    txt.textContent = (estado==="sin-red")
+      ? "📡 Sin conexión — mostrando datos en caché"
+      : "⚠️ Datos sin actualizar"+(_ultimaSyncOk?" ("+_hace_(_ultimaSyncOk)+")":"")+" — toca para reintentar";
+  }
+  b.classList.add("show");
+}
+/* Punto único de fallo: decide el estado según haya red o no. */
+function marcarFalloSync(){
+  setEstadoConexion(navigator.onLine ? "desincronizado" : "sin-red");
+}
+async function reintentarSync(){
+  if(_reintentandoSync) return;
+  _reintentandoSync = true;
+  const txt = document.getElementById("offline-banner-txt");
+  if(txt) txt.textContent = "⏳ Reintentando sincronización...";
+  try{
+    if(session){
+      const ok = await cargarDatosPostLogin();
+      if(ok){
+        renderDashboard(); renderTickets(); renderActivos(); renderReportes(); updateBadge();
+        showToast("✅ Datos actualizados","success");
+      }
+    } else {
+      await loadData();
+    }
+  }catch(e){
+    marcarFalloSync();
+  }finally{
+    _reintentandoSync = false;
+  }
+}
 function togglePass(id,btn){const el=document.getElementById(id);el.type=el.type==="password"?"text":"password";btn.textContent=el.type==="password"?"👁":"🙈";}
 function parseHist(v){if(Array.isArray(v))return v;if(typeof v==="string"&&v.startsWith("["))try{return JSON.parse(v);}catch(e){}return[];}
 function genCode(pre,n){return pre+"-"+String(n+1).padStart(4,"0");}
@@ -788,8 +934,17 @@ function setSyncStatus(ok){
   const d=document.getElementById("sync-dot");
   d.className="sync-indicator"+(ok?"":" err");
 }
-function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({tickets,activos,ts:Date.now()}));}catch(e){}}
-function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c){tickets=c.tickets||[];activos=c.activos||[];cntTickets=tickets.length;return true;}}catch(e){}return false;}
+function saveCache(){try{
+  /* v2.4: se depuran las banderas internas de "tomar ticket" antes de
+     persistir, para que no revivan tras recargar la app. */
+  const tks = tickets.map(t=>{ const c={...t}; delete c._isTakeTicket; delete c._respEsperado; return c; });
+  localStorage.setItem(CACHE_KEY,JSON.stringify({tickets:tks,activos,ts:Date.now()}));
+}catch(e){}}
+function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c){
+  tickets=(c.tickets||[]).map(t=>{ const o={...t}; delete o._isTakeTicket; delete o._respEsperado; return o; });
+  activos=c.activos||[];cntTickets=tickets.length;
+  if(c.ts) _ultimaSyncOk=c.ts;
+  return true;}}catch(e){}return false;}
 async function apiGet(sheet, intento=1){
   try{
     const tok = (typeof session!=='undefined' && session && session.token) ? '&session='+encodeURIComponent(session.token) : '';
@@ -945,7 +1100,7 @@ async function loadData(){
         if(rawT||rawA){
           saveCache();cntTickets=tickets.length;
           setSyncStatus(true);
-          document.getElementById("offline-banner").classList.remove("show");
+          setEstadoConexion("ok");
           if(session){renderDashboard();renderTickets();renderActivos();renderReportes();}
         }
       }catch(e){setSyncStatus(false);}
@@ -980,17 +1135,17 @@ async function cargarDatosPostLogin(){
     if(rawA===null) fallaron.push("activos");
     if(fallaron.length){
       setSyncStatus(false);
-      document.getElementById("offline-banner").classList.add("show");
+      marcarFalloSync();
       showToast('⚠ No se pudo cargar: '+fallaron.join(', ')+'. Desliza hacia abajo para reintentar.', 'error');
       return false;
     }
     setSyncStatus(true);
-    document.getElementById("offline-banner").classList.remove("show");
+    setEstadoConexion("ok");
     _cargarDatosSecundariosMobile();
     return true;
   }catch(e){
     setSyncStatus(false);
-    document.getElementById("offline-banner").classList.add("show");
+    marcarFalloSync();
     return false;
   }
 }
@@ -1016,7 +1171,7 @@ async function initApp(){
     document.getElementById("splash").classList.add("hide");
     setTimeout(()=>{document.getElementById("splash").style.display="none";},400);
     document.getElementById("login-screen").style.display="flex";
-    document.getElementById("offline-banner").classList.add("show");
+    marcarFalloSync();
   },12000);
   try{
     await loadData();
@@ -1137,17 +1292,42 @@ function setDashVista(v){
   if(bTodos) bTodos.classList.toggle('active', v==='todos');
   renderDashboard();
 }
+/* v2.4: la hoja "tickets" no tiene columna "ultimaEdicion" (ver HEADERS en
+   el backend), por lo que la métrica "Cerrados hoy" quedaba fija en 0. La
+   fecha de cierre se deriva del último evento del historial que registre el
+   cierre; si no lo hay, del último evento registrado. */
+function _fechaCierre_(t){
+  const h = Array.isArray(t.historial) ? t.historial : [];
+  for(let i=h.length-1; i>=0; i--){
+    const ev = h[i] || {};
+    const txt = String(ev.tipo||"")+" "+String(ev.desc||"");
+    if(/cerrad/i.test(txt)) return _fechaISO_(ev.fecha);
+  }
+  const ult = h.length ? h[h.length-1] : null;
+  return ult ? _fechaISO_(ult.fecha) : "";
+}
+/* Acepta "2026-08-20 09:41", "20/8/2026, 9:41" y variantes de es-PA. */
+function _fechaISO_(v){
+  const s = String(v||"").trim();
+  if(!s) return "";
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return iso[1]+"-"+iso[2]+"-"+iso[3];
+  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(dmy) return dmy[3]+"-"+String(dmy[2]).padStart(2,"0")+"-"+String(dmy[1]).padStart(2,"0");
+  const d = new Date(s);
+  return isNaN(d) ? "" : d.toISOString().slice(0,10);
+}
 function renderDashboard(){
   const nombre=session?.nombre?.split(" ")[0]||"";
   const hora=new Date().getHours();
   const sal=hora<12?"Buenos días":hora<18?"Buenas tardes":"Buenas noches";
   document.getElementById("dash-greeting").textContent=sal+" "+nombre+" 👋";
   document.getElementById("dash-fecha").textContent=new Date().toLocaleDateString("es-PA",{weekday:"long",day:"numeric",month:"long"});
-  const misTkt=tickets.filter(t=>t.resp===session.nombre&&t.estado!=="eliminado"&&t.estado!=="cerrado");
+  const misTkt=tickets.filter(t=>esMiTicket(t)&&t.estado!=="eliminado"&&t.estado!=="cerrado");
   const urgentes=misTkt.filter(t=>t.prior==="urgente");
   const enProgreso=misTkt.filter(t=>t.estado==="progreso");
   const hoy=new Date().toISOString().slice(0,10);
-  const cerradosHoy=tickets.filter(t=>t.resp===session.nombre&&t.estado==="cerrado"&&(t.ultimaEdicion||"").startsWith(hoy));
+  const cerradosHoy=tickets.filter(t=>esMiTicket(t)&&t.estado==="cerrado"&&_fechaCierre_(t).startsWith(hoy));
   document.getElementById("m-mis-tkt").textContent=misTkt.length;
   document.getElementById("m-urgentes").textContent=urgentes.length;
   document.getElementById("m-progreso").textContent=enProgreso.length;
@@ -1191,6 +1371,23 @@ function renderDashboard(){
     </div>`;
   }).join("");
 }
+/* ══════════════════════════════════════════════════════════════════
+   POLÍTICA DE REASIGNACIÓN (decisión del administrador del sistema)
+   true  = un técnico puede quitarle un ticket a otro técnico (conducta
+           vigente hasta v2.3, se conserva para no cambiar reglas de
+           negocio dentro de una versión de estabilización).
+   false = un técnico solo puede tomar tickets SIN asignar; la
+           reasignación queda reservada al rol "admin".
+   ══════════════════════════════════════════════════════════════════ */
+const PERMITIR_REASIGNACION_TECNICOS = true;
+function puedeTomar(t){
+  if(!t || !session) return false;
+  if(t.estado==="cerrado" || t.estado==="eliminado") return false;
+  if(!["admin","tecnico"].includes(session.rol)) return false;
+  if(esMiTicket(t)) return false;
+  if(_respLibre_(t.resp)) return true;
+  return session.rol==="admin" || PERMITIR_REASIGNACION_TECNICOS;
+}
 function tktCardHTML(t){
   const dias = t.dead && t.dead!=="—"
     ? Math.ceil((new Date(t.dead)-new Date())/(24*3600*1000))
@@ -1211,16 +1408,14 @@ function tktCardHTML(t){
       <span class="tkt-code">${t.codigo}</span>
       <span style="font-size:11px;color:var(--text3)">👤 ${t.resp||"—"}</span>
     </div>
-    ${(t.estado!=="cerrado" && t.estado!=="eliminado" &&
-       session && ["admin","tecnico"].includes(session.rol) &&
-       t.resp !== session.nombre) ?
+    ${puedeTomar(t) ?
       `<button onclick="tomarTicket('${t.codigo}',event)"
-        style="width:100%;margin-top:8px;background:#1B3A6B;color:#fff;border:none;
+        style="width:100%;margin-top:8px;background:${_respLibre_(t.resp)?"#1B3A6B":"#8A6A00"};color:#fff;border:none;
                border-radius:8px;padding:9px;font-size:13px;font-weight:700;
                cursor:pointer;letter-spacing:.02em">
-        ▶ Tomar este ticket
+        ${_respLibre_(t.resp)?"▶ Tomar este ticket":"🔄 Reasignarme este ticket"}
       </button>` :
-      (t.resp===session?.nombre && t.estado!=="cerrado" ?
+      (esMiTicket(t) && t.estado!=="cerrado" ?
         `<div style="text-align:center;margin-top:6px;font-size:11px;color:#1A7A4A;font-weight:600">✓ Asignado a ti</div>` : "")
     }
   </div>`;
@@ -1266,18 +1461,21 @@ async function tomarTicket(codigo, e){
   if(t.estado==='cerrado'||t.estado==='eliminado'){
     showToast('Ticket ya '+t.estado+' — no puede tomarse','error'); return;
   }
-  if(t.resp===session.nombre){
+  if(esMiTicket(t)){
     showToast('Ya eres el responsable',''); return;
   }
-  const respAnterior = t.resp || '—';
-  const esSinAsignar = respAnterior==='—';
+  if(!puedeTomar(t)){
+    showToast('No tienes permiso para reasignar este ticket','error'); return;
+  }
+  const respAnterior = _limpiarNombre_(t.resp) || '—';
+  const esSinAsignar = _respLibre_(t.resp);
   const msg = esSinAsignar
     ? '¿Tomar el ticket '+codigo+'?\n\n"'+t.titulo+'"\n\nQuedarás como responsable y se notificará a todos.'
     : '¿Tomar el ticket '+codigo+'?\n\n"'+t.titulo+'"\n\nResponsable actual: '+respAnterior+'\nQuedarás tú como nuevo responsable.';
   if(!confirm(msg)) return;
   const estadoAntes = t.estado;
   const ahora = ts();
-  t.resp   = session.nombre;
+  t.resp   = _limpiarNombre_(session.nombre);   /* v2.4: se guarda normalizado */
   t.estado = (t.estado === 'abierto') ? 'progreso' : t.estado;
   t.historial = t.historial || [];
   t.historial.push({
@@ -1292,6 +1490,13 @@ async function tomarTicket(codigo, e){
   t._isTakeTicket = true;
   t._respEsperado = respAnterior;
   const resultado = await apiPostConRespuesta('tickets','update',t);
+  /* v2.4: estas banderas eran de un solo uso pero quedaban pegadas al objeto
+     en memoria y en la caché local; cualquier edición posterior del mismo
+     ticket (estado, avance, piezas) viajaba marcada como "tomar ticket" y
+     activaba en el servidor el bloqueo LockService y la validación de
+     carrera con un responsable esperado ya obsoleto. */
+  delete t._isTakeTicket;
+  delete t._respEsperado;
   await apiPost('auditoria','insert',{
     ts:ahora, usuario:session.username, nombre:session.nombre, rol:session.rol,
     accion:'EDITAR', tipo:'Ticket', codigo:codigo,
@@ -1337,7 +1542,7 @@ function updateBadge(){
   if(!badge) return;
   const pendientes = tickets.filter(t =>
     t.estado !== "eliminado" && t.estado !== "cerrado" &&
-    (session?.rol !== "tecnico" || t.resp === session.nombre || t.resp === "Sin asignar" || t.resp === "—" || !t.resp || t.resp.trim() === "")
+    (session?.rol !== "tecnico" || esMiTicket(t) || _respLibre_(t.resp))
   ).length;
   badge.textContent = pendientes;
   badge.style.display = pendientes > 0 ? "flex" : "none";
@@ -1351,15 +1556,13 @@ function openTicketSheet(codigo){
   estadoEl.textContent = t.estado; estadoEl.className = `badge b-${t.estado}`;
   const actNombre = t.activoNombre && t.activoNombre!=="—" ? t.activoNombre : null;
   document.getElementById("sheet-body").innerHTML = `
-    ${(t.estado!=="cerrado" && t.estado!=="eliminado" &&
-       session && ["admin","tecnico"].includes(session.rol) &&
-       t.resp !== session.nombre) ?
+    ${puedeTomar(t) ?
       `<button onclick="tomarTicket('${t.codigo}',event)"
-        style="width:100%;margin-bottom:14px;background:#1B3A6B;color:#fff;border:none;
+        style="width:100%;margin-bottom:14px;background:${_respLibre_(t.resp)?"#1B3A6B":"#8A6A00"};color:#fff;border:none;
                border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer">
-        ▶ Tomar este ticket
+        ${_respLibre_(t.resp)?"▶ Tomar este ticket":"🔄 Reasignarme este ticket"}
        </button>` :
-      (t.resp===session?.nombre && t.estado!=="cerrado" ?
+      (esMiTicket(t) && t.estado!=="cerrado" ?
         `<div style="text-align:center;margin-bottom:12px;padding:10px;background:#DCFCE7;
                      border-radius:8px;font-size:12px;color:#166534;font-weight:700">
           ✓ Este ticket está asignado a ti
@@ -1995,7 +2198,7 @@ function closeMant(){
   document.getElementById("modal-mant").classList.remove("open");
 }
 function renderReportes(){
-  const misTkt=tickets.filter(t=>t.resp===session?.nombre&&t.estado!=="eliminado");
+  const misTkt=tickets.filter(t=>esMiTicket(t)&&t.estado!=="eliminado");
   const cerrados=misTkt.filter(t=>t.estado==="cerrado").length;
   const pct=misTkt.length?Math.round(cerrados/misTkt.length*100):0;
   const tipos={};misTkt.forEach(t=>{tipos[t.tipo]=(tipos[t.tipo]||0)+1;});
@@ -2139,17 +2342,20 @@ async function saveForcePass(){
   showToast("¡Contraseña creada exitosamente! ✓","success");
 }
 window.addEventListener("online",()=>{
-  document.getElementById("offline-banner").classList.remove("show");
+  /* v2.4: volver a tener red NO significa que los datos ya estén al día.
+     Se marca "desincronizado" y se dispara una resincronización real; el
+     aviso solo se apaga cuando el backend responde correctamente. */
   setSyncStatus(true);
-  loadData().then(()=>{renderDashboard();renderTickets();renderActivos();renderReportes();});
+  marcarFalloSync();
+  reintentarSync();
 });
 window.addEventListener("offline",()=>{
-  document.getElementById("offline-banner").classList.add("show");
+  setEstadoConexion("sin-red");
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=2.3").then(reg=>{
-    console.log("[SAGAE] SW registrado v2.3:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=2.4").then(reg=>{
+    console.log("[SAGAE] SW registrado v2.4:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;
@@ -2173,6 +2379,7 @@ if("serviceWorker" in navigator){
   document.addEventListener("visibilitychange", ()=>{
     if(document.visibilityState === "visible"){
       navigator.serviceWorker.getRegistration().then(reg=>{ if(reg) reg.update(); });
+      if(_estadoConexion !== "ok") setEstadoConexion(_estadoConexion); /* v2.4: refresca "hace X min" */
     }
   });
 }
@@ -2191,7 +2398,7 @@ function verificarDeadlinesMobile(){
   const hoy=new Date();
   tickets.filter(t=>{
     if(!t.dead||t.dead==="—"||t.estado==="cerrado")return false;
-    if(session?.rol==="tecnico"&&t.resp!==session.nombre)return false;
+    if(session?.rol==="tecnico"&&!esMiTicket(t))return false;
     const dias=(new Date(t.dead)-hoy)/(24*3600*1000);
     return dias>=0&&dias<=3;
   }).forEach(t=>{
@@ -2206,7 +2413,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     document.getElementById("splash").classList.add("hide");
     setTimeout(()=>document.getElementById("splash").style.display="none",400);
     document.getElementById("login-screen").style.display="flex";
-    document.getElementById("offline-banner").classList.add("show");
+    marcarFalloSync();
   });
   setTimeout(solicitarNotificaciones, 3000);
 });
@@ -2247,7 +2454,8 @@ async function _ejecutarPollMob(){
   if(document.hidden){ _programarPollMob(); return; }
   try{
     const rawT = await apiGet('tickets');
-    if(!Array.isArray(rawT)){ _programarPollMob(); return; }
+    if(!Array.isArray(rawT)){ marcarFalloSync(); _programarPollMob(); return; }
+    setEstadoConexion("ok");   /* v2.4: lectura exitosa = datos al día */
     const nuevoHash = _mobHash(rawT);
     if(nuevoHash === _mobTicketHash){ _programarPollMob(); return; }
     const ticketsNuevos = rawT.map(r=>({
@@ -2266,8 +2474,7 @@ async function _ejecutarPollMob(){
     });
     const meQuitaronTicket = ticketsNuevos.filter(t=>{
       const ant = tickets.find(x=>x.codigo===t.codigo);
-      return ant && ant.resp===session.nombre && t.resp!==session.nombre
-             && t.resp && t.resp!=='—' && t.resp!=='Sin asignar';
+      return ant && esMiTicket(ant) && !esMiTicket(t) && !_respLibre_(t.resp);
     });
     tickets = ticketsNuevos;
     _mobTicketHash = nuevoHash;
@@ -2277,9 +2484,7 @@ async function _ejecutarPollMob(){
     saveCache();
     if(nuevos.length > 0){
       const misNuevos = nuevos.filter(t=>
-        session.rol==='admin' ||
-        t.resp===session.nombre ||
-        t.resp==='—' || t.resp==='Sin asignar' || !t.resp
+        session.rol==='admin' || esMiTicket(t) || _respLibre_(t.resp)
       );
       if(misNuevos.length > 0){
         const urgentes = misNuevos.filter(t=>t.prior==='urgente').length;
@@ -2297,7 +2502,7 @@ async function _ejecutarPollMob(){
       }
     }
     if(actualizados.length > 0 && session.rol==='tecnico'){
-      const misCambios = actualizados.filter(t=>t.resp===session.nombre);
+      const misCambios = actualizados.filter(t=>esMiTicket(t));
       misCambios.forEach(t=>{ showToast('🔄 '+t.codigo+' actualizado: '+t.estado, ''); });
     }
     if(meQuitaronTicket.length > 0 && session.rol!=='admin'){
