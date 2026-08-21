@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v2.3
+// SAGAE — Service Worker v2.4
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v2.3';
-const CACHE_STATIC = 'sagae-static-v2.3';
+const CACHE_NAME   = 'sagae-mobile-v2.4';
+const CACHE_STATIC = 'sagae-static-v2.4';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -30,6 +30,20 @@ const CACHE_STATIC = 'sagae-static-v2.3';
 // publicado por la versión vigente y se sube este número de caché para
 // forzar que TODOS los dispositivos descarten la app vieja de inmediato,
 // incluidos los que ya tenían la PWA instalada.
+// v2.4: CORRECCIONES DEL MODULO MOVIL —
+//   (1) identidad canonica del responsable: el reconocimiento de "mis
+//       tickets" ya no depende de una igualdad exacta de cadenas entre
+//       usuarios.nombre y tickets.resp (metricas en 0 y boton "Tomar
+//       este ticket" mostrado sobre tickets propios);
+//   (2) el aviso "Sin conexion" ya no queda encendido de forma
+//       permanente cuando el fallo fue del backend y no de la red: se
+//       distingue "sin red" de "datos sin actualizar" y el aviso se
+//       apaga con cualquier lectura exitosa;
+//   (3) la metrica "Cerrados hoy" deja de leer una columna inexistente;
+//   (4) las banderas internas de "tomar ticket" ya no quedan pegadas al
+//       ticket en memoria ni en la cache local.
+//   Se sube el numero de cache para que todos los dispositivos —incluidos
+//   los que ya tienen la PWA instalada— descarten la version anterior.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -40,7 +54,7 @@ const STATIC_ASSETS = [
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v2.3...');
+  console.log('[SAGAE SW] Instalando v2.4...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -55,7 +69,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v2.3...');
+  console.log('[SAGAE SW] Activando v2.4...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -173,4 +187,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v2.3 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v2.4 cargado correctamente');
