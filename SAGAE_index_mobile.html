@@ -16,7 +16,6 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>SAGAE Técnico</title>
 <style>
-/* ── RESET Y BASE ─────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;}
 :root{
@@ -1895,10 +1894,6 @@ function openEditActivoSheet(codigo){
   document.getElementById('mob-btn-guardar-activo').textContent = '💾 Guardar cambios';
   document.getElementById('mob-ea-nombre').value = a.nombre||'';
   document.getElementById('mob-ea-tipo').value   = a.tipo||'Laptop';
-  // Migración silenciosa: "asignado" ya no es un valor válido de Estado
-  // (era redundante con "Asignado a" — ver auditoría). Datos legados con
-  // estado="asignado" se muestran como "activo" al editar, sin tocar el
-  // campo Asignado a (persona), que sigue independiente.
   document.getElementById('mob-ea-estado').value = (a.estado==='asignado' ? 'activo' : a.estado) || 'activo';
   document.getElementById('mob-ea-marca').value  = a.marca||'';
   document.getElementById('mob-ea-modelo').value = a.modelo||'';
@@ -2153,8 +2148,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=2.2").then(reg=>{
-    console.log("[SAGAE] SW registrado v2.0:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=2.3").then(reg=>{
+    console.log("[SAGAE] SW registrado v2.3:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;
@@ -2414,12 +2409,6 @@ function abrirNuevoActivoMobile(){
   modal.classList.add('open');
 }
 function onChangeAsignadoMobile(nombre){
-  // Ya no se fuerza el campo Estado al elegir un responsable. "Asignado"
-  // se eliminó como valor de Estado por ser redundante con este mismo
-  // campo (ver auditoría "Estado: Asignado vs Asignado a") — el ciclo de
-  // vida del activo (activo/disponible/mantenimiento/descarte) queda
-  // completamente independiente de si tiene o no una persona asignada,
-  // igual que en el panel de escritorio (onChangeAsignado en index_8.html).
 }
 function onChangeDeptomobile(depto){
   const selUbic = document.getElementById('mob-ea-ubicacion');
