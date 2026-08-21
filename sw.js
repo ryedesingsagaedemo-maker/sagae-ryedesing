@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v2.4
+// SAGAE — Service Worker v2.5
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v2.4';
-const CACHE_STATIC = 'sagae-static-v2.4';
+const CACHE_NAME   = 'sagae-mobile-v2.5';
+const CACHE_STATIC = 'sagae-static-v2.5';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -30,7 +30,7 @@ const CACHE_STATIC = 'sagae-static-v2.4';
 // publicado por la versión vigente y se sube este número de caché para
 // forzar que TODOS los dispositivos descarten la app vieja de inmediato,
 // incluidos los que ya tenían la PWA instalada.
-// v2.4: CORRECCIONES DEL MODULO MOVIL —
+// v2.5: CORRECCIONES DEL MODULO MOVIL —
 //   (1) identidad canonica del responsable: el reconocimiento de "mis
 //       tickets" ya no depende de una igualdad exacta de cadenas entre
 //       usuarios.nombre y tickets.resp (metricas en 0 y boton "Tomar
@@ -44,6 +44,15 @@ const CACHE_STATIC = 'sagae-static-v2.4';
 //       ticket en memoria ni en la cache local.
 //   Se sube el numero de cache para que todos los dispositivos —incluidos
 //   los que ya tienen la PWA instalada— descarten la version anterior.
+// v2.5: CORRECCIÓN DEL PANEL PRINCIPAL MÓVIL — "Todos los abiertos"
+//   ordenaba únicamente por prioridad; con varios tickets "normal"
+//   empatados, el orden de llegada no estaba garantizado y un ticket
+//   recién creado podía caer por debajo del corte de 8 tarjetas visibles,
+//   pareciendo "desaparecido" aunque sí existía en la hoja y en la
+//   pestaña Tickets. Ahora se ordena por prioridad y, dentro de cada
+//   prioridad, por fecha de creación descendente. El título del panel
+//   también indica cuántos se muestran cuando quedan ocultos, con un
+//   atajo a la pestaña Tickets para ver el resto.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -54,7 +63,7 @@ const STATIC_ASSETS = [
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v2.4...');
+  console.log('[SAGAE SW] Instalando v2.5...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -69,7 +78,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v2.4...');
+  console.log('[SAGAE SW] Activando v2.5...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -187,4 +196,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v2.4 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v2.5 cargado correctamente');
