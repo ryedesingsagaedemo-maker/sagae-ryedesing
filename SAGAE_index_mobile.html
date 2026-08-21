@@ -1337,17 +1337,42 @@ function renderDashboard(){
   const abiertos=tickets.filter(t=>['abierto','progreso','revision'].includes(t.estado));
   const fuente = dashVistaTickets==='todos' ? abiertos : misTkt;
   const rango={urgente:0,importante:1,normal:2};
-  const ordenados = fuente.slice().sort((a,b)=>(rango[a.prior]??3)-(rango[b.prior]??3));
-  const pending = ordenados.slice(0, dashVistaTickets==='todos'?8:5);
+  /* v2.5: CORRECCIÓN — "Todos los abiertos" ordenaba solo por prioridad. Con
+     empate de prioridad (el caso normal: la mayoría de los tickets son
+     "normal"), Array.sort no garantiza mantener el orden de llegada, así
+     que un ticket recién creado podía terminar por debajo del corte de la
+     vista (8 en "todos", 5 en "mios") y parecer "desaparecido", aunque sí
+     estaba en la hoja y sí aparecía en la pestaña Tickets. Ahora, dentro de
+     cada nivel de prioridad, se ordena por fecha de creación descendente
+     (más reciente primero), así el corte nunca oculta lo último que entró. */
+  const _msCreacion_ = (t)=>{ const d=new Date(t.fechaCreacion); return isNaN(d) ? 0 : d.getTime(); };
+  const ordenados = fuente.slice().sort((a,b)=>{
+    const p = (rango[a.prior]??3)-(rango[b.prior]??3);
+    return p!==0 ? p : _msCreacion_(b)-_msCreacion_(a);
+  });
+  const LIMITE = dashVistaTickets==='todos' ? 8 : 5;
+  const pending = ordenados.slice(0, LIMITE);
+  const oculto = ordenados.length - pending.length;
   if(titleEl){
+    /* v2.5: el título ahora indica cuántos se muestran quedando ocultos —
+       antes decía "(13)" mientras la lista mostraba solo 8, sin ninguna
+       señal de que faltaban 5 por ver. */
     titleEl.textContent = dashVistaTickets==='todos'
-      ? `Todos los tickets abiertos (${abiertos.length})`
+      ? (oculto>0
+          ? `Todos los tickets abiertos — mostrando ${pending.length} de ${abiertos.length}`
+          : `Todos los tickets abiertos (${abiertos.length})`)
       : 'Mis tickets pendientes';
   }
   if(!pending.length){
     listEl.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">${dashVistaTickets==='todos'?'¡No hay tickets abiertos!':'¡Sin tickets pendientes!'}</div></div>`;
   } else {
-    listEl.innerHTML=pending.map(t=>tktCardHTML(t)).join("");
+    listEl.innerHTML=pending.map(t=>tktCardHTML(t)).join("")
+      + (oculto>0
+          ? `<div onclick="goScreen('tickets',document.getElementById('nav-tickets'))" style="text-align:center;padding:12px;margin-top:4px;
+               font-size:12px;font-weight:700;color:#1B3A6B;background:#EEF2F7;border-radius:10px;cursor:pointer">
+               Ver los ${oculto} restantes en la pestaña Tickets →
+             </div>`
+          : "");
   }
   const dl=document.getElementById("dash-deadlines");
   const proximos=tickets.filter(t=>{
@@ -2354,8 +2379,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=2.4").then(reg=>{
-    console.log("[SAGAE] SW registrado v2.4:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=2.5").then(reg=>{
+    console.log("[SAGAE] SW registrado v2.5:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;
