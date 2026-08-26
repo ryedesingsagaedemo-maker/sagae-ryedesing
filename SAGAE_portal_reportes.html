@@ -15,7 +15,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
   --white:#FFFFFF;--bg:#F0F4FB;
   --text:#1A1A1A;--text2:#444444;--text3:#888888;
   --border:#E0E0E0;--border2:#CCCCCC;
-  --gold:#B8960C;--gold-l:#FDF8E1;
+  --gold:#B8960C;--gold-l:#FDF8E1;--argaman:#5C2A6B;
   --green:#085041;--green-l:#EAF3DE;--green-m:#1D9E75;
   --red:#791F1F;--red-l:#FCEBEB;--red-m:#D85A30;
   --amber:#633806;--amber-l:#FAEEDA;--amber-m:#BA7517;
@@ -23,6 +23,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
   --shadow:0 2px 16px rgba(27,58,107,.10);
   --shadow-lg:0 8px 32px rgba(27,58,107,.15);
 }
+.veil-strip{height:4px;display:flex;}
+.veil-strip span{flex:1;}
+.veil-strip .v1{background:var(--navy);} .veil-strip .v2{background:var(--argaman);}
+.veil-strip .v3{background:var(--red-m);} .veil-strip .v4{background:var(--gold);}
 .header{background:var(--navy);padding:20px 24px;display:flex;align-items:center;gap:14px;}
 .header-logo{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.5px;}
 .header-divider{width:1px;height:24px;background:rgba(255,255,255,.25);}
@@ -90,6 +94,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 </head>
 <body>
 
+<div class="veil-strip"><span class="v1"></span><span class="v2"></span><span class="v3"></span><span class="v4"></span></div>
 <div class="header">
   <div class="header-logo">SAGAE</div>
   <div class="header-divider"></div>
