@@ -301,7 +301,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <div class="metrics-grid">
         <div class="metric-card"><div class="metric-v" id="m-mis-tkt" style="color:var(--navy)">0</div><div class="metric-l">Mis tickets</div></div>
         <div class="metric-card"><div class="metric-v" id="m-urgentes" style="color:var(--red-m)">0</div><div class="metric-l">Urgentes</div></div>
-        <div class="metric-card"><div class="metric-v" id="m-progreso" style="color:#185FA5">0</div><div class="metric-l">En progreso</div></div>
+        <div class="metric-card"><div class="metric-v" id="m-progreso" style="color:var(--argaman)">0</div><div class="metric-l">En progreso</div></div>
         <div class="metric-card"><div class="metric-v" id="m-cerrados" style="color:var(--green-m)">0</div><div class="metric-l">Cerrados hoy</div></div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 6px;gap:8px;flex-wrap:wrap;">
@@ -2250,8 +2250,8 @@ function renderReportes(){
     <div class="metrics-grid">
       <div class="metric-card"><div class="metric-v" style="color:var(--navy)">${misTkt.length}</div><div class="metric-l">Total mis tickets</div></div>
       <div class="metric-card"><div class="metric-v" style="color:var(--green-m)">${cerrados}</div><div class="metric-l">Cerrados</div></div>
-      <div class="metric-card"><div class="metric-v" style="color:var(--amber-m)">${misTkt.length-cerrados}</div><div class="metric-l">Pendientes</div></div>
-      <div class="metric-card"><div class="metric-v" style="color:var(--navy)">${pct}%</div><div class="metric-l">Cumplimiento</div></div>
+      <div class="metric-card"><div class="metric-v" style="color:var(--gold)">${misTkt.length-cerrados}</div><div class="metric-l">Pendientes</div></div>
+      <div class="metric-card"><div class="metric-v" style="color:var(--argaman)">${pct}%</div><div class="metric-l">Cumplimiento</div></div>
     </div>
     <div class="section-title">Por tipo</div>
     <div class="card"><div class="card-body">
