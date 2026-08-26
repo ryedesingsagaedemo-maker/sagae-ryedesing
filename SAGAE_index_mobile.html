@@ -21,9 +21,10 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 :root{
   --navy:#1B3A6B;--navy-d:#0D1F3C;--navy-l:#E8F0FB;
   --white:#FFFFFF;--bg:#F5F7FA;--bg2:#FFFFFF;
-  --text:#1A1A1A;--text2:#444444;--text3:#888888;
+  --text:#1A1A1A;--text2:#444444;--text3:#667085;
   --border:#E0E0E0;--border2:#CCCCCC;
   --gold:#B8960C;--gold-l:#FDF8E1;
+  --terracotta:#C15B32;--warm-bg:#F6EFE2;--warm-panel:#FBF6EC;
   --green:#085041;--green-l:#EAF3DE;--green-m:#1D9E75;
   --amber:#633806;--amber-l:#FAEEDA;--amber-m:#BA7517;
   --red:#791F1F;--red-l:#FCEBEB;--red-m:#D85A30;
@@ -42,8 +43,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 @keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
-#login-screen{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;z-index:100;display:none;}
-.login-card{background:#fff;border-radius:var(--r-xl);padding:32px 28px;width:100%;max-width:360px;box-shadow:var(--shadow-lg);}
+#login-screen{position:fixed;inset:0;background:var(--warm-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;z-index:100;display:none;}
+.login-card{background:var(--warm-panel);border-radius:var(--r-xl);padding:32px 28px;width:100%;max-width:360px;box-shadow:var(--shadow-lg);}
 .login-logo{font-size:28px;font-weight:700;color:var(--navy);letter-spacing:-.5px;}
 .login-badge{font-size:11px;font-weight:600;color:var(--navy);background:var(--navy-l);border-radius:20px;padding:3px 10px;display:inline-block;margin-top:4px;}
 .login-title{font-size:14px;color:var(--text3);margin:16px 0 24px;}
@@ -54,7 +55,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .pass-wrap{position:relative;}
 .pass-wrap .f-inp{padding-right:44px;}
 .pass-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:16px;cursor:pointer;color:var(--text3);}
-.btn-login{width:100%;padding:14px;border-radius:var(--r-md);background:var(--navy);border:none;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:4px;}
+.btn-login{width:100%;padding:14px;border-radius:var(--r-md);background:var(--terracotta);border:none;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:4px;}
 .btn-login:active{opacity:.85;}
 .login-err{font-size:12px;color:var(--red);background:var(--red-l);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:14px;display:none;}
 .conn-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600;margin-bottom:20px;}
@@ -416,7 +417,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <select class="form-select" id="mob-ea-ubicacion"><option value="">— Sin ubicación —</option></select>
     </div>
     <div class="form-group">
-      <label class="form-label">👤 Asignado a<span style="font-size:10px;font-weight:400;color:#888;display:block">Persona que usará el equipo</span></label>
+      <label class="form-label">👤 Asignado a<span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Persona que usará el equipo</span></label>
       <select class="form-select" id="mob-ea-asignado" onchange="onChangeAsignadoMobile(this.value)"><option value="">— Sin asignar —</option></select>
     </div>
     <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-textarea" id="mob-ea-obs" placeholder="Notas adicionales..."></textarea></div>
