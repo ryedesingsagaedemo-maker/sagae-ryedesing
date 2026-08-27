@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; connect-src *; font-src * data:;">
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -4358,7 +4359,7 @@ function showDetalle(id){
     <div style="margin-bottom:14px"><div class="sec-title">Tickets vinculados (${tks.length})</div>
       ${tks.length?tks.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:5px">
         <span class="code-cell">${t.codigo}</span><span class="badge s-${t.estado}">${t.estado}</span>
-        <span style="flex:1;font-size:12px;font-weight:500">${t.titulo}</span><span style="font-size:11px;color:var(--text3)">${t.resp} · ${renderDead(t.dead)}</span>
+        <span style="flex:1;font-size:12px;font-weight:500">${sanitizeHTML(t.titulo)}</span><span style="font-size:11px;color:var(--text3)">${sanitizeHTML(t.resp)} · ${renderDead(t.dead)}</span>
       </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin tickets vinculados.</div>'}
     </div>
     <div><div class="sec-title">Historial completo (${(activoActual.historial||[]).length} eventos)</div>
@@ -4456,7 +4457,7 @@ function renderTickets(){
     <td style="font-size:11px">${sanitizeHTML(t.activoNombre||'—')}</td>
     <td>
       ${t.resp&&t.resp!=='—'
-        ? `<span style="font-size:11px;font-weight:${t.resp===session.nombre?'700':'400'};color:${t.resp===session.nombre?'#1A7A4A':'var(--text)'}">${t.resp}</span>`
+        ? `<span style="font-size:11px;font-weight:${t.resp===session.nombre?'700':'400'};color:${t.resp===session.nombre?'#1A7A4A':'var(--text)'}">${sanitizeHTML(t.resp)}</span>`
         : '<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:3px;font-weight:600">Sin asignar</span>'}
     </td>
     <td><span class="badge s-${t.prior}">${t.prior}</span></td><td><span class="badge s-${t.estado}">${t.estado}</span></td>
@@ -4482,7 +4483,7 @@ function renderKanban(){
       <button onclick="event.stopPropagation();imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo" style="position:absolute;top:6px;right:${((PERMS[session.rol]||{}).edit)?'24':'6'}px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
       <div class="k-card-accent ${t.prior==='urgente'?'pri-alta':t.prior==='importante'?'pri-media':'pri-baja'}"></div>
       <div class="code-cell" style="font-size:9px;margin-bottom:3px">${t.codigo}</div>
-      <div class="k-card-t">${t.titulo}</div>
+      <div class="k-card-t">${sanitizeHTML(t.titulo)}</div>
       <div class="k-card-m"><span>${t.activoNombre&&t.activoNombre!=='—'?t.activoNombre:t.proy||'—'}</span><span class="badge s-${t.prior}" style="font-size:9px">${t.prior}</span></div>
       <div class="k-card-m">
         <span style="${t.resp===session.nombre?'color:#1A7A4A;font-weight:600':''}">${t.resp||'Sin asignar'}</span>
@@ -4669,7 +4670,7 @@ function renderDash(){
   if(tktEl) tktEl.innerHTML=tktS.length
     ? tktS.map(t=>`<tr>
         <td class="mono">${t.codigo}</td>
-        <td class="bold" style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.titulo}</td>
+        <td class="bold" style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sanitizeHTML(t.titulo)}</td>
         <td style="font-size:9.5px">${(t.resp||'—').split(' ')[0]}</td>
         <td><span class="pbi-b pbi-b-${t.prior}">${t.prior}</span></td>
         <td><span class="pbi-b pbi-b-${t.estado}">${t.estado}</span></td>
@@ -5240,7 +5241,7 @@ function repHojaVida(el, ts){
             <span class="badge s-${t.estado}">${t.estado}</span>
             <span class="badge s-${t.prior}">${t.prior}</span>
           </div>
-          <div style="font-weight:500">${t.titulo}</div>
+          <div style="font-weight:500">${sanitizeHTML(t.titulo)}</div>
           <div style="color:var(--text3);font-size:10px">${t.resp||'—'} · ${renderDead(t.dead)} · Avance: ${t.avance||0}%</div>
         </div>`).join(''):'<div class="empty-c">Sin tickets vinculados</div>'}
       </div>
@@ -5336,7 +5337,7 @@ function repTickets(el, ts){
         <thead><tr><th>Código</th><th>Título</th><th>Activo</th><th>Responsable</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Avance</th><th>Deadline</th><th>Trazabilidad</th></tr></thead>
         <tbody>${lista.map(t=>`<tr>
           <td class="code-cell">${t.codigo}</td>
-          <td style="font-weight:600;max-width:160px">${t.titulo}</td>
+          <td style="font-weight:600;max-width:160px">${sanitizeHTML(t.titulo)}</td>
           <td style="font-size:10px">${t.activoNombre||'—'}</td>
           <td>${t.resp||'—'}</td>
           <td>${t.tipo||'—'}</td>
@@ -5704,7 +5705,7 @@ function repDanos(el, ts){
         <thead><tr><th>Código</th><th>Título</th><th>Activo afectado</th><th>Responsable</th><th>Prioridad</th><th>Estado</th><th>Deadline</th></tr></thead>
         <tbody>${ticketsDano.map(t=>`<tr>
           <td class="code-cell">${t.codigo}</td>
-          <td style="font-weight:600">${t.titulo}</td>
+          <td style="font-weight:600">${sanitizeHTML(t.titulo)}</td>
           <td style="font-size:11px">${t.activoNombre||'—'}</td>
           <td>${t.resp||'—'}</td>
           <td><span class="badge s-${t.prior}">${t.prior}</span></td>
@@ -6025,7 +6026,7 @@ function globalSearch(q) {
     html += matchTickets.map(t => `
       <div class="sr-item" onclick="searchGoTicket('${t.codigo}')">
         <span class="sr-code">${t.codigo}</span>
-        <span class="sr-name">${t.titulo}</span>
+        <span class="sr-name">${sanitizeHTML(t.titulo)}</span>
         <span class="sr-badge s-${t.estado}">${t.estado}</span>
         <span class="sr-badge s-${t.prior}" style="margin-left:3px">${t.prior}</span>
       </div>`).join('');
