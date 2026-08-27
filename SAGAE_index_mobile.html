@@ -1402,7 +1402,7 @@ function renderDashboard(){
     const color=dias<=1?"var(--red-m)":dias<=3?"var(--amber-m)":"var(--navy)";
     return`<div class="tkt-card" onclick="openTicketSheet('${t.codigo}')">
       <div class="tkt-card-top">
-        <div class="tkt-card-title">${t.titulo}</div>
+        <div class="tkt-card-title">${sanitizeHTML(t.titulo)}</div>
         <div class="tkt-card-meta">
           <span class="badge b-${t.prior}">${t.prior}</span>
           <span style="font-size:11px;color:${color};font-weight:600">⏰ ${dias===0?"Hoy":dias===1?"Mañana":"En "+dias+" días"}</span>
@@ -1437,7 +1437,7 @@ function tktCardHTML(t){
   const deadLabel = dias===null?"":dias<0?"⛔ Vencido":dias===0?"⏰ Hoy":dias===1?"⏰ Mañana":`⏰ En ${dias}d`;
   return `<div class="tkt-card" onclick="openTicketSheet('${t.codigo}')">
     <div class="tkt-card-top">
-      <div class="tkt-card-title">${t.titulo}</div>
+      <div class="tkt-card-title">${sanitizeHTML(t.titulo)}</div>
       <div class="tkt-card-meta">
         <span class="badge b-${t.prior}">${t.prior}</span>
         <span class="badge b-${t.estado}">${t.estado}</span>
@@ -2116,7 +2116,7 @@ function openActivoDetalle(codigo){
     <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Tickets vinculados (${tktsVinculados.length})</div>
     ${tktsVinculados.length?tktsVinculados.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
       <span style="font-family:monospace;font-size:11px;color:var(--text3)">${t.codigo}</span>
-      <span style="flex:1;font-size:13px">${t.titulo}</span>
+      <span style="flex:1;font-size:13px">${sanitizeHTML(t.titulo)}</span>
       <span class="badge b-${t.estado}">${t.estado}</span>
     </div>`).join(""):`<div style="font-size:12px;color:var(--text3)">Sin tickets vinculados</div>`}
     <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Historial (${(a.historial||[]).length})</div>
