@@ -19,10 +19,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-
 --sb-gold:#E5AC1C;--sb-gold-d:#C89312;--sb-ink:#1B3A6B;--sb-deep:#0B1B30;--sb-deep-d:#071120;--sb-celeste:#8FCFEA;--sb-celeste-d:#6BB3D6;--r-md:8px;--r-lg:12px;--r-xl:16px;--shadow:0 4px 24px rgba(20,35,65,.10);--shadow-sm:0 1px 3px rgba(20,35,65,.08);--shadow-lg:0 12px 40px rgba(20,35,65,.16);--ease:cubic-bezier(.4,0,.2,1);}
 .screen{width:100%;max-width:1200px;height:100vh;max-height:760px;background:var(--bg);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;position:relative;border:1px solid rgba(20,35,65,.06);}
 .veil-strip{height:2px;flex-shrink:0;background:linear-gradient(90deg,rgba(143,207,234,0) 0%,rgba(143,207,234,.65) 50%,rgba(143,207,234,0) 100%);}
-.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 20%,#F3F6FB 0%,var(--bg3) 70%);}
-.login-shell{display:flex;width:360px;border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-lg);}
+.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(circle at 30% 20%,var(--navy) 0%,var(--navy-d) 75%);}
+.login-wrap::before{content:"SAGAE";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Inter',sans-serif;font-size:280px;font-weight:800;letter-spacing:14px;color:rgba(143,207,234,.055);white-space:nowrap;pointer-events:none;user-select:none;}
+.login-shell{position:relative;z-index:1;display:flex;width:360px;border-radius:var(--r-xl);overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.5);}
 .login-veil{width:2px;flex-shrink:0;background:linear-gradient(180deg,rgba(143,207,234,0) 0%,rgba(143,207,234,.7) 50%,rgba(143,207,234,0) 100%);}
 .login-card{background:var(--bg);border:1px solid var(--border);border-left:none;border-radius:0;padding:36px 40px;width:100%;box-shadow:none;}
+.login-logo-mark{margin-bottom:10px;}
 .login-logo{font-size:27px;font-weight:800;color:var(--navy);letter-spacing:-.6px;background:linear-gradient(90deg,var(--navy),#2E5B9E);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .login-sub{font-size:12px;color:var(--text3);margin-top:2px;margin-bottom:6px;}
 .sheets-badge{display:inline-flex;align-items:center;gap:5px;background:var(--green-l);border:1px solid var(--green-m);border-radius:20px;padding:3px 12px;font-size:11px;color:var(--green);font-weight:600;margin-bottom:22px;}
@@ -796,6 +798,7 @@ tbody tr.clickable{cursor:pointer;}
   <div class="login-shell">
     <div class="login-veil"></div>
     <div class="login-card">
+      <div class="login-logo-mark"><svg viewBox="0 0 64 64" width="38" height="38" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 23 C 25 17, 14 17, 9 21 L 9 45 C 14 41, 25 41, 32 47 C 39 41, 50 41, 55 45 L 55 21 C 50 17, 39 17, 32 23 Z" stroke="var(--navy)" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"/><line x1="32" y1="23" x2="32" y2="47" stroke="var(--navy)" stroke-width="2.3"/><line x1="32" y1="16" x2="32" y2="23" stroke="var(--celeste-d)" stroke-width="2.3" stroke-linecap="round"/><circle cx="32" cy="12" r="3.4" fill="var(--celeste-d)"/></svg></div>
       <div class="login-logo">SAGAE</div>
       <div class="login-sub">Sistema de Activos y Gestión Administrativa Educativa</div>
       <div class="login-sub" id="login-institucion" style="font-weight:600;opacity:.85"></div>

@@ -45,10 +45,11 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 @keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
-#login-screen{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,#F3F6FB 0%,var(--bg) 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;z-index:100;display:none;}
-.login-shell{display:flex;width:100%;max-width:360px;border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-lg);}
+#login-screen{position:fixed;inset:0;overflow:hidden;background:radial-gradient(circle at 30% 20%,var(--navy) 0%,var(--navy-d) 75%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;z-index:100;display:none;}
+.login-shell{position:relative;z-index:1;display:flex;width:100%;max-width:360px;border-radius:var(--r-xl);overflow:hidden;box-shadow:0 26px 60px rgba(0,0,0,.5);}
 .login-veil{width:2px;flex-shrink:0;background:linear-gradient(180deg,rgba(143,207,234,0) 0%,rgba(143,207,234,.7) 50%,rgba(143,207,234,0) 100%);}
 .login-card{background:var(--bg2);border-radius:0;padding:32px 28px;width:100%;}
+.login-logo-mark{margin-bottom:8px;}
 .login-logo{font-size:28px;font-weight:700;color:var(--navy);letter-spacing:-.5px;}
 .login-logo .dot{color:var(--argaman);}
 .login-badge{font-size:11px;font-weight:600;color:var(--navy);background:var(--navy-l);border-radius:20px;padding:3px 10px;display:inline-block;margin-top:4px;}
@@ -244,6 +245,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <div class="login-shell">
     <div class="login-veil"></div>
     <div class="login-card">
+      <div class="login-logo-mark"><svg viewBox="0 0 64 64" width="34" height="34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 23 C 25 17, 14 17, 9 21 L 9 45 C 14 41, 25 41, 32 47 C 39 41, 50 41, 55 45 L 55 21 C 50 17, 39 17, 32 23 Z" stroke="var(--navy)" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"/><line x1="32" y1="23" x2="32" y2="47" stroke="var(--navy)" stroke-width="2.3"/><line x1="32" y1="16" x2="32" y2="23" stroke="var(--celeste-d)" stroke-width="2.3" stroke-linecap="round"/><circle cx="32" cy="12" r="3.4" fill="var(--celeste-d)"/></svg></div>
       <div class="login-logo">SAGAE<span class="dot">.</span></div>
       <div class="login-badge">Módulo Técnico</div>
       <p class="login-title">Sistema de Activos y Gestión Administrativa Educativa</p>
