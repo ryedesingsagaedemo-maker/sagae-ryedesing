@@ -843,6 +843,7 @@ tbody tr.clickable{cursor:pointer;}
     <div class="sb-item" id="nav-detalle" style="display:none;" onclick="go('detalle',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span> Detalle activo</div>
     <div class="sb-sec" style="--dot:var(--sb-celeste)">Mobiliario</div>
     <div class="sb-item" id="nav-mobiliario" onclick="go('mobiliario',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 11V6a3 3 0 013-3h6a3 3 0 013 3v5"/><path d="M4 11h16v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"/><path d="M6 18v3M18 18v3"/></svg></span> Mobiliario</div>
+    <div class="sb-item" id="nav-detalle-mob" style="display:none;" onclick="go('detalle-mob',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span> Detalle mobiliario</div>
     <div class="sb-item" id="nav-licencias" onclick="go('licencias',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M14 9l2 2"/></svg></span> Licencias</div>
     <div class="sb-sec" style="--dot:var(--argaman)">Tickets</div>
     <div class="sb-item" id="nav-tickets" onclick="go('tickets',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9a2 2 0 012-2h14a2 2 0 012 2v1.5a1.5 1.5 0 000 3V15a2 2 0 01-2 2H5a2 2 0 01-2-2v-1.5a1.5 1.5 0 000-3V9z"/><path d="M9 7v12"/></svg></span> Tickets</div>
@@ -1392,6 +1393,9 @@ tbody tr.clickable{cursor:pointer;}
     </div>
   </div>
 
+  <!-- ═══ DETALLE DE MOBILIARIO ═══ -->
+  <div class="pnl" id="pnl-detalle-mob"><div id="det-mob-content"></div></div>
+
   <!-- ═══ MODAL NUEVO / EDITAR MOBILIARIO ═══ -->
   <div class="modal-bg" id="mod-mob">
     <div class="modal" style="max-width:620px;">
@@ -1476,26 +1480,6 @@ tbody tr.clickable{cursor:pointer;}
           <textarea class="f-inp" id="mob-obs" rows="2" placeholder="Notas adicionales..." style="resize:vertical;"></textarea>
         </div>
       </div>
-      <div id="mob-hist-barcode" style="display:none;">
-        <div style="margin-top:14px;margin-bottom:14px">
-          <div class="sec-title">Historial completo (<span id="mob-hist-count">0</span> eventos)</div>
-          <div id="mob-hist-list"></div>
-        </div>
-        <div class="det-barcode-section" id="mob-barcode-section" style="display:none;">
-          <div class="det-barcode-title">Código de Barras del Mobiliario</div>
-          <div class="det-barcode-row">
-            <div class="det-barcode-item">
-              <svg id="mob-barcode-svg" class="det-barcode-svg"></svg>
-              <div class="det-barcode-label">Code 128 — Lector físico USB</div>
-            </div>
-          </div>
-          <div style="margin-top:12px;text-align:center">
-            <button class="btn btn-p" id="mob-btn-etiqueta" type="button" style="font-size:12px;padding:6px 18px">
-              🏷️ Imprimir etiqueta
-            </button>
-          </div>
-        </div>
-      </div>
       <div class="modal-actions">
         <button class="btn" onclick="closeModals()">Cancelar</button>
         <button class="btn btn-p" onclick="guardarMobiliario()">Guardar</button>
@@ -1530,6 +1514,83 @@ tbody tr.clickable{cursor:pointer;}
       <div id="print-nombre"></div>
       <svg id="print-barcode-svg"></svg>
       <div id="print-codigo"></div>
+    </div>
+  </div>
+
+  <!-- Impresión masiva de etiquetas — activos o mobiliario según abrirModalEtiquetasGrupo(tipo) -->
+  <div class="modal-bg" id="mod-etiq-grupo">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-title">
+        <span id="eg-titulo">🏷️ Impresión masiva de etiquetas</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <div class="f-row">
+        <div class="f-lbl">¿Qué quieres imprimir?</div>
+        <select class="f-inp f-sel" id="eg-modo" onchange="actualizarModoEtiq()">
+          <option value="filtro">La vista actual (filtros aplicados)</option>
+          <option value="tipo">Por tipo específico</option>
+          <option value="rango">Por rango de códigos</option>
+          <option value="todos">Todos los elementos activos</option>
+        </select>
+      </div>
+      <div class="f-row" id="eg-panel-tipo" style="display:none;">
+        <div class="f-lbl">Tipo</div>
+        <select class="f-inp f-sel" id="eg-tipo-sel" onchange="actualizarPreviewEtiq()"></select>
+      </div>
+      <div class="f-row" id="eg-panel-rango" style="display:none;">
+        <div class="f-lbl">Rango de códigos (número)</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="f-inp" id="eg-desde" type="number" min="1" placeholder="Desde" oninput="actualizarPreviewEtiq()">
+          <span>a</span>
+          <input class="f-inp" id="eg-hasta" type="number" min="1" placeholder="Hasta" oninput="actualizarPreviewEtiq()">
+        </div>
+      </div>
+      <div id="eg-resumen" style="font-size:12px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:6px;"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModals()">Cancelar</button>
+        <button class="btn btn-p" id="eg-btn-imprimir" onclick="imprimirGrupoEtiquetas()" disabled>🖨️ Imprimir etiquetas</button>
+      </div>
+    </div>
+  </div>
+  <div id="print-multi-area" style="display:none;"></div>
+
+  <!-- Importar Excel/CSV — Activos -->
+  <div class="modal-bg" id="mod-importar-activos">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-title">
+        <span>⬆ Importar activos desde Excel/CSV</span>
+        <button class="modal-close" onclick="cerrarImportarActivos()">✕</button>
+      </div>
+      <div class="f-row">
+        <div class="f-lbl">Archivo (.csv o .xlsx)</div>
+        <input class="f-inp" type="file" id="import-activos-file" accept=".csv,.xlsx,.xls" onchange="leerArchivoActivos(this)">
+      </div>
+      <div id="import-activos-status" style="font-size:12px;color:var(--text2);margin:10px 0;">Selecciona un archivo CSV o Excel (.xlsx) para importar.</div>
+      <div id="import-activos-preview"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="cerrarImportarActivos()">Cancelar</button>
+        <button class="btn btn-p" id="import-activos-btn" onclick="ejecutarImportarActivos()" disabled>Importar activos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Importar Excel/CSV — Usuarios -->
+  <div class="modal-bg" id="mod-importar-usuarios">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-title">
+        <span>⬆ Importar usuarios desde Excel/CSV</span>
+        <button class="modal-close" onclick="cerrarImportarUsuarios()">✕</button>
+      </div>
+      <div class="f-row">
+        <div class="f-lbl">Archivo (.csv o .xlsx)</div>
+        <input class="f-inp" type="file" id="import-usuarios-file" accept=".csv,.xlsx,.xls" onchange="leerArchivoUsuarios(this)">
+      </div>
+      <div id="import-usuarios-status" style="font-size:12px;color:var(--text2);margin:10px 0;">Selecciona un archivo CSV o Excel para importar.</div>
+      <div id="import-usuarios-preview"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="cerrarImportarUsuarios()">Cancelar</button>
+        <button class="btn btn-p" id="import-usuarios-btn" onclick="ejecutarImportarUsuarios()" disabled>Importar usuarios</button>
+      </div>
     </div>
   </div>
 
@@ -2117,7 +2178,7 @@ const TIPO_ICON={
   'Red / Switch':'🔌',Software:'🔑',Vehículo:'🚗',Otro:'📦'
 };
 const PERMS={admin:{departamentos:true,personas:true,espacios:true,activos:true,tickets:true,kanban:true,auditoria:true,usuarios:true,mobiliario:true,licencias:true,edit:true,delete:true},tecnico:{departamentos:false,personas:true,espacios:true,activos:true,tickets:true,kanban:true,auditoria:false,usuarios:false,mobiliario:true,licencias:true,edit:true,delete:false},consultor:{departamentos:false,personas:true,espacios:true,activos:true,tickets:true,kanban:true,auditoria:true,usuarios:false,mobiliario:true,licencias:true,edit:false,delete:false},inventario:{departamentos:false,personas:true,espacios:true,mobiliario:true,activos:true,tickets:false,kanban:false,auditoria:false,usuarios:false,licencias:true,edit:true,delete:false}};
-let session=null,activos=[],tickets=[],auditLog=[],usuarios=[],activoActual=null;
+let session=null,activos=[],tickets=[],auditLog=[],usuarios=[],activoActual=null,mobiliarioActual=null;
 let cntActivos=0,cntTickets=0,filtroA='todos',filtroT='todos',filtroAud='todos',filtroTipo='todos';
 let mobiliario=[];
 let licencias=[];
@@ -2609,8 +2670,7 @@ function procesarCodigoEscaneado(rawCodigo){
       return;
     }
     registrarEventoLectura('mobiliario', mob.codigo);
-    go('mobiliario', document.getElementById('nav-mobiliario'));
-    openMob(mob.codigo);
+    showDetalleMob(mob.codigo);
     showToast('✅ '+mob.codigo+' — '+mob.nombre,'success');
     return;
   }
@@ -2972,7 +3032,7 @@ function go(panel,el){
   // Smart polling — actualizar panel activo y limpiar badge
   _pollingPanel = panel;
   if(panel==='tickets'||panel==='kanban') _limpiarBadgeNav();
-  const titles={dashboard:'Dashboard',activos:'Inventario de activos',detalle:'Detalle del activo',tickets:'Gestión de tickets',kanban:'Kanban de tickets',usuarios:'Gestión de usuarios',auditoria:'Registro de auditoría',miperfil:'Mi perfil',reportes:'Reportes',mobiliario:'Inventario de Mobiliario',personas:'Personas y Beneficiarios',espacios:'Espacios y Aulas',departamentos:'Catálogo de Departamentos',licencias:'Licencias de software'};
+  const titles={dashboard:'Dashboard',activos:'Inventario de activos',detalle:'Detalle del activo',tickets:'Gestión de tickets',kanban:'Kanban de tickets',usuarios:'Gestión de usuarios',auditoria:'Registro de auditoría',miperfil:'Mi perfil',reportes:'Reportes',mobiliario:'Inventario de Mobiliario','detalle-mob':'Detalle del mobiliario',personas:'Personas y Beneficiarios',espacios:'Espacios y Aulas',departamentos:'Catálogo de Departamentos',licencias:'Licencias de software'};
   document.getElementById('tb-title').textContent=titles[panel]||panel;
   renderTopbarBtns(panel);
   if(panel==='dashboard')renderDash();if(panel==='activos')renderActivos();if(panel==='tickets')renderTickets();if(panel==='mobiliario')renderMobiliario();if(panel==='licencias')renderLicencias();if(panel==='personas')renderPersonas();if(panel==='espacios')renderEspacios();if(panel==='departamentos')renderDepartamentos();
@@ -2989,7 +3049,7 @@ function renderTopbarBtns(p){
       c.innerHTML+='<button class="btn" onclick="descargarPlantillaActivos()" style="margin-left:4px" title="Descargar plantilla de carga masiva">⬇ Plantilla</button>';
     }
     if(['admin','tecnico','inventario'].includes(session.rol)){
-      c.innerHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo()" style="margin-left:6px">🏷️ Etiquetas</button>';
+      c.innerHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'activo\')" style="margin-left:6px">🏷️ Etiquetas</button>';
     }
   }
   if(p==='departamentos'){
@@ -3005,6 +3065,9 @@ function renderTopbarBtns(p){
     if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openMob(null)">+ Nuevo elemento</button>';
     if(['admin','inventario'].includes(session.rol))
       c.innerHTML+='<button class="btn" onclick="exportarMobiliarioCSV()" style="margin-left:6px">⬇ Exportar CSV</button>';
+    if(['admin','tecnico','inventario'].includes(session.rol)){
+      c.innerHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'mobiliario\')" style="margin-left:6px">🏷️ Etiquetas</button>';
+    }
   }
   if(p==='licencias'){
     if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openLicencia(null)">+ Nuevo paquete de licencia</button>';
@@ -3018,6 +3081,10 @@ function renderTopbarBtns(p){
     if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openActivo(activoActual.codigo)" style="margin-right:6px">✎ Editar</button><button class="btn" onclick="openMant()" style="margin-right:6px">+ Mantenimiento</button>';
     c.innerHTML+='<button class="btn" onclick="imprimirExpedienteActivo(activoActual.codigo)" style="margin-right:6px" title="Historial completo con fotos, listo para imprimir o guardar como PDF"><span class="nav-ico" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span> Expediente</button>';
     if(per.delete&&activoActual.estado!=='eliminado')c.innerHTML+='<button class="btn btn-warn" onclick="openDelete(\'activo\',activoActual.codigo)">Eliminar</button>';
+  }
+  if(p==='detalle-mob'&&mobiliarioActual){
+    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openMob(mobiliarioActual.codigo)" style="margin-right:6px">✎ Editar</button>';
+    if(per.delete)c.innerHTML+='<button class="btn btn-warn" onclick="eliminarMob(mobiliarioActual.codigo)">Eliminar</button>';
   }
 }
 
@@ -4515,6 +4582,73 @@ function showDetalle(id){
   if(['admin','tecnico','inventario'].includes(session.rol)){
     setTimeout(()=>{
       generarBarcode('det-barcode-svg', activoActual.codigo);
+    }, 120);
+  }
+}
+
+// Detalle de un elemento de mobiliario — misma lógica de trazabilidad
+// que showDetalle() para activos: ficha completa + historial + código
+// de barras con impresión de etiqueta.
+function showDetalleMob(codigo){
+  mobiliarioActual = mobiliario.find(m=>m.codigo===codigo); if(!mobiliarioActual) return;
+  document.getElementById('nav-detalle-mob').style.display='flex';
+  document.getElementById('det-mob-content').innerHTML=`
+    <div class="det-header">
+      <div class="det-icon">${TIPO_ICON[mobiliarioActual.tipo]||'📦'}</div>
+      <div style="flex:1"><div class="det-title">${sanitizeHTML(mobiliarioActual.nombre)}</div>
+        <div class="det-code">${mobiliarioActual.codigo} · ${sanitizeHTML(mobiliarioActual.tipo||'')} · Cantidad: ${mobiliarioActual.cantidad||1}</div>
+        <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap"><span class="badge" style="background:var(--bg2);color:var(--text2)">${mobiliarioActual.condicion||'—'}</span><span class="badge" style="background:var(--bg2);color:var(--text2)">${sanitizeHTML(mobiliarioActual.depto||'Sin depto')}</span></div>
+      </div>
+    </div>
+    <div class="det-grid">
+      <div class="det-field"><div class="det-fl">Ubicación / Aula</div><div class="det-fv">${sanitizeHTML(mobiliarioActual.ubicacion||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${sanitizeHTML(mobiliarioActual.depto||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Material</div><div class="det-fv">${sanitizeHTML(mobiliarioActual.material||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Color</div><div class="det-fv">${sanitizeHTML(mobiliarioActual.color||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Fecha de adquisición</div><div class="det-fv">${fmtFecha(mobiliarioActual.fecha)}</div></div>
+      <div class="det-field"><div class="det-fl">Valor unitario</div><div class="det-fv">$${(mobiliarioActual.valor||0).toLocaleString()}</div></div>
+      <div class="det-field"><div class="det-fl">Valor total</div><div class="det-fv" style="color:#3B6D11;font-weight:700">$${((mobiliarioActual.valor||0)*(mobiliarioActual.cantidad||1)).toLocaleString()}</div></div>
+      ${mobiliarioActual.foto ? `
+      <div class="det-field" style="grid-column:1/-1">
+        <div class="det-fl">📎 Foto / Documento</div>
+        <div class="det-fv">
+          <a href="${sanitizeHTML(mobiliarioActual.foto)}" target="_blank"
+            style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
+            background:var(--blue-l);border:1px solid var(--blue-m);border-radius:6px;
+            color:var(--navy);font-size:12px;font-weight:600;text-decoration:none;">
+            📂 Ver foto / documento en Drive
+          </a>
+        </div>
+      </div>` : ''}
+    </div>
+    ${mobiliarioActual.obs?`<div style="background:var(--bg2);border-radius:var(--r-md);padding:9px 12px;font-size:12px;color:var(--text2);margin-bottom:14px;border:1px solid var(--border)">${sanitizeHTML(mobiliarioActual.obs)}</div>`:''}
+    <div><div class="sec-title">Historial completo (${(mobiliarioActual.historial||[]).length} eventos)</div>
+      ${(mobiliarioActual.historial||[]).map(h=>
+        '<div class="hist-item"><div class="hist-dot '+(h.color||'')+'"></div>' +
+        '<div><div style="font-size:12px;color:var(--text)"><strong>'+sanitizeHTML(h.tipo||'')+'</strong> — '+sanitizeHTML(h.desc||'')+'</div>' +
+        '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(h.fecha||'')+' · '+sanitizeHTML(h.usuario||'—')+'</div></div>' +
+        '</div>'
+      ).join('') || '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin eventos registrados.</div>'}
+    </div>
+    ${['admin','tecnico','inventario'].includes(session.rol)?`
+    <div class="det-barcode-section">
+      <div class="det-barcode-title">Código de Barras del Mobiliario</div>
+      <div class="det-barcode-row">
+        <div class="det-barcode-item">
+          <svg id="det-mob-barcode-svg" class="det-barcode-svg"></svg>
+          <div class="det-barcode-label">Code 128 — Lector físico USB</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;text-align:center">
+        <button class="btn btn-p" onclick="abrirEtiqueta('${mobiliarioActual.codigo}','mobiliario')" style="font-size:12px;padding:6px 18px">
+          🏷️ Imprimir etiqueta
+        </button>
+      </div>
+    </div>`:''}`;
+  go('detalle-mob',document.getElementById('nav-detalle-mob'));
+  if(['admin','tecnico','inventario'].includes(session.rol)){
+    setTimeout(()=>{
+      generarBarcode('det-mob-barcode-svg', mobiliarioActual.codigo);
     }, 120);
   }
 }
@@ -6299,12 +6433,22 @@ mostrarPantallaLogin();
 // ════════════════════════════════════════════════════════════════════
 
 let _etiqCodigosActuales = []; // lista de códigos seleccionados para imprimir
+let _etiqGrupoTipo = 'activo'; // 'activo' | 'mobiliario' — qué inventario se está etiquetando
 
-function abrirModalEtiquetasGrupo(){
-  // Poblar select de tipos con los que hay en inventario
+// Abre el modal de impresión masiva de etiquetas — sirve tanto para
+// activos como para mobiliario según el parámetro "tipo"
+function abrirModalEtiquetasGrupo(tipo){
+  _etiqGrupoTipo = tipo || 'activo';
+  const esMob = _etiqGrupoTipo === 'mobiliario';
+  const src = esMob ? mobiliario : activos;
+  document.getElementById('eg-titulo').textContent = esMob
+    ? '🏷️ Impresión masiva de etiquetas — Mobiliario'
+    : '🏷️ Impresión masiva de etiquetas — Activos';
+
+  // Poblar select de tipos con los que hay en el inventario correspondiente
   const tiposSel = document.getElementById('eg-tipo-sel');
   const tiposEnUso = [...new Set(
-    activos.filter(a=>a.estado!=='eliminado').map(a=>a.tipo||'Otro')
+    src.filter(x=>x.estado!=='eliminado').map(x=>x.tipo||'Otro')
   )].sort();
   tiposSel.innerHTML = '<option value="">— Selecciona un tipo —</option>' +
     tiposEnUso.map(t=>`<option value="${t}">${TIPO_ICON[t]||'📦'} ${t}</option>`).join('');
@@ -6323,29 +6467,41 @@ function actualizarModoEtiq(){
 }
 
 function actualizarPreviewEtiq(){
+  const esMob = _etiqGrupoTipo === 'mobiliario';
+  const src = esMob ? mobiliario : activos;
+  const pref = esMob ? 'MOB' : 'ACT';
   const modo = document.getElementById('eg-modo').value;
   let lista = [];
 
   if(modo === 'filtro'){
-    // Igual que renderActivos: estado + tipo filtrados
-    lista = filtroA==='todos' ? activos
-      : filtroA==='asignado' ? activos.filter(a=>a.asignado && a.asignado!=='—')
-      : activos.filter(a=>a.estado===filtroA);
-    if(filtroTipo!=='todos') lista = lista.filter(a=>a.tipo===filtroTipo);
-    lista = lista.filter(a=>a.estado!=='eliminado');
+    if(esMob){
+      // Igual que renderMobiliario: lee los filtros del panel de Mobiliario
+      const estFil  = document.getElementById('fil-mob-estado')?.value||'todos';
+      const tipoFil = document.getElementById('fil-mob-tipo')?.value||'todos';
+      lista = src.filter(m=>m.estado!=='eliminado');
+      if(estFil  !== 'todos') lista = lista.filter(m=>m.condicion===estFil);
+      if(tipoFil !== 'todos') lista = lista.filter(m=>m.tipo===tipoFil);
+    } else {
+      // Igual que renderActivos: estado + tipo filtrados
+      lista = filtroA==='todos' ? activos
+        : filtroA==='asignado' ? activos.filter(a=>a.asignado && a.asignado!=='—')
+        : activos.filter(a=>a.estado===filtroA);
+      if(filtroTipo!=='todos') lista = lista.filter(a=>a.tipo===filtroTipo);
+      lista = lista.filter(a=>a.estado!=='eliminado');
+    }
   }
   else if(modo === 'tipo'){
     const t = document.getElementById('eg-tipo-sel').value;
     if(!t){ lista = []; }
-    else lista = activos.filter(a=>a.tipo===t && a.estado!=='eliminado');
+    else lista = src.filter(x=>x.tipo===t && x.estado!=='eliminado');
   }
   else if(modo === 'rango'){
     const desde = parseInt(document.getElementById('eg-desde').value)||0;
     const hasta  = parseInt(document.getElementById('eg-hasta').value)||0;
     if(desde>0 && hasta>=desde){
-      lista = activos.filter(a=>{
-        if(a.estado==='eliminado') return false;
-        const m = a.codigo.match(/(\d+)$/);
+      lista = src.filter(x=>{
+        if(x.estado==='eliminado') return false;
+        const m = (x.codigo||'').match(/(\d+)$/);
         if(!m) return false;
         const n = parseInt(m[1]);
         return n>=desde && n<=hasta;
@@ -6353,32 +6509,34 @@ function actualizarPreviewEtiq(){
     }
   }
   else if(modo === 'todos'){
-    lista = activos.filter(a=>a.estado!=='eliminado');
+    lista = src.filter(x=>x.estado!=='eliminado');
   }
 
-  _etiqCodigosActuales = lista.map(a=>a.codigo);
+  _etiqCodigosActuales = lista.map(x=>x.codigo);
   const res = document.getElementById('eg-resumen');
   const btn = document.getElementById('eg-btn-imprimir');
 
   if(!_etiqCodigosActuales.length){
-    res.innerHTML = '<span style="color:var(--red)">⚠ Sin activos que coincidan con los criterios seleccionados.</span>';
+    res.innerHTML = `<span style="color:var(--red)">⚠ Sin ${esMob?'elementos de mobiliario':'activos'} que coincidan con los criterios seleccionados.</span>`;
     btn.disabled = true;
   } else {
     const desc = modo==='filtro'
-      ? `Vista actual: Estado "<strong>${filtroA}</strong>" · Tipo "<strong>${filtroTipo==='todos'?'Todos':filtroTipo}</strong>"`
+      ? (esMob
+          ? `Vista actual del inventario de Mobiliario`
+          : `Vista actual: Estado "<strong>${filtroA}</strong>" · Tipo "<strong>${filtroTipo==='todos'?'Todos':filtroTipo}</strong>"`)
       : modo==='tipo'
       ? `Tipo: <strong>${document.getElementById('eg-tipo-sel').value}</strong>`
       : modo==='rango'
-      ? `Rango ACT-${String(document.getElementById('eg-desde').value||'?').padStart(4,'0')} → ACT-${String(document.getElementById('eg-hasta').value||'?').padStart(4,'0')}`
-      : 'Todos los activos activos';
+      ? `Rango ${pref}-${String(document.getElementById('eg-desde').value||'?').padStart(4,'0')} → ${pref}-${String(document.getElementById('eg-hasta').value||'?').padStart(4,'0')}`
+      : `Todos los ${esMob?'elementos de mobiliario':'activos'} activos`;
     res.innerHTML = `${desc}<br><span style="color:var(--green);font-weight:700">${_etiqCodigosActuales.length} etiqueta${_etiqCodigosActuales.length!==1?'s':''}</span> listas para imprimir`;
     btn.disabled = false;
   }
 }
 
 function imprimirGrupoEtiquetas(){
-  // DIAGNÓSTICO — ver en consola si hay datos
-  console.log('[SAGAE] imprimirGrupoEtiquetas llamada. Códigos:', _etiqCodigosActuales.length, _etiqCodigosActuales.slice(0,3));
+  const esMob = _etiqGrupoTipo === 'mobiliario';
+  const src = esMob ? mobiliario : activos;
 
   if(!_etiqCodigosActuales.length){
     showToast('No hay etiquetas seleccionadas','');
@@ -6397,7 +6555,7 @@ function imprimirGrupoEtiquetas(){
 
   // 3. Construir HTML de etiquetas
   _etiqCodigosActuales.forEach(cod=>{
-    const a = activos.find(x=>x.codigo===cod);
+    const a = src.find(x=>x.codigo===cod);
     if(!a) return;
     const nom = a.nombre.length>42 ? a.nombre.substring(0,40)+'...' : a.nombre;
     const cod2 = a.codigo + (a.tipo ? ' - '+a.tipo : '');
@@ -6424,8 +6582,6 @@ function imprimirGrupoEtiquetas(){
     }catch(e){ console.error('[SAGAE] JsBarcode error:', cod, e); }
   });
 
-  console.log('[SAGAE] Barcodes generados. Iniciando impresión...');
-
   // 5. Imprimir — mismo patrón exacto que imprimirEtiqueta()
   setTimeout(()=>{
     // Mover área a posición 0,0 visible para impresión
@@ -6437,10 +6593,14 @@ function imprimirGrupoEtiquetas(){
         document.body.classList.remove('printing-multi');
         area.style.cssText = 'display:none;';
         area.innerHTML = '';
-        console.log('[SAGAE] Impresión completada.');
       }, 800);
     }, 150);
   }, 200);
+
+  // 6. Registrar en el historial de cada elemento y en la auditoría —
+  // igual que la impresión individual de una sola etiqueta
+  const tipoEvento = esMob ? 'mobiliario' : 'activo';
+  _etiqCodigosActuales.forEach(cod=>registrarEventoEtiqueta(tipoEvento, cod));
 }
 
 
@@ -7154,7 +7314,7 @@ function renderMobiliario(){
 
   const condColor = {bueno:'#1D9E75',regular:'#BA7517',deteriorado:'#D85A30',baja:'#888'};
   tb.innerHTML = list.map(m=>`
-    <tr>
+    <tr class="clickable" onclick="showDetalleMob('${m.codigo}')">
       <td class="code-cell">${m.codigo||'—'}</td>
       <td>
         <div style="font-weight:600;font-size:12px">${sanitizeHTML(m.nombre||'')}</div>
@@ -7204,31 +7364,6 @@ function openMob(codigo){
   document.getElementById('mob-valor').value     = m.valor||0;
   document.getElementById('mob-foto').value      = m.foto||'';
   document.getElementById('mob-obs').value       = m.obs||'';
-
-  // Historial y código de barras — solo aplica a elementos ya existentes
-  const histWrap = document.getElementById('mob-hist-barcode');
-  if(isEdit){
-    histWrap.style.display = 'block';
-    const hist = m.historial || [];
-    document.getElementById('mob-hist-count').textContent = hist.length;
-    document.getElementById('mob-hist-list').innerHTML = hist.length ? hist.map(h=>
-      '<div class="hist-item"><div class="hist-dot '+(h.color||'')+'"></div>'+
-      '<div><div style="font-size:12px;color:var(--text)"><strong>'+sanitizeHTML(h.tipo||'')+'</strong> — '+sanitizeHTML(h.desc||'')+'</div>'+
-      '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(h.fecha||'')+' · '+sanitizeHTML(h.usuario||'—')+'</div></div></div>'
-    ).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin eventos registrados.</div>';
-
-    const puedeVerBarcode = ['admin','tecnico','inventario'].includes(session.rol);
-    const barcodeSec = document.getElementById('mob-barcode-section');
-    if(puedeVerBarcode){
-      barcodeSec.style.display = 'block';
-      document.getElementById('mob-btn-etiqueta').onclick = ()=>abrirEtiqueta(codigo,'mobiliario');
-      setTimeout(()=>generarBarcode('mob-barcode-svg', codigo), 120);
-    } else {
-      barcodeSec.style.display = 'none';
-    }
-  } else {
-    histWrap.style.display = 'none';
-  }
 
   document.getElementById('mod-mob')._editCodigo = isEdit ? codigo : null;
   document.getElementById('mod-mob').classList.add('open');
@@ -7302,8 +7437,8 @@ async function eliminarMob(codigo){
     await apiPost('mobiliario','update',{...m, estado:'eliminado'});
     m.estado='eliminado';
     audit('ELIMINAR','Mobiliario',codigo,`Eliminado: ${m.nombre}`);
-    renderMobiliario();
     showToast('Elemento eliminado','success');
+    go('mobiliario',document.getElementById('nav-mobiliario'));
   }catch(e){ showToast('Error: '+e.message,''); }
 }
 
