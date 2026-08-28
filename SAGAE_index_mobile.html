@@ -603,9 +603,10 @@ const TIPO_ICON = {
   "Red / Switch":"🔌", Software:"🔑", Vehículo:"🚗", Otro:"📦"
 };
 let session = null;
-let tickets = [], activos = [], usuarios = [], departamentos = [], espacios = [], personas = [], responsablesLista = [];
+let tickets = [], activos = [], usuarios = [], departamentos = [], espacios = [], personas = [], responsablesLista = [], mobiliario = [];
 let cntTickets = 0;
 let activoDetalle = null;
+let mobiliarioDetalle = null;
 let filtroTkt = "todos", filtroAct = "todos";
 function ts(){return new Date().toLocaleString("es-PA",{dateStyle:"short",timeStyle:"short"});}
 let _inactivityTimer = null;
@@ -627,6 +628,7 @@ function sanitizeHTML(str){
 let _html5QrCode = null;
 let _scannerActivo = false;
 let _activoEscaneado = null;
+let _tipoEscaneado = null; // 'activo' | 'mobiliario' — qué encontró el último escaneo
 function mostrarBotonEscaner(){
   const btn = document.getElementById('mob-scan-btn');
   if(!btn || !session) return;
@@ -643,6 +645,7 @@ async function abrirEscanerQR(){
   const card    = document.getElementById('scanner-result-card');
   if(!overlay) return;
   _activoEscaneado = null;
+  _tipoEscaneado = null;
   card.classList.remove('show');
   status.className = 'scanner-status';
   status.textContent = 'Iniciando cámara...';
@@ -698,19 +701,24 @@ function onCodigoDetectado(rawCodigo){
     a.codigo.toUpperCase() === codigo ||
     (a.serial && a.serial.toUpperCase() === codigo)
   );
-  if(activo){ _activoEscaneado = activo; mostrarResultadoEscaneo(activo); }
-  else { mostrarErrorEscaneo('Código "' + codigo + '" no encontrado en el inventario'); }
+  if(activo){ _activoEscaneado = activo; _tipoEscaneado = 'activo'; mostrarResultadoEscaneo(activo, 'activo'); return; }
+
+  const mob = mobiliario.find(m => (m.codigo||'').toUpperCase() === codigo);
+  if(mob){ _activoEscaneado = mob; _tipoEscaneado = 'mobiliario'; mostrarResultadoEscaneo(mob, 'mobiliario'); return; }
+
+  mostrarErrorEscaneo('Código "' + codigo + '" no encontrado en el inventario');
 }
-function mostrarResultadoEscaneo(activo){
+function mostrarResultadoEscaneo(item, tipo){
   const status = document.getElementById('scanner-status');
   const card   = document.getElementById('scanner-result-card');
-  status.textContent = '✅ ¡Activo encontrado!';
+  status.textContent = tipo === 'mobiliario' ? '✅ ¡Mobiliario encontrado!' : '✅ ¡Activo encontrado!';
   status.className = 'scanner-status success';
-  document.getElementById('scan-res-nombre').textContent = activo.nombre;
-  document.getElementById('scan-res-codigo').textContent = activo.codigo + ' · ' + (activo.tipo||'') + ' · ' + (activo.marca||'');
+  document.getElementById('scan-res-nombre').textContent = item.nombre;
+  const estadoVal = tipo === 'mobiliario' ? (item.condicion||'') : item.estado;
+  document.getElementById('scan-res-codigo').textContent = item.codigo + ' · ' + (item.tipo||'') + ' · ' + (tipo==='mobiliario' ? '' : (item.marca||''));
   const estadoEl = document.getElementById('scan-res-estado');
-  estadoEl.textContent = activo.estado;
-  estadoEl.className = 'scanner-result-estado badge b-' + activo.estado;
+  estadoEl.textContent = estadoVal;
+  estadoEl.className = 'scanner-result-estado badge b-' + estadoVal;
   card.classList.add('show');
 }
 function mostrarErrorEscaneo(msg){
@@ -724,11 +732,49 @@ function mostrarErrorEscaneo(msg){
 function onErrorEscaneo(err){}
 async function verDetalleEscaneado(){
   if(!_activoEscaneado) return;
+  const codigo = _activoEscaneado.codigo;
+  const tipo = _tipoEscaneado;
   await cerrarEscanerQR();
   setTimeout(()=>{
-    goScreen('inventario', document.getElementById('nav-inventario'));
-    setTimeout(()=>{ openActivoDetalle(_activoEscaneado.codigo); }, 200);
+    if(tipo === 'mobiliario'){
+      openMobiliarioDetalle(codigo);
+    } else {
+      goScreen('inventario', document.getElementById('nav-inventario'));
+      setTimeout(()=>{ openActivoDetalle(codigo); }, 200);
+    }
   }, 300);
+}
+// Detalle de un elemento de mobiliario escaneado — reutiliza el mismo
+// panel deslizante ("sheet") que ya usan tickets y activos, para no
+// duplicar UI. Es de solo lectura: no hay edición de mobiliario desde
+// el móvil, solo consulta de ficha + historial.
+function openMobiliarioDetalle(codigo){
+  const m = mobiliario.find(x=>x.codigo===codigo); if(!m) return;
+  mobiliarioDetalle = m;
+  document.getElementById("sheet-tkt-title").textContent = m.nombre;
+  document.getElementById("sheet-tkt-code").textContent = `${m.codigo} · ${m.tipo||''}`;
+  const estadoEl = document.getElementById("sheet-tkt-estado");
+  estadoEl.textContent = m.condicion || '—';
+  estadoEl.className = `badge b-${m.condicion||''}`;
+  const campos = [
+    ["Cantidad", m.cantidad||1],
+    ["Ubicación", m.ubicacion||"—"],
+    ["Departamento", m.depto||"—"],
+    ["Material", m.material||"—"],
+    ["Color", m.color||"—"],
+    ["Valor unitario", `$${(m.valor||0).toLocaleString()}`]
+  ];
+  document.getElementById("sheet-body").innerHTML=`
+    ${campos.map(([l,v])=>`<div class="det-field"><div class="det-field-label">${l}</div><div class="det-field-val">${sanitizeHTML(String(v))}</div></div>`).join("")}
+    ${m.obs?`<div style="margin-top:12px;font-size:12px;color:var(--text2);background:var(--bg2);border-radius:8px;padding:10px;">${sanitizeHTML(m.obs)}</div>`:''}
+    <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Historial (${(m.historial||[]).length})</div>
+    ${(m.historial||[]).map(h=>`<div class="hist-item">
+      <div class="hist-dot ${h.color||"navy"}"></div>
+      <div><div class="hist-tipo">${sanitizeHTML(h.tipo||'')}</div><div class="hist-desc">${sanitizeHTML(h.desc||'')}</div><div class="hist-ts">${h.fecha||""}</div></div>
+    </div>`).join("")||`<div style="font-size:12px;color:var(--text3)">Sin historial</div>`}
+  `;
+  document.getElementById("sheet-overlay").classList.add("open");
+  document.getElementById("ticket-sheet").classList.add("open");
 }
 function renderMantenimientos(){
   const TIPOS_M=['Preventivo','Correctivo','Actualización','Limpieza','Reparación','Inspección','Entrada a Mantenimiento','Salida de Mantenimiento'];
@@ -1171,14 +1217,16 @@ async function cargarDatosPostLogin(){
 }
 async function _cargarDatosSecundariosMobile(){
   try{
-    const [rawDep, rawEsp, rawPer] = await _cargarEnLotesMobile([
+    const [rawDep, rawEsp, rawPer, rawMob] = await _cargarEnLotesMobile([
       ()=> apiGetTimeout("departamentos"),
       ()=> apiGetTimeout("espacios"),
       ()=> apiGetTimeout("personas"),
+      ()=> apiGetTimeout("mobiliario"),
     ], 3, 300);
     if(rawDep){departamentos=rawDep.map(r=>({...r}));}
     if(rawEsp){espacios=rawEsp.map(r=>({...r}));}
     if(rawPer){personas=rawPer.map(r=>({...r}));}
+    if(rawMob){mobiliario=rawMob.map(r=>({...r,cantidad:parseInt(r.cantidad)||1,valor:parseFloat(r.valor)||0,historial:parseHist(r.historial)}));}
     saveCache();
   }catch(e){
     console.warn('[SAGAE] Carga secundaria móvil parcial:', e.message);
