@@ -50,9 +50,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-
 .app.visible{display:flex;}
 .sb{width:200px;flex-shrink:0;border-right:1px solid var(--sb-deep-d);background:linear-gradient(180deg,var(--sb-deep) 0%,var(--sb-deep-d) 100%);display:flex;flex-direction:column;overflow-y:auto;box-shadow:2px 0 16px rgba(0,0,0,.35);}
 .sb-head{padding:14px 16px;background:rgba(0,0,0,.22);}
-.sb-veil{height:3px;display:flex;flex-shrink:0;}
-.sb-veil span{flex:1;}
-.sb-veil .a{background:var(--argaman);} .sb-veil .c{background:var(--carmesi);} .sb-veil .o{background:var(--sb-gold);}
+.sb-veil{height:2px;flex-shrink:0;background:linear-gradient(90deg,rgba(143,207,234,0) 0%,rgba(143,207,234,.65) 50%,rgba(143,207,234,0) 100%);}
 .sb-logo{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px;}
 .sb-user{font-size:11px;color:rgba(255,255,255,.72);margin-top:2px;}
 .sb-conn{font-size:10px;color:#eafff5;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:2px 8px;display:inline-block;margin-top:4px;font-weight:600;}
@@ -828,7 +826,7 @@ tbody tr.clickable{cursor:pointer;}
       <div style="font-size:9px;color:#5A7A9A;margin-top:3px;letter-spacing:.1em;text-transform:uppercase;">Desarrollado por RYE Design</div><br>
       <span class="sb-role" id="sb-role-badge">—</span>
     </div>
-    <div class="sb-veil"><span class="a"></span><span class="c"></span><span class="o"></span></div>
+    <div class="sb-veil"></div>
     <div class="sb-sec" style="--dot:var(--sb-gold)">General</div>
     <div class="sb-item on" id="nav-dashboard" onclick="go('dashboard',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span> Dashboard</div>
     <div class="sb-sec" style="--dot:var(--argaman)">Personas y Espacios</div>
