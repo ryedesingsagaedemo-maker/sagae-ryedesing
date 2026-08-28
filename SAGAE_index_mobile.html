@@ -259,18 +259,29 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <p class="login-title" id="login-institucion" style="font-weight:700;opacity:.9"></p>
       <div class="conn-badge"><span class="conn-dot"></span> Conectado a Google Sheets</div>
       <div class="login-err" id="login-err"></div>
-      <div class="f-row">
-        <div class="f-lbl">Usuario</div>
-        <input class="f-inp" id="l-user" placeholder="Tu usuario" autocapitalize="none" autocomplete="username">
-      </div>
-      <div class="f-row">
-        <div class="f-lbl">Contraseña</div>
-        <div class="pass-wrap">
-          <input class="f-inp" type="password" id="l-pass" placeholder="Contraseña" autocomplete="current-password">
-          <button class="pass-toggle" onclick="togglePass('l-pass',this)" type="button">👁</button>
+      <div id="login-pass-wrap">
+        <div class="f-row">
+          <div class="f-lbl">Usuario</div>
+          <input class="f-inp" id="l-user" placeholder="Tu usuario" autocapitalize="none" autocomplete="username">
         </div>
+        <div class="f-row">
+          <div class="f-lbl">Contraseña</div>
+          <div class="pass-wrap">
+            <input class="f-inp" type="password" id="l-pass" placeholder="Contraseña" autocomplete="current-password">
+            <button class="pass-toggle" onclick="togglePass('l-pass',this)" type="button">👁</button>
+          </div>
+        </div>
+        <button class="btn-login" onclick="doLogin()">Iniciar sesión</button>
       </div>
-      <button class="btn-login" onclick="doLogin()">Iniciar sesión</button>
+      <div id="login-totp-wrap" style="display:none;">
+        <p class="login-title" style="font-weight:400;font-size:12px;opacity:.85">Ingresa el código de 6 dígitos de tu app de verificación.</p>
+        <div class="f-row">
+          <div class="f-lbl">Código de verificación</div>
+          <input class="f-inp" id="l-totp" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" style="letter-spacing:4px;font-size:18px;text-align:center">
+        </div>
+        <button class="btn-login" onclick="verificarLoginTOTP()">Verificar</button>
+        <button class="btn-login" style="background:transparent;color:var(--navy);margin-top:8px;box-shadow:none" onclick="volverLoginPassword()">‹ Volver</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1253,6 +1264,7 @@ async function initApp(){
   document.getElementById("login-screen").style.display="flex";
 }
 const _loginAttempts = {count:0, blockedUntil:0};
+let _preAuthToken = null;
 async function doLogin(){
   const ahora = Date.now();
   if(_loginAttempts.blockedUntil > ahora){
@@ -1311,21 +1323,85 @@ async function doLogin(){
     return;
   }
   _loginAttempts.count=0;_loginAttempts.blockedUntil=0;
+
+  if(resp.requiereTOTP){
+    // Contraseña correcta, falta el segundo paso — todavía no hay
+    // sesión ni se sabe el rol (eso llega recién con procesarLoginTOTP).
+    _preAuthToken = resp.preAuthToken;
+    document.getElementById('login-pass-wrap').style.display='none';
+    document.getElementById('login-totp-wrap').style.display='block';
+    err.style.display='none';
+    setTimeout(()=>document.getElementById('l-totp')?.focus(), 50);
+    return;
+  }
+
+  await _completarLoginExitosoMobile_(resp, u, err);
+}
+
+// Segundo paso: código de 6 dígitos de la app de verificación. Igual
+// patrón que doLogin() pero contra procesarLoginTOTP — si el código es
+// correcto, continúa exactamente como un login sin verificación en dos
+// pasos (mismo _completarLoginExitosoMobile_).
+async function verificarLoginTOTP(){
+  const codigo = document.getElementById('l-totp').value.trim();
+  const err = document.getElementById('login-err');
+  err.style.display='none';
+  if(!codigo || codigo.length!==6){ err.textContent='Ingresa el código de 6 dígitos.'; err.style.display='block'; return; }
+  const btnV = document.querySelector('#login-totp-wrap .btn-login');
+  if(btnV){ btnV.disabled=true; btnV.textContent='Verificando...'; }
+  let resp;
+  try{
+    resp = await apiPostAsync(null,'procesarLoginTOTP',{preAuthToken:_preAuthToken, codigo, plataforma:'mobile'}, 25000);
+  }catch(e){
+    if(btnV){ btnV.disabled=false; btnV.textContent='Verificar'; }
+    err.textContent='⚠ No se pudo contactar al servidor. Verifica tu conexión.'; err.style.display='block';
+    return;
+  }
+  if(btnV){ btnV.disabled=false; btnV.textContent='Verificar'; }
+  if(resp && resp.ok){
+    _loginAttempts.count=0; _loginAttempts.blockedUntil=0;
+    await _completarLoginExitosoMobile_(resp, resp.username, err);
+  }else{
+    if(resp && resp.error==='PREAUTH_EXPIRADO'){
+      err.textContent='⏱ Se agotó el tiempo para ingresar el código. Vuelve a iniciar sesión.';
+      volverLoginPassword();
+    }else{
+      err.textContent='Código incorrecto. Intenta de nuevo.';
+    }
+    err.style.display='block';
+  }
+}
+
+function volverLoginPassword(){
+  _preAuthToken = null;
+  document.getElementById('l-totp').value='';
+  document.getElementById('login-totp-wrap').style.display='none';
+  document.getElementById('login-pass-wrap').style.display='block';
+  document.getElementById('login-err').style.display='none';
+}
+
+// Continuación común a ambos caminos de login (con y sin segundo
+// paso) — antes vivía dentro de doLogin(); se extrajo para no
+// duplicarla.
+async function _completarLoginExitosoMobile_(resp, usernameIngresado, err){
   if(!["tecnico","admin","inventario"].includes(resp.rol)){
     err.textContent="Esta app es para técnicos e inventario. Usa la versión web para tu rol.";
     err.style.display="block";
     apiPostAsync(null,'cerrar_sesion',{_sessionToken:resp.token}).catch(()=>{});
+    volverLoginPassword();
     return;
   }
   session={username:resp.username, nombre:resp.nombre, rol:resp.rol, token:resp.token};
   mostrarBotonEscaner();
-  apiPost("auditoria","insert",{ts:ts(),usuario:u,nombre:resp.nombre,rol:resp.rol,accion:"LOGIN",tipo:"Sistema",codigo:"MOBILE",detalle:"Acceso desde app móvil SAGAE"});
+  apiPost("auditoria","insert",{ts:ts(),usuario:usernameIngresado,nombre:resp.nombre,rol:resp.rol,accion:"LOGIN",tipo:"Sistema",codigo:"MOBILE",detalle:"Acceso desde app móvil SAGAE"});
   const mustChange = resp.mustChange===true || resp.mustChange==='true' || resp.mustChange==='TRUE';
   if(mustChange){
     document.getElementById("login-screen").style.display="none";
     document.getElementById("force-pass-screen").style.display="flex";
     return;
   }
+  const btnLogin=document.querySelector(".btn-login");
+  const _txtOriginal="Iniciar sesión";
   if(btnLogin){ btnLogin.disabled=true; btnLogin.textContent="Cargando datos..."; }
   const _avisoLargo2=setTimeout(()=>{ if(btnLogin) btnLogin.textContent="Esto está tardando más de lo normal..."; },8000);
   await cargarDatosPostLogin();
@@ -2388,6 +2464,7 @@ function doLogout(){
   document.getElementById("login-screen").style.display="flex";
   document.getElementById("l-user").value="";
   document.getElementById("l-pass").value="";
+  volverLoginPassword();
   document.getElementById("login-err").style.display="none";
   document.getElementById("top-avatar").textContent="?";
   goScreen("dashboard", document.getElementById("nav-dashboard"));
