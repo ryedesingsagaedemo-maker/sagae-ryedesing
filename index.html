@@ -14,20 +14,20 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:linear-gradient(160deg,#EEF1F6 0%,#E4E9F1 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;-webkit-font-smoothing:antialiased;}
-:root{--bg:#FFFFFF;--bg2:#F8F9FA;--bg3:#F0F2F5;--text:#1A1A1A;--text2:#444444;--text3:#888888;--border:#E0E0E0;--border2:#CCCCCC;--purple:#B8960C;--purple-l:#FDF8E1;--purple-m:#D4AF37;--green-l:#EAF3DE;--green:#085041;--green-m:#9FE1CB;--amber-l:#FAEEDA;--amber:#633806;--amber-m:#FAC775;--red-l:#FCEBEB;--red:#791F1F;--red-m:#F7C1C1;--blue-l:#E6F1FB;--blue:#0C447C;--blue-m:#B5D4F4;--teal-l:#E1F5EE;--teal:#085041;--navy:#1B3A6B;--navy-d:#132B50;--gold:#B8960C;--argaman:#5C2A6B;--carmesi:#D85A30;--r-md:8px;--r-lg:12px;--r-xl:16px;--shadow:0 4px 24px rgba(20,35,65,.10);--shadow-sm:0 1px 3px rgba(20,35,65,.08);--shadow-lg:0 12px 40px rgba(20,35,65,.16);--ease:cubic-bezier(.4,0,.2,1);}
+:root{--bg:#FFFFFF;--bg2:#F8F9FA;--bg3:#F0F2F5;--text:#1A1A1A;--text2:#444444;--text3:#888888;--border:#E0E0E0;--border2:#CCCCCC;--purple:#B8960C;--purple-l:#FDF8E1;--purple-m:#D4AF37;--green-l:#EAF3DE;--green:#085041;--green-m:#9FE1CB;--amber-l:#FAEEDA;--amber:#633806;--amber-m:#FAC775;--red-l:#FCEBEB;--red:#791F1F;--red-m:#F7C1C1;--blue-l:#E6F1FB;--blue:#0C447C;--blue-m:#B5D4F4;--teal-l:#E1F5EE;--teal:#085041;--navy:#0B1B30;--navy-d:#071120;--gold:#B8960C;--argaman:#5C2A6B;--carmesi:#D85A30;
+--celeste:#8FCFEA;--celeste-d:#6BB3D6;
+--sb-gold:#E5AC1C;--sb-gold-d:#C89312;--sb-ink:#1B3A6B;--sb-deep:#0B1B30;--sb-deep-d:#071120;--sb-celeste:#8FCFEA;--sb-celeste-d:#6BB3D6;--r-md:8px;--r-lg:12px;--r-xl:16px;--shadow:0 4px 24px rgba(20,35,65,.10);--shadow-sm:0 1px 3px rgba(20,35,65,.08);--shadow-lg:0 12px 40px rgba(20,35,65,.16);--ease:cubic-bezier(.4,0,.2,1);}
 .screen{width:100%;max-width:1200px;height:100vh;max-height:760px;background:var(--bg);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;position:relative;border:1px solid rgba(20,35,65,.06);}
-.veil-strip{height:4px;display:flex;flex-shrink:0;}
-.veil-strip span{flex:1;}
-.veil-strip .v1{background:var(--navy);} .veil-strip .v2{background:var(--argaman);}
-.veil-strip .v3{background:var(--carmesi);} .veil-strip .v4{background:var(--gold);}
-.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 20%,#F3F6FB 0%,var(--bg3) 70%);}
-.login-shell{display:flex;width:360px;border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-lg);}
-.login-veil{width:5px;flex-shrink:0;display:flex;flex-direction:column;}
-.login-veil span{flex:1;}
-.login-veil .v1{background:var(--navy);} .login-veil .v2{background:var(--argaman);}
-.login-veil .v3{background:var(--carmesi);} .login-veil .v4{background:var(--gold);}
+.veil-strip{height:2px;flex-shrink:0;background:linear-gradient(90deg,rgba(143,207,234,0) 0%,rgba(143,207,234,.65) 50%,rgba(143,207,234,0) 100%);}
+.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(circle at 30% 20%,var(--navy) 0%,var(--navy-d) 75%);}
+.login-wrap::before{content:"SAGAE";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Inter',sans-serif;font-size:280px;font-weight:800;letter-spacing:14px;color:rgba(143,207,234,.055);white-space:nowrap;pointer-events:none;user-select:none;}
+.login-shell{position:relative;z-index:1;display:flex;width:360px;border-radius:var(--r-xl);overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.5);}
+.login-veil{width:2px;flex-shrink:0;background:linear-gradient(180deg,rgba(143,207,234,0) 0%,rgba(143,207,234,.7) 50%,rgba(143,207,234,0) 100%);}
 .login-card{background:var(--bg);border:1px solid var(--border);border-left:none;border-radius:0;padding:36px 40px;width:100%;box-shadow:none;}
-.login-logo{font-size:27px;font-weight:800;color:var(--navy);letter-spacing:-.6px;background:linear-gradient(90deg,var(--navy),#2E5B9E);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.login-logo-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+.login-logo-mark{flex-shrink:0;width:56px;height:56px;border-radius:16px;background:linear-gradient(155deg,var(--navy) 0%,var(--navy-d) 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(11,27,48,.35);}
+.login-logo{font-size:26px;font-weight:800;color:var(--navy);letter-spacing:-.6px;line-height:1.1;}
+.login-tagline{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;margin-top:2px;}
 .login-sub{font-size:12px;color:var(--text3);margin-top:2px;margin-bottom:6px;}
 .sheets-badge{display:inline-flex;align-items:center;gap:5px;background:var(--green-l);border:1px solid var(--green-m);border-radius:20px;padding:3px 12px;font-size:11px;color:var(--green);font-weight:600;margin-bottom:22px;}
 .sdot{width:6px;height:6px;border-radius:50%;background:#1D9E75;animation:pulse 2s infinite;}
@@ -47,8 +47,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-
 .login-loading{font-size:12px;color:var(--text3);text-align:center;margin-top:10px;display:none;}
 .app{display:none;flex:1;overflow:hidden;}
 .app.visible{display:flex;}
-.sb{width:200px;flex-shrink:0;border-right:1px solid var(--border);background:linear-gradient(180deg,var(--bg2) 0%,#F3F5F8 100%);display:flex;flex-direction:column;overflow-y:auto;}
-.sb-head{padding:14px 16px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--navy) 0%,var(--navy-d) 100%);}
+.sb{width:200px;flex-shrink:0;border-right:1px solid var(--sb-deep-d);background:linear-gradient(180deg,var(--sb-deep) 0%,var(--sb-deep-d) 100%);display:flex;flex-direction:column;overflow-y:auto;box-shadow:2px 0 16px rgba(0,0,0,.35);}
+.sb-head{padding:14px 16px;background:rgba(0,0,0,.22);}
+.sb-veil{height:2px;flex-shrink:0;background:linear-gradient(90deg,rgba(143,207,234,0) 0%,rgba(143,207,234,.65) 50%,rgba(143,207,234,0) 100%);}
 .sb-logo{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px;}
 .sb-user{font-size:11px;color:rgba(255,255,255,.72);margin-top:2px;}
 .sb-conn{font-size:10px;color:#eafff5;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:2px 8px;display:inline-block;margin-top:4px;font-weight:600;}
@@ -57,22 +58,23 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-
 .role-tecnico{background:var(--blue-l);color:var(--blue);}
 .role-consultor{background:var(--green-l);color:var(--green);}
 .role-inventario{background:var(--amber-l);color:var(--amber);}
-.sb-sec{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;padding:14px 16px 4px;}
-.sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);user-select:none;border-radius:0 20px 20px 0;margin-right:8px;}
+.sb-sec{display:flex;align-items:center;gap:7px;font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--sb-celeste);opacity:.85;text-transform:uppercase;padding:14px 16px 4px;}
+.sb-sec::before{content:"";width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--dot,var(--sb-celeste));}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:12px;font-weight:600;color:rgba(230,235,245,.82);cursor:pointer;border-left:2px solid transparent;transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);user-select:none;border-radius:0 20px 20px 0;margin-right:8px;}
 .nav-ico{width:15px;height:15px;flex-shrink:0;display:inline-flex;}
 .nav-ico svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 .pnl-title{display:flex;align-items:center;gap:9px;}
 .pnl-title .nav-ico{width:20px;height:20px;color:var(--navy);}
-.sb-item:hover{background:rgba(27,58,107,.06);color:var(--navy);}
-.sb-item.on{background:#E8F0FB;color:var(--navy);border-left-color:var(--navy);font-weight:600;box-shadow:0 1px 4px rgba(27,58,107,.10) inset;}
-.sb-item.locked{opacity:.3;cursor:not-allowed;pointer-events:none;}
-.sb-avatar{width:30px;height:30px;border-radius:50%;background:#E8F0FB;border:1px solid #A8C0D8;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--navy);flex-shrink:0;}
-.sb-profile{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .12s var(--ease);}
-.sb-profile:hover{background:var(--bg);}
-.sb-profile-name{font-size:11px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sb-profile-role{font-size:10px;color:var(--text3);}
-.sb-logout{padding:8px 14px;border-top:1px solid var(--border);}
-.btn-logout{width:100%;padding:6px;border-radius:var(--r-md);border:1px solid var(--border2);background:transparent;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s var(--ease);}
+.sb-item:hover{background:rgba(92,42,107,.28);color:#fff;}
+.sb-item.on{background:rgba(143,207,234,.14);color:#dff1fb;border-left-color:#8fcfea;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.22) inset;}
+.sb-item.locked{opacity:.35;cursor:not-allowed;pointer-events:none;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--sb-celeste);border:1px solid var(--sb-celeste-d);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--sb-deep-d);flex-shrink:0;}
+.sb-profile{padding:10px 14px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .12s var(--ease);}
+.sb-profile:hover{background:rgba(92,42,107,.22);}
+.sb-profile-name{font-size:11px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-profile-role{font-size:10px;color:rgba(230,235,245,.6);}
+.sb-logout{padding:8px 14px;border-top:1px solid rgba(255,255,255,.12);}
+.btn-logout{width:100%;padding:6px;border-radius:var(--r-md);border:1px solid var(--sb-celeste);background:transparent;font-size:12px;font-weight:600;color:var(--sb-celeste);cursor:pointer;transition:all .15s var(--ease);}
 .btn-logout:hover{background:var(--red-l);color:var(--red);border-color:var(--red-m);}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .sync-bar{display:flex;align-items:center;gap:8px;padding:5px 14px;background:var(--green-l);border-bottom:1px solid var(--green-m);font-size:11px;color:var(--green);flex-shrink:0;font-weight:500;}
@@ -785,7 +787,7 @@ tbody tr.clickable{cursor:pointer;}
 </head>
 <body>
 <div class="screen" id="screen">
-<div class="veil-strip"><span class="v1"></span><span class="v2"></span><span class="v3"></span><span class="v4"></span></div>
+<div class="veil-strip"></div>
 
 <div class="loading-overlay" id="loading-overlay">
   <div class="spinner"></div>
@@ -796,9 +798,15 @@ tbody tr.clickable{cursor:pointer;}
 
 <div class="login-wrap" id="login-screen" style="display:none;">
   <div class="login-shell">
-    <div class="login-veil"><span class="v1"></span><span class="v2"></span><span class="v3"></span><span class="v4"></span></div>
+    <div class="login-veil"></div>
     <div class="login-card">
-      <div class="login-logo">SAGAE</div>
+      <div class="login-logo-row">
+        <div class="login-logo-mark"><svg viewBox="0 0 64 64" width="34" height="34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 24 C 26 19, 16 19, 12 22 L 12 42 C 16 39, 26 39, 32 44 C 38 39, 48 39, 52 42 L 52 22 C 48 19, 38 19, 32 24 Z" stroke="#8FCFEA" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><line x1="32" y1="24" x2="32" y2="44" stroke="#8FCFEA" stroke-width="2.6"/><circle cx="32" cy="14" r="3" fill="#8FCFEA"/><line x1="32" y1="17" x2="32" y2="24" stroke="#8FCFEA" stroke-width="2.6" stroke-linecap="round"/></svg></div>
+        <div>
+          <div class="login-logo">SAGAE</div>
+          <div class="login-tagline">Tecnología al servicio de la educación</div>
+        </div>
+      </div>
       <div class="login-sub">Sistema de Activos y Gestión Administrativa Educativa</div>
       <div class="login-sub" id="login-institucion" style="font-weight:600;opacity:.85"></div>
       <div class="sheets-badge"><span class="sdot"></span> Conectado a Google Sheets</div>
@@ -823,22 +831,23 @@ tbody tr.clickable{cursor:pointer;}
       <div style="font-size:9px;color:#5A7A9A;margin-top:3px;letter-spacing:.1em;text-transform:uppercase;">Desarrollado por RYE Design</div><br>
       <span class="sb-role" id="sb-role-badge">—</span>
     </div>
-    <div class="sb-sec">General</div>
+    <div class="sb-veil"></div>
+    <div class="sb-sec" style="--dot:var(--sb-celeste)">General</div>
     <div class="sb-item on" id="nav-dashboard" onclick="go('dashboard',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span> Dashboard</div>
-    <div class="sb-sec">Personas y Espacios</div>
+    <div class="sb-sec" style="--dot:var(--argaman)">Personas y Espacios</div>
     <div class="sb-item" id="nav-departamentos" onclick="go('departamentos',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 2l9 9-9 9-9-9 9-9z"/><circle cx="12" cy="11" r="1.5"/></svg></span> Departamentos</div>
     <div class="sb-item" id="nav-personas" onclick="go('personas',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span> Personas</div>
     <div class="sb-item" id="nav-espacios" onclick="go('espacios',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/><path d="M4 11h16"/></svg></span> Espacios</div>
-    <div class="sb-sec">Activos</div>
+    <div class="sb-sec" style="--dot:var(--carmesi)">Activos</div>
     <div class="sb-item" id="nav-activos" onclick="go('activos',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span> Inventario</div>
     <div class="sb-item" id="nav-detalle" style="display:none;" onclick="go('detalle',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span> Detalle activo</div>
-    <div class="sb-sec">Mobiliario</div>
+    <div class="sb-sec" style="--dot:var(--sb-celeste)">Mobiliario</div>
     <div class="sb-item" id="nav-mobiliario" onclick="go('mobiliario',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 11V6a3 3 0 013-3h6a3 3 0 013 3v5"/><path d="M4 11h16v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"/><path d="M6 18v3M18 18v3"/></svg></span> Mobiliario</div>
     <div class="sb-item" id="nav-licencias" onclick="go('licencias',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M14 9l2 2"/></svg></span> Licencias</div>
-    <div class="sb-sec">Tickets</div>
+    <div class="sb-sec" style="--dot:var(--argaman)">Tickets</div>
     <div class="sb-item" id="nav-tickets" onclick="go('tickets',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9a2 2 0 012-2h14a2 2 0 012 2v1.5a1.5 1.5 0 000 3V15a2 2 0 01-2 2H5a2 2 0 01-2-2v-1.5a1.5 1.5 0 000-3V9z"/><path d="M9 7v12"/></svg></span> Tickets</div>
     <div class="sb-item" id="nav-kanban" onclick="go('kanban',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M9 4v17M15 4v17"/></svg></span> Kanban</div>
-    <div class="sb-sec">Sistema</div>
+    <div class="sb-sec" style="--dot:var(--carmesi)">Sistema</div>
     <div class="sb-item" id="nav-usuarios" onclick="go('usuarios',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><circle cx="18" cy="9" r="2.5"/><path d="M15.5 14.2c2.9.5 5 2.6 5 5.8"/></svg></span> Usuarios</div>
     <div class="sb-item" id="nav-reportes" onclick="go('reportes',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 20V10M11 20V4M18 20v-7"/><path d="M2 20h20"/></svg></span> Reportes</div>
     <div class="sb-item" id="nav-auditoria" onclick="go('auditoria',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3M8 10h8M8 14h8M8 18h5"/></svg></span> Auditoría</div>
