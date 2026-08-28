@@ -784,6 +784,8 @@ tbody tr.clickable{cursor:pointer;}
 </style>
   <!-- CÓDIGOS DE BARRA — JsBarcode (Code128) + QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+  <!-- QR — solo para mostrar el código de activación de la verificación en dos pasos -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <div class="screen" id="screen">
@@ -811,12 +813,22 @@ tbody tr.clickable{cursor:pointer;}
       <div class="login-sub" id="login-institucion" style="font-weight:600;opacity:.85"></div>
       <div class="sheets-badge"><span class="sdot"></span> Conectado a Google Sheets</div>
       <div class="login-err" id="login-err"></div>
-      <div class="f-row"><div class="f-lbl">Usuario</div><input class="f-inp" id="l-user" placeholder="Tu nombre de usuario" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <div class="f-row"><div class="f-lbl">Contraseña</div>
-        <div class="pass-wrap"><input class="f-inp" type="password" id="l-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
-        <button class="pass-toggle" onclick="togglePass('l-pass',this)" type="button">👁</button></div>
+      <div id="login-pass-wrap">
+        <div class="f-row"><div class="f-lbl">Usuario</div><input class="f-inp" id="l-user" placeholder="Tu nombre de usuario" onkeydown="if(event.key==='Enter')doLogin()"></div>
+        <div class="f-row"><div class="f-lbl">Contraseña</div>
+          <div class="pass-wrap"><input class="f-inp" type="password" id="l-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+          <button class="pass-toggle" onclick="togglePass('l-pass',this)" type="button">👁</button></div>
+        </div>
+        <button class="btn-full" onclick="doLogin()">Iniciar sesión</button>
       </div>
-      <button class="btn-full" onclick="doLogin()">Iniciar sesión</button>
+      <div id="login-totp-wrap" style="display:none;">
+        <div class="login-sub" style="margin-bottom:10px">Ingresa el código de 6 dígitos de tu app de verificación (Google Authenticator u otra similar).</div>
+        <div class="f-row"><div class="f-lbl">Código de verificación</div>
+          <input class="f-inp" id="l-totp" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" style="letter-spacing:4px;font-size:18px;text-align:center" onkeydown="if(event.key==='Enter')verificarLoginTOTP()">
+        </div>
+        <button class="btn-full" onclick="verificarLoginTOTP()">Verificar</button>
+        <button class="btn" style="width:100%;margin-top:8px;background:transparent" onclick="volverLoginPassword()">‹ Volver</button>
+      </div>
       <div class="login-loading" id="login-loading">Verificando credenciales...</div>
     </div>
   </div>
@@ -2078,6 +2090,10 @@ tbody tr.clickable{cursor:pointer;}
     <div class="f-row"><div class="f-lbl">Cargo / Puesto</div><input class="f-inp" id="eu-cargo" placeholder="Técnico de soporte..."></div>
     <div class="f-row"><div class="f-lbl">Estado</div><select class="f-inp f-sel" id="eu-estado"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
   </div>
+  <div id="eu-2fa-reset-wrap" style="display:none;margin-top:6px;">
+    <div class="info-note">Este usuario tiene activada la verificación en dos pasos.</div>
+    <button type="button" class="btn" style="color:var(--red)" onclick="adminResetear2FA()">🔓 Restablecer verificación en dos pasos</button>
+  </div>
   <div class="modal-actions"><button class="btn" onclick="closeModals()">Cancelar</button><button class="btn btn-p" id="eu-save-btn" onclick="saveUsuario()">Guardar usuario</button></div>
 </div></div>
 
@@ -2886,6 +2902,7 @@ function _cancelarCargaYVolver(){
 
 // Rate limiting — máximo 5 intentos, bloqueo de 5 minutos
 const _loginAttempts = {count:0, blockedUntil:0};
+let _preAuthToken = null; // token temporal entre el paso de contraseña y el de verificación en dos pasos
 
 async function doLogin(){
   const ahora = Date.now();
@@ -2934,40 +2951,21 @@ async function doLogin(){
   }
   clearTimeout(_avisoLargo);
 
-  if(resp && resp.ok){
+  if(resp && resp.ok && resp.requiereTOTP){
+    // La contraseña era correcta, pero este usuario tiene activada la
+    // verificación en dos pasos — todavía no hay sesión. Se guarda el
+    // preAuthToken (de un solo uso, expira en minutos) y se muestra
+    // el paso del código en vez de terminar el login aquí.
     ll.style.display='none';
-    session={username:resp.username, nombre:resp.nombre, rol:resp.rol, token:resp.token};
+    _preAuthToken = resp.preAuthToken;
+    document.getElementById('login-pass-wrap').style.display='none';
+    document.getElementById('login-totp-wrap').style.display='block';
+    err.style.display='none';
+    setTimeout(()=>document.getElementById('l-totp')?.focus(), 50);
+  }else if(resp && resp.ok){
+    ll.style.display='none';
     _loginAttempts.count=0;_loginAttempts.blockedUntil=0;
-
-    document.getElementById('loading-overlay').style.display='flex';
-    document.getElementById('login-screen').style.display='none';
-    const cargado = await loadFromSheets();
-    document.getElementById('loading-overlay').style.display='none';
-    if(!cargado){
-      // Si falla la carga de datos, no dejamos a la persona a medias:
-      // cerramos la sesión recién creada y la devolvemos al login.
-      apiPostAsync(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
-      session=null;
-      document.getElementById('login-screen').style.display='flex';
-      err.textContent='⚠ No se pudieron cargar los datos. Intenta de nuevo.';
-      err.style.display='block';
-      return;
-    }
-
-    const scanBtn = document.getElementById('scan-mode-btn');
-    if(scanBtn){
-      scanBtn.style.display = ['admin','tecnico','inventario'].includes(session.rol) ? 'inline-flex' : 'none';
-    }
-    document.getElementById('app-screen').classList.add('visible');
-    document.getElementById('sb-username').textContent=session.username;
-    document.getElementById('sb-avatar').textContent=initials(session.nombre);
-    document.getElementById('sb-profile-name').textContent=session.nombre;
-    document.getElementById('sb-profile-role').textContent=ROL_LABELS[session.rol]||session.rol;
-    const rb=document.getElementById('sb-role-badge');rb.textContent=ROL_LABELS[session.rol]||session.rol;rb.className='sb-role role-'+session.rol;
-    applyPerms();audit('LOGIN','Sistema','—','Inicio de sesión exitoso');renderDash();
-    _pollingPanel='dashboard'; iniciarPolling(); _pedirPermisosNotif();
-    resetInactivityTimer();
-    iniciarControlSesionUnica(); // ahora solo hace session_check periódico
+    await _completarLoginExitoso_(resp, err);
   }else{
     ll.style.display='none';
     if(resp && resp.error==='BLOCKED'){
@@ -3000,6 +2998,91 @@ async function doLogin(){
   }
 }
 
+// Segundo paso del login: el usuario ya escribió su código de 6
+// dígitos. Se envía junto con el preAuthToken (nunca la contraseña de
+// nuevo) — si coincide, el servidor entrega la sesión real y se
+// continúa exactamente igual que un login sin verificación en dos pasos.
+async function verificarLoginTOTP(){
+  const codigo = document.getElementById('l-totp').value.trim();
+  const err = document.getElementById('login-err');
+  const ll  = document.getElementById('login-loading');
+  err.style.display='none';
+  if(!codigo || codigo.length!==6){ err.textContent='Ingresa el código de 6 dígitos.'; err.style.display='block'; return; }
+  ll.style.display='block'; ll.textContent='Verificando código...';
+
+  let resp;
+  try{
+    resp = await apiPostAsync(null,'procesarLoginTOTP',{preAuthToken:_preAuthToken, codigo, plataforma:'web'});
+  }catch(e){
+    ll.style.display='none';
+    err.textContent='⚠ No se pudo contactar al servidor. Verifica tu conexión.'; err.style.display='block';
+    return;
+  }
+
+  if(resp && resp.ok){
+    ll.style.display='none';
+    _loginAttempts.count=0; _loginAttempts.blockedUntil=0;
+    await _completarLoginExitoso_(resp, err);
+  }else{
+    ll.style.display='none';
+    if(resp && resp.error==='PREAUTH_EXPIRADO'){
+      err.textContent='⏱ Se agotó el tiempo para ingresar el código. Vuelve a iniciar sesión.';
+      volverLoginPassword();
+    }else{
+      err.textContent='Código incorrecto. Intenta de nuevo.';
+    }
+    err.style.display='block';
+  }
+}
+
+// Volver del paso de código de verificación al de usuario/contraseña
+// (por ejemplo si el usuario se equivocó de cuenta).
+function volverLoginPassword(){
+  _preAuthToken = null;
+  document.getElementById('l-totp').value='';
+  document.getElementById('login-totp-wrap').style.display='none';
+  document.getElementById('login-pass-wrap').style.display='block';
+  document.getElementById('login-err').style.display='none';
+}
+
+// Continuación común tras un login completamente exitoso (con o sin
+// verificación en dos pasos) — antes vivía dentro de doLogin(); se
+// extrajo para no duplicarla entre los dos caminos.
+async function _completarLoginExitoso_(resp, err){
+  session={username:resp.username, nombre:resp.nombre, rol:resp.rol, token:resp.token};
+
+  document.getElementById('loading-overlay').style.display='flex';
+  document.getElementById('login-screen').style.display='none';
+  const cargado = await loadFromSheets();
+  document.getElementById('loading-overlay').style.display='none';
+  if(!cargado){
+    // Si falla la carga de datos, no dejamos a la persona a medias:
+    // cerramos la sesión recién creada y la devolvemos al login.
+    apiPostAsync(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
+    session=null;
+    document.getElementById('login-screen').style.display='flex';
+    volverLoginPassword();
+    err.textContent='⚠ No se pudieron cargar los datos. Intenta de nuevo.';
+    err.style.display='block';
+    return;
+  }
+
+  const scanBtn = document.getElementById('scan-mode-btn');
+  if(scanBtn){
+    scanBtn.style.display = ['admin','tecnico','inventario'].includes(session.rol) ? 'inline-flex' : 'none';
+  }
+  document.getElementById('app-screen').classList.add('visible');
+  document.getElementById('sb-username').textContent=session.username;
+  document.getElementById('sb-avatar').textContent=initials(session.nombre);
+  document.getElementById('sb-profile-name').textContent=session.nombre;
+  document.getElementById('sb-profile-role').textContent=ROL_LABELS[session.rol]||session.rol;
+  const rb=document.getElementById('sb-role-badge');rb.textContent=ROL_LABELS[session.rol]||session.rol;rb.className='sb-role role-'+session.rol;
+  applyPerms();audit('LOGIN','Sistema','—','Inicio de sesión exitoso');renderDash();
+  _pollingPanel='dashboard'; iniciarPolling(); _pedirPermisosNotif();
+  resetInactivityTimer();
+  iniciarControlSesionUnica(); // ahora solo hace session_check periódico
+}
+
 function doLogout(){
   if(session && session.token){
     apiPostAsync(null,'cerrar_sesion',{_sessionToken:session.token}).catch(()=>{});
@@ -3009,6 +3092,7 @@ function doLogout(){
   document.getElementById('app-screen').classList.remove('visible');document.getElementById('login-screen').style.display='flex';
   detenerPolling();
   document.getElementById('l-user').value='';document.getElementById('l-pass').value='';
+  volverLoginPassword();
   document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));document.getElementById('pnl-dashboard').classList.add('on');
   document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('on'));document.getElementById('nav-dashboard').classList.add('on');
   document.getElementById('nav-detalle').style.display='none';document.getElementById('nav-miperfil').style.display='none';
@@ -3102,12 +3186,30 @@ function openUsuario(id){
     document.getElementById('eu-nombre').value=u.nombre||'';document.getElementById('eu-email').value=u.email||'';
     document.getElementById('eu-tel').value=u.tel||'';document.getElementById('eu-depto').value=u.depto||'';
     document.getElementById('eu-cargo').value=u.cargo||'';document.getElementById('eu-estado').value=u.estado||'activo';
+    document.getElementById('eu-2fa-reset-wrap').style.display = (u.totpEnabled===true||u.totpEnabled==='true'||u.totpEnabled==='TRUE') ? 'block' : 'none';
   }else{
     ['eu-username','eu-pass','eu-nombre','eu-email','eu-tel','eu-depto','eu-cargo'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('eu-username').disabled=false;document.getElementById('eu-pass').placeholder='Mínimo 6 caracteres';
     document.getElementById('eu-rol').value='tecnico';document.getElementById('eu-estado').value='activo';
+    document.getElementById('eu-2fa-reset-wrap').style.display='none';
   }
   document.getElementById('mod-usuario').classList.add('open');
+}
+
+// El admin puede desactivarle la verificación en dos pasos a OTRA
+// persona (por ejemplo si perdió el celular) — es el mismo "update"
+// genérico de usuarios que ya usa el resto del formulario, con estos
+// dos campos. No hace falta que sepa el código de esa persona.
+async function adminResetear2FA(){
+  const username = document.getElementById('eu-username').value.trim();
+  if(!username) return;
+  if(!confirm(`¿Restablecer la verificación en dos pasos de "${username}"? La próxima vez que active esta opción, tendrá que escanear un código nuevo.`)) return;
+  await apiPost('usuarios','update',{username, totpEnabled:false, totpSecret:''});
+  const idx = usuarios.findIndex(x=>x.username===username);
+  if(idx>=0) usuarios[idx].totpEnabled=false;
+  audit('EDITAR','Usuario',username,`Verificación en dos pasos restablecida por ${session.nombre}`);
+  document.getElementById('eu-2fa-reset-wrap').style.display='none';
+  showToast('Verificación en dos pasos restablecida','success');
 }
 
 async function saveUsuario(){
@@ -3199,7 +3301,9 @@ async function toggleUsuarioEstado(username){
 }
 
 function renderMiPerfil(){
-  const u=session.data||{};
+  // session solo trae username/nombre/rol/token — la ficha completa
+  // (correo, teléfono, etc.) vive en el arreglo usuarios ya cargado.
+  const u=usuarios.find(x=>x.username===session.username)||{};
   document.getElementById('mi-perfil-content').innerHTML=`<div style="max-width:500px">
     <div class="det-header">
       <div class="sb-avatar" style="width:56px;height:56px;font-size:20px;border-radius:50%">${initials(u.nombre)}</div>
@@ -3223,8 +3327,91 @@ function renderMiPerfil(){
       </div>
       <button class="btn btn-p" onclick="cambiarMiPass()">Actualizar contraseña</button>
     </div>
+    <div style="margin-top:20px"><div class="sec-title">Verificación en dos pasos</div>
+      <div id="perfil-2fa-content"></div>
+    </div>
   </div>`;
+  _render2FASeccion_(u.totpEnabled===true || u.totpEnabled==='true' || u.totpEnabled==='TRUE');
 }
+
+// ── VERIFICACIÓN EN DOS PASOS (TOTP) — activar/desactivar desde Mi perfil ──
+function _render2FASeccion_(activo){
+  const el = document.getElementById('perfil-2fa-content');
+  if(!el) return;
+  if(activo){
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--green-l);border:1px solid var(--green-m);border-radius:var(--r-md);padding:10px 14px;">
+        <span style="font-size:18px">✅</span>
+        <div style="flex:1;font-size:12px;color:var(--green)"><strong>Activada</strong> — te pedirá el código de tu app cada vez que inicies sesión.</div>
+      </div>
+      <button class="btn" style="margin-top:10px;color:var(--red)" onclick="desactivar2FA()">Desactivar verificación en dos pasos</button>`;
+  } else {
+    el.innerHTML = `
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">
+        Cuando la actives, además de tu contraseña vas a necesitar un código de 6 dígitos generado por una app como Google Authenticator, Microsoft Authenticator o Authy. Así, aunque alguien más llegue a saber tu contraseña, no podrá entrar sin tu celular.
+      </div>
+      <button class="btn btn-p" onclick="iniciarActivacion2FA()">🔒 Activar verificación en dos pasos</button>`;
+  }
+}
+
+async function iniciarActivacion2FA(){
+  const el = document.getElementById('perfil-2fa-content');
+  el.innerHTML = `<div style="font-size:12px;color:var(--text3)">Generando código secreto...</div>`;
+  const resp = await apiPostAsync(null,'totp_generar',{});
+  if(!resp || !resp.ok){
+    showToast('⚠ No se pudo generar el código. Intenta de nuevo.','error');
+    _render2FASeccion_(false);
+    return;
+  }
+  _2faPendiente = resp; // {secret, otpauthUrl} — todavía no está guardado en el servidor
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">
+      1. Abre tu app de verificación (Google Authenticator u otra) y escanea este código:
+    </div>
+    <div id="qr-2fa" style="display:flex;justify-content:center;margin-bottom:10px;background:#fff;padding:10px;border-radius:var(--r-md);border:1px solid var(--border);width:fit-content"></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:14px;text-align:center">
+      ¿No puedes escanear? Ingresa este código manualmente en tu app:<br>
+      <strong style="font-family:monospace;letter-spacing:1px;font-size:13px;color:var(--text)">${resp.secret}</strong>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">2. Escribe el código de 6 dígitos que te muestra la app para confirmar:</div>
+    <div class="f-row"><input class="f-inp" id="confirmar-2fa-codigo" maxlength="6" inputmode="numeric" placeholder="000000" style="letter-spacing:4px;font-size:18px;text-align:center;max-width:180px"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn" onclick="_render2FASeccion_(false)">Cancelar</button>
+      <button class="btn btn-p" onclick="confirmarActivacion2FA()">Confirmar y activar</button>
+    </div>`;
+  if(typeof QRCode !== 'undefined'){
+    new QRCode(document.getElementById('qr-2fa'), {text: resp.otpauthUrl, width:160, height:160});
+  }
+}
+
+async function confirmarActivacion2FA(){
+  const codigo = document.getElementById('confirmar-2fa-codigo').value.trim();
+  if(!codigo || codigo.length!==6 || !_2faPendiente){ showToast('Ingresa el código de 6 dígitos.','error'); return; }
+  const resp = await apiPostAsync(null,'totp_activar',{secret:_2faPendiente.secret, codigo});
+  if(resp && resp.ok){
+    const idx = usuarios.findIndex(x=>x.username===session.username);
+    if(idx>=0){ usuarios[idx].totpEnabled=true; }
+    _2faPendiente = null;
+    showToast('✅ Verificación en dos pasos activada','success');
+    _render2FASeccion_(true);
+  }else{
+    showToast('⚠ Código incorrecto, intenta de nuevo','error');
+  }
+}
+
+async function desactivar2FA(){
+  if(!confirm('¿Desactivar la verificación en dos pasos? A partir de ahora, tu contraseña sola volverá a ser suficiente para entrar.')) return;
+  const resp = await apiPostAsync(null,'totp_desactivar',{});
+  if(resp && resp.ok){
+    const idx = usuarios.findIndex(x=>x.username===session.username);
+    if(idx>=0){ usuarios[idx].totpEnabled=false; }
+    showToast('Verificación en dos pasos desactivada','');
+    _render2FASeccion_(false);
+  }else{
+    showToast('⚠ No se pudo desactivar. Intenta de nuevo.','error');
+  }
+}
+let _2faPendiente = null;
 
 async function cambiarMiPass(){
   const p1=document.getElementById('perfil-pass').value,p2=document.getElementById('perfil-pass2').value;
