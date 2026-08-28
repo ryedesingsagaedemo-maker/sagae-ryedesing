@@ -1476,10 +1476,60 @@ tbody tr.clickable{cursor:pointer;}
           <textarea class="f-inp" id="mob-obs" rows="2" placeholder="Notas adicionales..." style="resize:vertical;"></textarea>
         </div>
       </div>
+      <div id="mob-hist-barcode" style="display:none;">
+        <div style="margin-top:14px;margin-bottom:14px">
+          <div class="sec-title">Historial completo (<span id="mob-hist-count">0</span> eventos)</div>
+          <div id="mob-hist-list"></div>
+        </div>
+        <div class="det-barcode-section" id="mob-barcode-section" style="display:none;">
+          <div class="det-barcode-title">Código de Barras del Mobiliario</div>
+          <div class="det-barcode-row">
+            <div class="det-barcode-item">
+              <svg id="mob-barcode-svg" class="det-barcode-svg"></svg>
+              <div class="det-barcode-label">Code 128 — Lector físico USB</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;text-align:center">
+            <button class="btn btn-p" id="mob-btn-etiqueta" type="button" style="font-size:12px;padding:6px 18px">
+              🏷️ Imprimir etiqueta
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="modal-actions">
         <button class="btn" onclick="closeModals()">Cancelar</button>
         <button class="btn btn-p" onclick="guardarMobiliario()">Guardar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Vista previa e impresión de etiqueta — compartida por activos y mobiliario -->
+  <div id="modal-etiqueta">
+    <div class="etiqueta-wrap">
+      <div class="etiqueta-titulo">🏷️ Vista previa de etiqueta</div>
+      <div class="etiqueta-preview">
+        <div class="etiqueta-preview-inner">
+          <div class="etiqueta-barcode-col">
+            <div class="etiqueta-nombre-print" id="prev-nombre"></div>
+            <svg id="prev-barcode-svg" class="etiqueta-barcode-svg"></svg>
+            <div class="etiqueta-codigo-print" id="prev-codigo"></div>
+          </div>
+        </div>
+      </div>
+      <div class="etiqueta-acciones">
+        <span class="etiqueta-info">Formato Zebra 57×32mm</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" onclick="cerrarEtiqueta()">Cancelar</button>
+          <button class="btn btn-p" onclick="imprimirEtiqueta()">🖨️ Imprimir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="print-etiqueta-area" style="display:none;">
+    <div id="print-barcode-col">
+      <div id="print-nombre"></div>
+      <svg id="print-barcode-svg"></svg>
+      <div id="print-codigo"></div>
     </div>
   </div>
 
@@ -2406,16 +2456,48 @@ function generarBarcode(svgId, codigo){
   }catch(e){ console.warn('Barcode error:',e); }
 }
 
-// Genera el QR en un elemento <div> dado su id
-// La URL del QR apunta a la búsqueda del activo en el sistema
+// ── HISTORIAL DE CÓDIGO DE BARRAS — creación (impresión) y lectura ──
+// Registra el evento en el historial del propio registro (activo o
+// mobiliario) y en la auditoría general, igual que cualquier otra
+// acción del sistema (edición, reasignación, etc.)
+function _pushHistorialItem(tipo, codigo, evento){
+  const src = tipo==='mobiliario' ? mobiliario : activos;
+  const item = src.find(x=>x.codigo===codigo);
+  if(!item) return;
+  item.historial = item.historial || [];
+  item.historial.push(evento);
+  apiPost(tipo==='mobiliario'?'mobiliario':'activos','update',item);
+}
 
+function registrarEventoEtiqueta(tipo, codigo){
+  _pushHistorialItem(tipo, codigo, {
+    tipo:'Etiqueta impresa',
+    desc:`Etiqueta de código de barras (Code128) impresa por ${session.nombre}`,
+    fecha:ts(), usuario:session.nombre, color:'blue'
+  });
+  audit('CREAR', tipo==='mobiliario'?'Mobiliario':'Activo', codigo, 'Etiqueta de código de barras impresa');
+}
 
-// Abrir el modal de impresión de etiqueta para un activo
-function abrirEtiqueta(codigo){
-  const a = activos.find(x=>x.codigo===codigo);
+function registrarEventoLectura(tipo, codigo){
+  _pushHistorialItem(tipo, codigo, {
+    tipo:'Lectura de código',
+    desc:`Código escaneado con lector físico por ${session.nombre}`,
+    fecha:ts(), usuario:session.nombre, color:'green'
+  });
+  audit('CONSULTAR', tipo==='mobiliario'?'Mobiliario':'Activo', codigo, 'Código de barras leído con lector físico');
+}
+
+// Abrir el modal de impresión de etiqueta — sirve tanto para activos
+// como para mobiliario según el parámetro "tipo"
+function abrirEtiqueta(codigo, tipo){
+  tipo = tipo || 'activo';
+  const src = tipo==='mobiliario' ? mobiliario : activos;
+  const a = src.find(x=>x.codigo===codigo);
   if(!a) return;
   const modal = document.getElementById('modal-etiqueta');
   if(!modal) return;
+  modal._tipo = tipo;
+  modal._codigo = codigo;
   // Nombre + código en PREVIEW del modal
   const nombreText = a.nombre;
   const codigoText = a.codigo + (a.tipo?' · '+a.tipo:'');
@@ -2425,14 +2507,9 @@ function abrirEtiqueta(codigo){
   document.getElementById('print-nombre').textContent = nombreText;
   document.getElementById('print-codigo').textContent = codigoText;
   modal.classList.add('open');
-  // Generar AMBOS — Code128 y QR — en preview y en área de impresión
   setTimeout(()=>{
-    // Code 128 en preview
     generarBarcode('prev-barcode-svg', a.codigo);
-    // Code 128 en impresión
     generarBarcode('print-barcode-svg', a.codigo);
-    // QR en preview (el QR contiene el código del activo con formato SAGAE)
-    // QR en impresión
   }, 150);
 }
 
@@ -2442,8 +2519,10 @@ function cerrarEtiqueta(){
   if(modal) modal.classList.remove('open');
 }
 
-// Imprimir etiqueta
+// Imprimir etiqueta — y registrar el evento en el historial del
+// activo o mobiliario correspondiente
 function imprimirEtiqueta(){
+  const modal = document.getElementById('modal-etiqueta');
   const area = document.getElementById('print-etiqueta-area');
   if(area) area.style.display = 'flex';
   // Agregar clase al body para activar el CSS de impresión de etiqueta
@@ -2456,6 +2535,9 @@ function imprimirEtiqueta(){
       if(area) area.style.display = 'none';
     }, 500);
   }, 100);
+  if(modal && modal._codigo){
+    registrarEventoEtiqueta(modal._tipo||'activo', modal._codigo);
+  }
 }
 
 // ── BÚSQUEDA POR ESCÁNER ──────────────────────────────────────────
@@ -2512,8 +2594,24 @@ function procesarCodigoEscaneado(rawCodigo){
       showToast('⛔ Sin permiso para ver activos','');
       return;
     }
+    registrarEventoLectura('activo', activo.codigo);
     showDetalle(activo.codigo);
     showToast('✅ '+activo.codigo+' — '+activo.nombre,'success');
+    return;
+  }
+
+  // ── Buscar como mobiliario ──────────────────────────────────────
+  const mob = mobiliario.find(m=>m.codigo && m.codigo.toUpperCase()===codigo);
+  if(mob){
+    const per = PERMS[session.rol]||{};
+    if(!per.mobiliario){
+      showToast('⛔ Sin permiso para ver mobiliario','');
+      return;
+    }
+    registrarEventoLectura('mobiliario', mob.codigo);
+    go('mobiliario', document.getElementById('nav-mobiliario'));
+    openMob(mob.codigo);
+    showToast('✅ '+mob.codigo+' — '+mob.nombre,'success');
     return;
   }
 
@@ -7106,6 +7204,32 @@ function openMob(codigo){
   document.getElementById('mob-valor').value     = m.valor||0;
   document.getElementById('mob-foto').value      = m.foto||'';
   document.getElementById('mob-obs').value       = m.obs||'';
+
+  // Historial y código de barras — solo aplica a elementos ya existentes
+  const histWrap = document.getElementById('mob-hist-barcode');
+  if(isEdit){
+    histWrap.style.display = 'block';
+    const hist = m.historial || [];
+    document.getElementById('mob-hist-count').textContent = hist.length;
+    document.getElementById('mob-hist-list').innerHTML = hist.length ? hist.map(h=>
+      '<div class="hist-item"><div class="hist-dot '+(h.color||'')+'"></div>'+
+      '<div><div style="font-size:12px;color:var(--text)"><strong>'+sanitizeHTML(h.tipo||'')+'</strong> — '+sanitizeHTML(h.desc||'')+'</div>'+
+      '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(h.fecha||'')+' · '+sanitizeHTML(h.usuario||'—')+'</div></div></div>'
+    ).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin eventos registrados.</div>';
+
+    const puedeVerBarcode = ['admin','tecnico','inventario'].includes(session.rol);
+    const barcodeSec = document.getElementById('mob-barcode-section');
+    if(puedeVerBarcode){
+      barcodeSec.style.display = 'block';
+      document.getElementById('mob-btn-etiqueta').onclick = ()=>abrirEtiqueta(codigo,'mobiliario');
+      setTimeout(()=>generarBarcode('mob-barcode-svg', codigo), 120);
+    } else {
+      barcodeSec.style.display = 'none';
+    }
+  } else {
+    histWrap.style.display = 'none';
+  }
+
   document.getElementById('mod-mob')._editCodigo = isEdit ? codigo : null;
   document.getElementById('mod-mob').classList.add('open');
 }
