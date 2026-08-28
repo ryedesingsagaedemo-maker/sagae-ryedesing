@@ -48,8 +48,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-
 .login-loading{font-size:12px;color:var(--text3);text-align:center;margin-top:10px;display:none;}
 .app{display:none;flex:1;overflow:hidden;}
 .app.visible{display:flex;}
-.sb{width:200px;flex-shrink:0;border-right:1px solid var(--navy-d);background:var(--navy);display:flex;flex-direction:column;overflow-y:auto;}
-.sb-head{padding:14px 16px;border-bottom:1px solid var(--sb-gold);background:var(--navy-d);}
+.sb{width:200px;flex-shrink:0;border-right:1px solid var(--navy-d);background:linear-gradient(180deg,var(--navy) 0%,var(--navy-d) 100%);display:flex;flex-direction:column;overflow-y:auto;box-shadow:2px 0 12px rgba(10,20,40,.18);}
+.sb-head{padding:14px 16px;background:rgba(0,0,0,.14);}
+.sb-veil{height:3px;display:flex;flex-shrink:0;}
+.sb-veil span{flex:1;}
+.sb-veil .a{background:var(--argaman);} .sb-veil .c{background:var(--carmesi);} .sb-veil .o{background:var(--sb-gold);}
 .sb-logo{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px;}
 .sb-user{font-size:11px;color:rgba(255,255,255,.72);margin-top:2px;}
 .sb-conn{font-size:10px;color:#eafff5;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:2px 8px;display:inline-block;margin-top:4px;font-weight:600;}
@@ -58,21 +61,21 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-
 .role-tecnico{background:var(--blue-l);color:var(--blue);}
 .role-consultor{background:var(--green-l);color:var(--green);}
 .role-inventario{background:var(--amber-l);color:var(--amber);}
-.sb-sec{font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--sb-gold);opacity:.85;text-transform:uppercase;padding:14px 16px 4px;}
-.sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:12px;font-weight:600;color:rgba(255,255,255,.82);cursor:pointer;border-left:2px solid transparent;transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);user-select:none;border-radius:0 20px 20px 0;margin-right:8px;}
+.sb-sec{font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--sb-gold);opacity:.8;text-transform:uppercase;padding:14px 16px 4px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:12px;font-weight:600;color:rgba(230,235,245,.82);cursor:pointer;border-left:2px solid transparent;transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);user-select:none;border-radius:0 20px 20px 0;margin-right:8px;}
 .nav-ico{width:15px;height:15px;flex-shrink:0;display:inline-flex;}
 .nav-ico svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 .pnl-title{display:flex;align-items:center;gap:9px;}
 .pnl-title .nav-ico{width:20px;height:20px;color:var(--navy);}
-.sb-item:hover{background:rgba(255,255,255,.08);color:#fff;}
-.sb-item.on{background:var(--sb-gold);color:var(--navy-d);border-left-color:#fff;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.18) inset;}
+.sb-item:hover{background:rgba(92,42,107,.28);color:#fff;}
+.sb-item.on{background:var(--sb-gold);color:var(--navy-d);border-left-color:var(--carmesi);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.22) inset;}
 .sb-item.locked{opacity:.35;cursor:not-allowed;pointer-events:none;}
 .sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--sb-gold);border:1px solid var(--sb-gold-d);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--navy-d);flex-shrink:0;}
-.sb-profile{padding:10px 14px;border-top:1px solid rgba(255,255,255,.14);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .12s var(--ease);}
-.sb-profile:hover{background:rgba(255,255,255,.08);}
+.sb-profile{padding:10px 14px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .12s var(--ease);}
+.sb-profile:hover{background:rgba(92,42,107,.22);}
 .sb-profile-name{font-size:11px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sb-profile-role{font-size:10px;color:rgba(255,255,255,.62);}
-.sb-logout{padding:8px 14px;border-top:1px solid rgba(255,255,255,.14);}
+.sb-profile-role{font-size:10px;color:rgba(230,235,245,.6);}
+.sb-logout{padding:8px 14px;border-top:1px solid rgba(255,255,255,.12);}
 .btn-logout{width:100%;padding:6px;border-radius:var(--r-md);border:1px solid var(--sb-gold);background:transparent;font-size:12px;font-weight:600;color:var(--sb-gold);cursor:pointer;transition:all .15s var(--ease);}
 .btn-logout:hover{background:var(--red-l);color:var(--red);border-color:var(--red-m);}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
@@ -824,6 +827,7 @@ tbody tr.clickable{cursor:pointer;}
       <div style="font-size:9px;color:#5A7A9A;margin-top:3px;letter-spacing:.1em;text-transform:uppercase;">Desarrollado por RYE Design</div><br>
       <span class="sb-role" id="sb-role-badge">—</span>
     </div>
+    <div class="sb-veil"><span class="a"></span><span class="c"></span><span class="o"></span></div>
     <div class="sb-sec">General</div>
     <div class="sb-item on" id="nav-dashboard" onclick="go('dashboard',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span> Dashboard</div>
     <div class="sb-sec">Personas y Espacios</div>
