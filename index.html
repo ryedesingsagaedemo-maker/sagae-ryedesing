@@ -3300,11 +3300,16 @@ async function toggleUsuarioEstado(username){
   audit('EDITAR','Usuario',username,`Estado cambiado a ${nuevo} por ${session.nombre}`);renderUsuarios();
 }
 
-function renderMiPerfil(){
-  // session solo trae username/nombre/rol/token — la ficha completa
-  // (correo, teléfono, etc.) vive en el arreglo usuarios ya cargado.
-  const u=usuarios.find(x=>x.username===session.username)||{};
-  document.getElementById('mi-perfil-content').innerHTML=`<div style="max-width:500px">
+async function renderMiPerfil(){
+  const cont=document.getElementById('mi-perfil-content');
+  cont.innerHTML='<div style="padding:24px;color:var(--text3);font-size:12px">Cargando tu perfil…</div>';
+  // La hoja "usuarios" completa solo la puede leer un admin (server-side),
+  // así que el arreglo usuarios[] del cliente queda vacío para técnico/
+  // consultor/inventario — por eso "Mi perfil" pide su propia ficha con
+  // una acción dedicada (mi_perfil) en vez de buscar en ese arreglo.
+  const resp=await apiPostAsync(null,'mi_perfil',{});
+  const u=(resp&&resp.ok&&resp.usuario)?resp.usuario:(usuarios.find(x=>x.username===session.username)||{username:session.username,nombre:session.nombre,rol:session.rol});
+  cont.innerHTML=`<div style="max-width:500px">
     <div class="det-header">
       <div class="sb-avatar" style="width:56px;height:56px;font-size:20px;border-radius:50%">${initials(u.nombre)}</div>
       <div><div class="det-title">${u.nombre||'—'}</div><div class="det-code">${u.username} · ${u.cargo||'Sin cargo'}</div>
@@ -3417,8 +3422,7 @@ async function cambiarMiPass(){
   const p1=document.getElementById('perfil-pass').value,p2=document.getElementById('perfil-pass2').value;
   if(!p1||p1.length<6){alert('Mínimo 6 caracteres.');return;}
   if(p1!==p2){alert('Las contraseñas no coinciden.');return;}
-  const u=usuarios.find(x=>x.username===session.username);if(!u)return;
-  await apiPost('usuarios','update',{username:u.username,passwordPlano:p1});
+  await apiPost('usuarios','update',{username:session.username,passwordPlano:p1});
   audit('EDITAR','Usuario',session.username,'Cambio de contraseña propio');
   alert('Contraseña actualizada.');document.getElementById('perfil-pass').value='';document.getElementById('perfil-pass2').value='';
 }
