@@ -8,6 +8,58 @@ poder venderse como producto a varias escuelas (no solo operar bien para
 una). No es un plan de ejecución con fechas — es un mapa de fases para
 retomar cuando se decida avanzar en ese camino.
 
+## Decisión tomada — meta concreta: 5 escuelas, modelo replicado
+
+El dueño del proyecto definió la primera meta real: **instalar SAGAE en
+~5 escuelas** usando el modelo actual (una cuenta de Google = una escuela
+= una Hoja = un Apps Script, replicado por instalación), no una
+reescritura a SaaS multi-cliente. Esto resuelve a favor de la opción
+"pocos clientes" el punto de bifurcación que se planteaba más abajo en la
+Fase 3 — **queda descartado por ahora migrar a un backend multi-tenant**
+(Fase 3-SaaS y Fase 4 quedan en pausa indefinida, no son necesarias para
+esta etapa).
+
+Con esa meta ya fijada, lo que sigue es afilar específicamente lo que
+hace falta para llegar a 5 instalaciones reales con confianza — eso es
+la sección "Primera etapa: 5 escuelas" justo abajo. El resto de fases
+(legal, pre-venta) se mantienen como referencia para más adelante, pero
+recortadas a lo mínimo indispensable para no bloquear esta primera etapa.
+
+## Primera etapa — afilar para llegar a 5 escuelas
+
+Esto es lo que de verdad hace falta pulir antes de repetir la instalación
+4 veces más (ya hay una corriendo — la actual):
+
+1. **Actualizar el manual de instalación al backend REAL.** El manual
+   detallado que se generó antes era una reconstrucción a partir del
+   frontend, no una copia del backend real — desde entonces se descubrió
+   que el formato de contraseñas, el orden de columnas y varias funciones
+   (cola de notificaciones, backup automático) son distintos a lo
+   reconstruido. Antes de instalar en la escuela #2, el manual debe
+   reflejar el `Code.gs` real tal como quedó hoy (con 2FA, `mi_perfil`,
+   etc.), no la versión reconstruida.
+2. **Checklist de onboarding por escuela**, como lista de verificación
+   corta (no el manual completo) para no saltarse pasos de seguridad al
+   repetir la instalación rápido: activar 2FA en la cuenta de Google de
+   cada escuela, confirmar que quedó como única con acceso de Editor a
+   su Hoja, instalar el trigger de backup automático, crear el primer
+   usuario admin con contraseña fuerte.
+3. **Registro interno de las 5 instalaciones** — qué escuela tiene qué
+   Hoja/Script, en qué versión del código quedó cada una, y datos de
+   contacto. Sin esto, aplicar un arreglo como el de hoy (el bug de
+   `computeHmacSha1Signature`) a las 5 por separado se vuelve caótico.
+4. **Proceso simple para propagar un arreglo a las 5 instalaciones.** Hoy
+   cada escuela es independiente — si aparece un bug como el de hoy, hay
+   que ir una por una pegando el `Code.gs` corregido. No hace falta
+   automatizarlo todavía, pero sí un procedimiento por escrito (y el
+   registro del punto 3) para no perder ninguna en el camino.
+5. **Mínimo legal por escuela, no el paquete completo de la Fase 2:** un
+   aviso de privacidad corto y un acuerdo simple de responsabilidad sobre
+   los datos (quién es dueño, dónde se guardan) — antes de tener datos
+   reales de personas en la escuela #2, no después.
+6. **Probar una restauración real desde el backup** al menos una vez,
+   en la instalación actual, antes de repetir el proceso 4 veces más.
+
 ## Contexto — qué ya está resuelto (28 de agosto de 2026)
 
 - Verificación en dos pasos (TOTP / Google Authenticator) implementada y
@@ -47,9 +99,13 @@ retomar cuando se decida avanzar en ese camino.
 - Pulir el manual de instalación ya existente para que sirva como
   procedimiento repetible de onboarding, no solo como referencia.
 
-## Fase 2 — Base legal
+## Fase 2 — Base legal completa (más adelante, pasadas las 5 escuelas)
 
-- Política de privacidad y términos de servicio.
+El mínimo indispensable para arrancar ya está movido al punto 5 de
+"Primera etapa" arriba. Esto es la versión completa, para cuando el
+negocio crezca más allá de las 5 primeras instalaciones:
+
+- Política de privacidad y términos de servicio formales.
 - Revisión de cumplimiento con la Ley 81 de 2019 (Panamá) sobre
   protección de datos personales — el sistema maneja datos de personas
   (beneficiarios, personal).
@@ -58,23 +114,18 @@ retomar cuando se decida avanzar en ese camino.
 - Evaluar seguro de responsabilidad civil / ciberseguridad si se va a
   cobrar por manejar datos de terceros.
 
-## Fase 3 — Decisión de arquitectura (el punto de bifurcación real)
+## Fase 3 — Arquitectura multi-cliente (EN PAUSA — no aplica a la meta de 5 escuelas)
 
-Hoy el sistema es: una cuenta de Google = una escuela = una Hoja = un
-Apps Script. Antes de invertir más, definir cuántos clientes se planean
-tener en 1-2 años:
+Se decidió no perseguir esto por ahora (ver "Decisión tomada" arriba).
+Queda documentado para el día que la ambición pase de ~10 clientes:
 
-- **Pocos clientes (menos de ~10)** → formalizar el modelo actual de
-  "instalación por escuela", con el manual como proceso de onboarding
-  repetible. Rápido, sin reescritura, pero cada actualización hay que
-  aplicarla cliente por cliente a mano.
-- **Ambición de escalar a muchos clientes** → migrar a una base de datos
-  real y un backend multi-cliente con aislamiento por escuela. Google
-  Sheets/Apps Script no está pensado para eso (rendimiento con miles de
-  filas, límite de 6 minutos por ejecución, cuotas diarias compartidas).
-  Esto es una reescritura seria del backend, no una extensión.
+- Migrar de Google Sheets/Apps Script a una base de datos real con
+  backend multi-tenant y aislamiento por escuela. Sheets/Apps Script no
+  está pensado para eso a esa escala (rendimiento con miles de filas,
+  límite de 6 minutos por ejecución, cuotas diarias compartidas). Es una
+  reescritura seria del backend, no una extensión del actual.
 
-## Fase 4 — Si se elige el camino SaaS multi-cliente
+## Fase 4 — Si algún día se retoma el camino SaaS multi-cliente (EN PAUSA)
 
 - Backend multi-tenant con aislamiento real de datos por escuela.
 - Mecanismo para desplegar actualizaciones a todos los clientes desde un
@@ -82,7 +133,7 @@ tener en 1-2 años:
 - Panel de administración/monitoreo centralizado.
 - Modelo de facturación, si se va a cobrar.
 
-## Fase 5 — Pre-venta
+## Fase 5 — Pre-venta (más adelante, pasadas las 5 escuelas)
 
 - Auditoría de seguridad externa formal (pentest con reporte firmado) —
   algo mostrable a un cliente institucional como garantía. Lo hecho hasta
