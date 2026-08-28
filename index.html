@@ -61,7 +61,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-
 .role-tecnico{background:var(--blue-l);color:var(--blue);}
 .role-consultor{background:var(--green-l);color:var(--green);}
 .role-inventario{background:var(--amber-l);color:var(--amber);}
-.sb-sec{font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--sb-gold);opacity:.8;text-transform:uppercase;padding:14px 16px 4px;}
+.sb-sec{display:flex;align-items:center;gap:7px;font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--sb-gold);opacity:.85;text-transform:uppercase;padding:14px 16px 4px;}
+.sb-sec::before{content:"";width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--dot,var(--sb-gold));}
 .sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:12px;font-weight:600;color:rgba(230,235,245,.82);cursor:pointer;border-left:2px solid transparent;transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);user-select:none;border-radius:0 20px 20px 0;margin-right:8px;}
 .nav-ico{width:15px;height:15px;flex-shrink:0;display:inline-flex;}
 .nav-ico svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
@@ -828,22 +829,22 @@ tbody tr.clickable{cursor:pointer;}
       <span class="sb-role" id="sb-role-badge">—</span>
     </div>
     <div class="sb-veil"><span class="a"></span><span class="c"></span><span class="o"></span></div>
-    <div class="sb-sec">General</div>
+    <div class="sb-sec" style="--dot:var(--sb-gold)">General</div>
     <div class="sb-item on" id="nav-dashboard" onclick="go('dashboard',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span> Dashboard</div>
-    <div class="sb-sec">Personas y Espacios</div>
+    <div class="sb-sec" style="--dot:var(--argaman)">Personas y Espacios</div>
     <div class="sb-item" id="nav-departamentos" onclick="go('departamentos',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M12 2l9 9-9 9-9-9 9-9z"/><circle cx="12" cy="11" r="1.5"/></svg></span> Departamentos</div>
     <div class="sb-item" id="nav-personas" onclick="go('personas',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span> Personas</div>
     <div class="sb-item" id="nav-espacios" onclick="go('espacios',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/><path d="M4 11h16"/></svg></span> Espacios</div>
-    <div class="sb-sec">Activos</div>
+    <div class="sb-sec" style="--dot:var(--carmesi)">Activos</div>
     <div class="sb-item" id="nav-activos" onclick="go('activos',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span> Inventario</div>
     <div class="sb-item" id="nav-detalle" style="display:none;" onclick="go('detalle',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span> Detalle activo</div>
-    <div class="sb-sec">Mobiliario</div>
+    <div class="sb-sec" style="--dot:var(--sb-gold)">Mobiliario</div>
     <div class="sb-item" id="nav-mobiliario" onclick="go('mobiliario',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 11V6a3 3 0 013-3h6a3 3 0 013 3v5"/><path d="M4 11h16v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"/><path d="M6 18v3M18 18v3"/></svg></span> Mobiliario</div>
     <div class="sb-item" id="nav-licencias" onclick="go('licencias',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M14 9l2 2"/></svg></span> Licencias</div>
-    <div class="sb-sec">Tickets</div>
+    <div class="sb-sec" style="--dot:var(--argaman)">Tickets</div>
     <div class="sb-item" id="nav-tickets" onclick="go('tickets',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9a2 2 0 012-2h14a2 2 0 012 2v1.5a1.5 1.5 0 000 3V15a2 2 0 01-2 2H5a2 2 0 01-2-2v-1.5a1.5 1.5 0 000-3V9z"/><path d="M9 7v12"/></svg></span> Tickets</div>
     <div class="sb-item" id="nav-kanban" onclick="go('kanban',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M9 4v17M15 4v17"/></svg></span> Kanban</div>
-    <div class="sb-sec">Sistema</div>
+    <div class="sb-sec" style="--dot:var(--carmesi)">Sistema</div>
     <div class="sb-item" id="nav-usuarios" onclick="go('usuarios',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><circle cx="18" cy="9" r="2.5"/><path d="M15.5 14.2c2.9.5 5 2.6 5 5.8"/></svg></span> Usuarios</div>
     <div class="sb-item" id="nav-reportes" onclick="go('reportes',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 20V10M11 20V4M18 20v-7"/><path d="M2 20h20"/></svg></span> Reportes</div>
     <div class="sb-item" id="nav-auditoria" onclick="go('auditoria',this)"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3M8 10h8M8 14h8M8 18h5"/></svg></span> Auditoría</div>
