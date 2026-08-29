@@ -4,7 +4,14 @@ Sistema de gestión de activos e inventario escolar (SAGAE — Sistema de
 Activos y Gestión Administrativa Educativa), de RYE Design. Frontend en
 HTML/CSS/JS plano (sin build), backend en Google Apps Script + Google
 Sheets como base de datos. Ver `.claude/skills/frontend-design/` para
-convenciones de diseño y `apps-script/README.md` para el backend.
+convenciones de diseño.
+
+**El código del backend (Apps Script `Code.gs`) NO vive en este
+repositorio a propósito** — se eliminó por decisión explícita del dueño
+del proyecto (no quiere el backend en GitHub). Si se necesita ver o
+editar el backend real, hay que pedírselo al usuario directamente (lo
+pega desde su editor de Apps Script) — no reintroducir una copia en el
+repo sin que lo pida.
 
 ## Plan de negocio / roadmap — no reabrir esta conversación desde cero
 
