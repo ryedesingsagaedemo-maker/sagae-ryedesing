@@ -8,10 +8,22 @@ convenciones de diseño.
 
 **El código del backend (Apps Script `Code.gs`) NO vive en este
 repositorio a propósito** — se eliminó por decisión explícita del dueño
-del proyecto (no quiere el backend en GitHub). Si se necesita ver o
-editar el backend real, hay que pedírselo al usuario directamente (lo
-pega desde su editor de Apps Script) — no reintroducir una copia en el
-repo sin que lo pida.
+del proyecto (no quiere el backend en GitHub), y también se limpió del
+historial completo de git (no solo del checkout actual). Si se necesita
+ver o editar el backend real, hay que pedírselo al usuario directamente
+(lo pega desde su editor de Apps Script) — no reintroducir una copia en
+el repo sin que lo pida.
+
+## Documentación técnica completa — leer antes de re-explorar el sistema
+
+**Qué hace cada parte de SAGAE, con qué seguridad, y con qué límites de
+capacidad conocidos, está en
+[`docs/SAGAE-DOCUMENTACION-TECNICA.md`](docs/SAGAE-DOCUMENTACION-TECNICA.md).**
+Es la memoria del proyecto — antes de re-auditar el sistema desde cero
+o volver a explorar el código para entender un módulo, leer ese
+archivo primero. Actualizarlo cuando algo relevante cambie (nuevo
+módulo, nueva medida de seguridad, un límite de capacidad descubierto),
+no duplicar la información en otro lado.
 
 ## Plan de negocio / roadmap — no reabrir esta conversación desde cero
 
