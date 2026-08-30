@@ -188,9 +188,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <!-- Campo trampa contra bots: invisible para una persona, pero un script que
            rellena todos los campos del formulario suele completarlo igual. Si llega
            con algo escrito, el envío se descarta sin avisar (ver enviarReporte()). -->
-      <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
-        <label for="f-website">No completar este campo</label>
-        <input type="text" id="f-website" name="website" tabindex="-1" autocomplete="off">
+      <div style="position:absolute;left:-9999px;top:-9999px;overflow:hidden;height:0;width:0;" aria-hidden="true">
+        <input type="text" id="f-website" name="sagae_hp_9f2c" tabindex="-1" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')">
       </div>
       <button class="btn-submit" id="btn-submit" onclick="enviarReporte()">
         <span id="btn-text">📤 Enviar reporte al equipo técnico</span>
