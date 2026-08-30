@@ -244,7 +244,16 @@ if (RECAPTCHA_SITE_KEY) {
   document.head.appendChild(_rcScript);
 }
 async function _obtenerTokenRecaptcha_(){
-  if (!RECAPTCHA_SITE_KEY || typeof grecaptcha === 'undefined') return '';
+  if (!RECAPTCHA_SITE_KEY) return '';
+  // El <script> de reCAPTCHA se agrega dinámicamente arriba y tarda en
+  // cargar — si alguien llena y envía el formulario muy rápido, "grecaptcha"
+  // todavía puede no existir. Esperamos hasta 6s a que aparezca antes de
+  // rendirnos, en vez de fallar de inmediato con "typeof === 'undefined'".
+  const limite = Date.now() + 6000;
+  while (typeof grecaptcha === 'undefined' && Date.now() < limite) {
+    await new Promise(r => setTimeout(r, 150));
+  }
+  if (typeof grecaptcha === 'undefined') return '';
   try {
     await new Promise(res => grecaptcha.ready(res));
     return await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'enviar_reporte' });
