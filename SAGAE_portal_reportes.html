@@ -185,6 +185,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         <div id="fotos-limite-note" style="display:none;font-size:11px;color:var(--text3);margin-top:6px;">Ya adjuntaste el máximo de 5 fotos.</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px;">Puedes adjuntar hasta 5 fotos desde tu camara o galeria. Maximo 10MB cada una. Formatos: JPG, PNG, GIF.</div>
       </div>
+      <!-- Campo trampa contra bots: invisible para una persona, pero un script que
+           rellena todos los campos del formulario suele completarlo igual. Si llega
+           con algo escrito, el envío se descarta sin avisar (ver enviarReporte()). -->
+      <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+        <label for="f-website">No completar este campo</label>
+        <input type="text" id="f-website" name="website" tabindex="-1" autocomplete="off">
+      </div>
       <button class="btn-submit" id="btn-submit" onclick="enviarReporte()">
         <span id="btn-text">📤 Enviar reporte al equipo técnico</span>
         <div class="btn-spinner" id="btn-spinner"></div>
@@ -223,6 +230,27 @@ function checkReportLimit(){
 }
 const API="https://script.google.com/macros/s/AKfycbxSA74xU_zCdMuS6GFwbwWcYwW0JxyzlPgb08TWaJPyu8AxthZVzuY9tYbwK6oXxFPU/exec"
 const API_TOKEN="SAGAE-7F2A9C41E8B6D053A1C4F9082EB37A65";
+// ── reCAPTCHA v3 (invisible) contra envíos automatizados ──────────────
+// Vacío por defecto: sin clave, este bloque no hace nada y el formulario
+// sigue funcionando igual que hoy. Para activarlo, crea un sitio en
+// https://www.google.com/recaptcha/admin (tipo "reCAPTCHA v3", agrega el
+// dominio ryedesingsagaedemo-maker.github.io) y pega aquí la "Site key".
+// La "Secret key" que te dé esa misma pantalla va aparte, como propiedad
+// del script en Apps Script (ver la nota junto a verificarRecaptcha_ en
+// el backend) — nunca en este archivo, esa sí debe quedar privada.
+const RECAPTCHA_SITE_KEY = "";
+if (RECAPTCHA_SITE_KEY) {
+  const _rcScript = document.createElement('script');
+  _rcScript.src = 'https://www.google.com/recaptcha/api.js?render=' + RECAPTCHA_SITE_KEY;
+  document.head.appendChild(_rcScript);
+}
+async function _obtenerTokenRecaptcha_(){
+  if (!RECAPTCHA_SITE_KEY || typeof grecaptcha === 'undefined') return '';
+  try {
+    await new Promise(res => grecaptcha.ready(res));
+    return await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'enviar_reporte' });
+  } catch (e) { return ''; }
+}
 function _obtenerDeviceId(){
   try{
     let id = localStorage.getItem('sagae_portal_device');
@@ -403,6 +431,11 @@ function subirFotoPortal(){
 
 async function enviarReporte(){
   hideError();
+  // Si el campo trampa (invisible para una persona) viene con algo escrito,
+  // es un bot rellenando el formulario a ciegas — se descarta en silencio,
+  // sin avisar ni mandar nada al servidor, para no darle pistas.
+  const honeypot=document.getElementById("f-website").value;
+  if(honeypot){ return; }
   const nombre=document.getElementById("f-nombre").value.trim();
   const correo=document.getElementById("f-correo").value.trim();
   const depto=document.getElementById("f-depto").value.trim();
@@ -435,13 +468,16 @@ async function enviarReporte(){
   btn.disabled=true;spinner.style.display="block";btnText.textContent="Enviando reporte...";
   try{
     const ubicacion=document.getElementById("f-ubicacion").value.trim()||"—";
+    const recaptchaToken = await _obtenerTokenRecaptcha_();
     const ticket={
       titulo,activoId:"",activoNombre:"—",
       tipo,prior,
       desc:`${desc}\n\n--- Reportado por: ${nombre} (${correo}) | Ubicación: ${ubicacion} | Departamento: ${depto} ---`,
       fotos: _fotosPortalActuales,
       reportadoPor:nombre, correoReportador:correo,
-      deviceId:_obtenerDeviceId()
+      deviceId:_obtenerDeviceId(),
+      website:honeypot,
+      recaptchaToken
     };
     // Antes esto leía la respuesta de un POST directo — no funciona en
     // Apps Script (no agrega encabezados CORS a las respuestas POST).
