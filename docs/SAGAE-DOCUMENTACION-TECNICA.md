@@ -77,20 +77,25 @@ inmediato en el portal web y en la app de técnicos.
     contra Google con el mismo rigor de siempre (umbral 0.5) — un puntaje
     bajo sí bloquea el envío.
   - **Cuando el token nunca llega, se deja pasar** (no bloquea). Se
-    detectó en producción (30 de agosto de 2026, colegio PCA) que redes
-    escolares filtradas/dispositivos administrados (MDM) a veces impiden
-    por completo que el navegador descargue el script de Google
-    reCAPTCHA — sin importar cuánto se espere del lado del cliente
-    (se probó una espera de hasta 6s, y persistió incluso en pestaña de
-    incógnito, descartando caché). Bloquear en ese caso dejaría sin poder
-    reportar a cualquier persona real en esa red. El honeypot y los
+    detectó en producción (30 de agosto de 2026, colegio PCA) en un
+    celular donde el script de Google reCAPTCHA nunca lograba cargar —
+    sin importar cuánto se espere del lado del cliente (se probó una
+    espera de hasta 6s), y sin ser un tema de red: falló igual por wifi y
+    por datos móviles, y persistió en pestaña de incógnito (descarta
+    caché). Todo apunta a que es el **dispositivo**, no la red — ese
+    celular tampoco permite tomar capturas de pantalla, lo cual es típico
+    de una app de control parental/MDM instalada en el equipo (Securly,
+    GoGuardian, Bark, Family Link, etc.) que filtra tráfico sin importar
+    cómo se conecte. Bloquear el envío en ese caso dejaría sin poder
+    reportar a esa persona sin importar la red que use. El honeypot y los
     límites por dispositivo/global quedan como la defensa anti-bot activa
     para ese escenario — es una protección más débil que la completa,
     aceptada a propósito para no bloquear reportes reales.
-  - **Pendiente, no bloqueante:** pedirle a IT del colegio afectado que
-    permita los dominios `google.com/recaptcha` y `gstatic.com` en su
-    filtro de red, para recuperar la protección completa de reCAPTCHA ahí
-    sin tocar código.
+  - **Pendiente, no bloqueante:** identificar qué app de control tiene
+    ese dispositivo específico y, si aplica, pedir que permita los
+    dominios `google.com/recaptcha` y `gstatic.com` en su lista blanca,
+    para recuperar la protección completa de reCAPTCHA ahí sin tocar
+    código.
 
 ## 5. Roles y permisos
 
