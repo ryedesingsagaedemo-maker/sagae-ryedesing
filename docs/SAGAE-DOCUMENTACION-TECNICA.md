@@ -1,6 +1,6 @@
 # SAGAE — Documentación técnica completa
 
-Última actualización: 2026-08-30
+Última actualización: 2026-08-30 (reCAPTCHA tolerante a redes filtradas)
 
 Este documento es la referencia de memoria del proyecto: qué hace cada
 parte de SAGAE, cómo está protegido, y qué límites de capacidad tiene
@@ -69,12 +69,28 @@ inmediato en el portal web y en la app de técnicos.
   real; un bot que rellena el formulario a ciegas lo completa, y el
   envío se descarta en silencio (frontend y backend lo validan por
   separado).
-- **reCAPTCHA v3 invisible** — el enganche ya está en el código
-  (`RECAPTCHA_SITE_KEY` en el frontend, `RECAPTCHA_SECRET_KEY` como
-  propiedad del script en el backend), pero **queda inactivo hasta que
-  se configure una clave real** en
-  [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin).
-  Sin esa clave, el sistema funciona exactamente igual que antes.
+- **reCAPTCHA v3 invisible** — activo desde el 30 de agosto de 2026 con
+  clave real (`RECAPTCHA_SITE_KEY` en el frontend, `RECAPTCHA_SECRET_KEY`
+  como propiedad del script en el backend). Si `RECAPTCHA_SECRET_KEY` no
+  está configurada, esta capa no bloquea nada.
+  - **Cuando el token de reCAPTCHA sí llega**, se verifica el puntaje
+    contra Google con el mismo rigor de siempre (umbral 0.5) — un puntaje
+    bajo sí bloquea el envío.
+  - **Cuando el token nunca llega, se deja pasar** (no bloquea). Se
+    detectó en producción (30 de agosto de 2026, colegio PCA) que redes
+    escolares filtradas/dispositivos administrados (MDM) a veces impiden
+    por completo que el navegador descargue el script de Google
+    reCAPTCHA — sin importar cuánto se espere del lado del cliente
+    (se probó una espera de hasta 6s, y persistió incluso en pestaña de
+    incógnito, descartando caché). Bloquear en ese caso dejaría sin poder
+    reportar a cualquier persona real en esa red. El honeypot y los
+    límites por dispositivo/global quedan como la defensa anti-bot activa
+    para ese escenario — es una protección más débil que la completa,
+    aceptada a propósito para no bloquear reportes reales.
+  - **Pendiente, no bloqueante:** pedirle a IT del colegio afectado que
+    permita los dominios `google.com/recaptcha` y `gstatic.com` en su
+    filtro de red, para recuperar la protección completa de reCAPTCHA ahí
+    sin tocar código.
 
 ## 5. Roles y permisos
 
