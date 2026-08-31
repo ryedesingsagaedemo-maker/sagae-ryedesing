@@ -4727,6 +4727,23 @@ function showDetalle(id){
         <span style="flex:1;font-size:12px;font-weight:500">${sanitizeHTML(t.titulo)}</span><span style="font-size:11px;color:var(--text3)">${sanitizeHTML(t.resp)} · ${renderDead(t.dead)}</span>
       </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin tickets vinculados.</div>'}
     </div>
+    <div style="margin-bottom:14px">
+      <div class="sec-title">🔑 Licencias de software instaladas (${(typeof licenciasDeActivo==='function'?licenciasDeActivo(activoActual.codigo):[]).length})</div>
+      ${(()=>{
+        const lics = typeof licenciasDeActivo==='function' ? licenciasDeActivo(activoActual.codigo) : [];
+        if(!lics.length) return '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin licencias registradas para este equipo. Se registran desde el módulo 🔑 Licencias.</div>';
+        return lics.map(l=>{
+          const vc = l.estado==='cancelada'?'cancelada':_licVencComputado(l);
+          const vcLabel = {activo:'Vigente',vencida:'⛔ Vencida',sin_fecha:'Sin fecha',cancelada:'Cancelada'}[vc];
+          return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:5px">
+            <span class="code-cell">${l.codigo}</span>
+            <span style="flex:1;font-size:12px;font-weight:500">${sanitizeHTML(l.nombre||'')}</span>
+            <span style="font-size:11px;color:var(--text3)">${sanitizeHTML(l.proveedor||'—')} · Vence: ${l.fechaVencimiento||'—'}</span>
+            <span class="badge">${vcLabel}</span>
+          </div>`;
+        }).join('');
+      })()}
+    </div>
     <div><div class="sec-title">Historial completo (${(activoActual.historial||[]).length} eventos)</div>
       ${(activoActual.historial||[]).map(h=>{
         if(h.tipo==='Reasignación'){
