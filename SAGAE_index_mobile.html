@@ -387,9 +387,13 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
 <div class="bottom-sheet" id="ticket-sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <div><div class="sheet-title" id="sheet-tkt-title">—</div><div class="sheet-code" id="sheet-tkt-code">—</div></div>
-    <span class="badge" id="sheet-tkt-estado">—</span>
+  <div class="sheet-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+    <div style="min-width:0">
+      <div class="sheet-title" id="sheet-tkt-title">—</div>
+      <div class="sheet-code" id="sheet-tkt-code">—</div>
+      <span class="badge" id="sheet-tkt-estado" style="margin-top:6px">—</span>
+    </div>
+    <button class="modal-close" onclick="closeSheet()" aria-label="Cerrar" style="flex-shrink:0">✕</button>
   </div>
   <div class="sheet-body" id="sheet-body"></div>
 </div>

@@ -7906,6 +7906,15 @@ async function asignarLicenciaAEquipo(){
     });
     l.instalaciones = instalacionesNuevas;
     audit('EDITAR','Licencia',codigo,`Instalada en equipo ${activoCodigo} por ${session.nombre}`);
+    // Deja constancia en el propio historial del activo de cuándo se le
+    // instaló la licencia — antes solo quedaba registrado dentro de la
+    // licencia (instalaciones[].fecha), invisible desde la ficha del activo.
+    if(activo){
+      activo.historial = activo.historial || [];
+      activo.historial.push({tipo:'Licencia instalada', desc:`Licencia instalada: ${l.nombre} (${l.codigo})`, fecha:ts(), usuario:session.nombre, color:'blue'});
+      await apiPost('activos','update',activo);
+      if(activoActual && activoActual.codigo===activo.codigo) showDetalle(activo.codigo);
+    }
     abrirDetalleLicencia(codigo);
     renderLicencias();
     showToast('✅ Instalación registrada','success');
@@ -7916,11 +7925,24 @@ async function quitarInstalacionLicencia(codigo, idx){
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
   if(!confirm('¿Quitar este equipo de la lista de instalaciones de la licencia?')) return;
+  const instalacionRemovida = (l.instalaciones||[])[idx];
   const instalacionesNuevas = (l.instalaciones||[]).filter((_,i)=>i!==idx);
   try{
     await apiPost('licencias','update',{...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[])});
     l.instalaciones = instalacionesNuevas;
     audit('EDITAR','Licencia',codigo,`Instalación removida por ${session.nombre}`);
+    // Misma lógica que al instalar: registrar la fecha de remoción en el
+    // historial del activo, para no perder ese dato al borrar la fila de
+    // instalaciones[] de la licencia.
+    if(instalacionRemovida && instalacionRemovida.activoCodigo){
+      const activo = activos.find(a=>a.codigo===instalacionRemovida.activoCodigo);
+      if(activo){
+        activo.historial = activo.historial || [];
+        activo.historial.push({tipo:'Licencia removida', desc:`Licencia removida: ${l.nombre} (${l.codigo})`, fecha:ts(), usuario:session.nombre, color:'red'});
+        await apiPost('activos','update',activo);
+        if(activoActual && activoActual.codigo===activo.codigo) showDetalle(activo.codigo);
+      }
+    }
     abrirDetalleLicencia(codigo);
     renderLicencias();
     showToast('Instalación removida','success');
