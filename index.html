@@ -2882,6 +2882,12 @@ async function _cargarDatosSecundarios(){
     // Re-renderizar ahora que hay datos completos (auditoría, kanban, etc.)
     // Proteger contra sesión expirada durante la carga en background
     if(session) renderAll();
+    // renderAll() no toca el detalle de un activo/mobiliario que ya esté
+    // abierto — si alguien entró a esa pantalla ANTES de que licencias
+    // (Fase 2) terminara de cargar, se quedaba viendo "0 licencias" para
+    // siempre, aunque sí existieran. Se refresca aquí si sigue abierto.
+    if(session && _pollingPanel==='detalle' && activoActual) showDetalle(activoActual.codigo);
+    if(session && _pollingPanel==='detalle-mob' && mobiliarioActual) showDetalleMob(mobiliarioActual.codigo);
   }catch(e){
     console.warn('[SAGAE] Carga secundaria parcial:',e.message);
     // No bloquear nada: el dashboard ya está visible y funcional
