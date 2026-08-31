@@ -6373,6 +6373,22 @@ async function imprimirExpedienteActivo(codigo){
       </div>
     </div>`).join('') : '<div style="padding:6mm 0;color:#888;font-size:9pt">Sin eventos registrados.</div>';
 
+  const licsExp = typeof licenciasDeActivo==='function' ? licenciasDeActivo(a.codigo) : [];
+  const licsHTML = licsExp.length ? `<div class="tbl-wrap"><table>
+      <thead><tr><th>Código</th><th>Licencia</th><th>Proveedor</th><th>Vence</th><th>Estado</th></tr></thead>
+      <tbody>${licsExp.map(l=>{
+        const vc = l.estado==='cancelada'?'cancelada':_licVencComputado(l);
+        const vcLabel = {activo:'Vigente',vencida:'⛔ Vencida',sin_fecha:'Sin fecha',cancelada:'Cancelada'}[vc];
+        return `<tr>
+          <td>${sanitizeHTML(l.codigo)}</td>
+          <td>${sanitizeHTML(l.nombre||'')}</td>
+          <td>${sanitizeHTML(l.proveedor||'—')}</td>
+          <td>${l.fechaVencimiento||'—'}</td>
+          <td>${vcLabel}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>` : '<div style="font-size:9pt;color:#888">Sin licencias registradas para este equipo.</div>';
+
   document.getElementById('print-expediente-area').innerHTML = `
     <div class="exp-header">
       <div class="exp-title">Expediente de activo — ${sanitizeHTML(a.codigo)}</div>
@@ -6387,6 +6403,8 @@ async function imprimirExpedienteActivo(codigo){
         <div><b>Departamento:</b> ${sanitizeHTML(a.depto||'—')}</div>
       </div>
     </div>
+    <div class="exp-section-title" style="font-weight:700;font-size:10pt;margin:4mm 0 2mm">🔑 Licencias de software instaladas (${licsExp.length})</div>
+    ${licsHTML}
     <div class="exp-timeline">${itemsHTML}</div>
     <div class="exp-footer">Expediente generado el ${ts()} por ${sanitizeHTML(session.nombre)} desde SAGAE. Documento de uso interno.</div>
   `;

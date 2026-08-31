@@ -614,7 +614,7 @@ const TIPO_ICON = {
   "Red / Switch":"🔌", Software:"🔑", Vehículo:"🚗", Otro:"📦"
 };
 let session = null;
-let tickets = [], activos = [], usuarios = [], departamentos = [], espacios = [], personas = [], responsablesLista = [], mobiliario = [];
+let tickets = [], activos = [], usuarios = [], departamentos = [], espacios = [], personas = [], responsablesLista = [], mobiliario = [], licencias = [];
 let cntTickets = 0;
 let activoDetalle = null;
 let mobiliarioDetalle = null;
@@ -1228,16 +1228,18 @@ async function cargarDatosPostLogin(){
 }
 async function _cargarDatosSecundariosMobile(){
   try{
-    const [rawDep, rawEsp, rawPer, rawMob] = await _cargarEnLotesMobile([
+    const [rawDep, rawEsp, rawPer, rawMob, rawLic] = await _cargarEnLotesMobile([
       ()=> apiGetTimeout("departamentos"),
       ()=> apiGetTimeout("espacios"),
       ()=> apiGetTimeout("personas"),
       ()=> apiGetTimeout("mobiliario"),
+      ()=> apiGetTimeout("licencias"),
     ], 3, 300);
     if(rawDep){departamentos=rawDep.map(r=>({...r}));}
     if(rawEsp){espacios=rawEsp.map(r=>({...r}));}
     if(rawPer){personas=rawPer.map(r=>({...r}));}
     if(rawMob){mobiliario=rawMob.map(r=>({...r,cantidad:parseInt(r.cantidad)||1,valor:parseFloat(r.valor)||0,historial:parseHist(r.historial)}));}
+    if(rawLic){licencias=rawLic.map(r=>({...r,instalaciones:parseHist(r.instalaciones)}));}
     saveCache();
   }catch(e){
     console.warn('[SAGAE] Carga secundaria móvil parcial:', e.message);
@@ -2235,18 +2237,23 @@ function openActivoDetalle(codigo){
   estadoEl.textContent=a.estado;estadoEl.className=`badge b-${a.estado}`;
   const campos=[["Marca / Modelo",`${a.marca||"—"} ${a.modelo||""}`],["N.° de serie",a.serial||"—"],["Ubicación",a.ubicacion||"—"],["Asignado a",a.asignado||"—"],["Departamento",a.depto||"—"],["Garantía hasta",a.garantia||"—"],["Valor",`$${(a.valor||0).toLocaleString()}`]];
   const tktsVinculados=tickets.filter(t=>t.activoId===codigo);
+  const licsVinculadas=(Array.isArray(licencias)?licencias:[]).filter(l=>l.estado!=="eliminado"&&(l.instalaciones||[]).some(i=>i.activoCodigo===codigo));
   document.getElementById("sheet-body").innerHTML=`
     <div style="display:flex;gap:10px;margin-bottom:20px">
       <button class="action-btn" onclick="openMantActivo()"><span class="action-icon">🔧</span><span>Mantenimiento</span></button>
       <button class="action-btn" onclick="openEditActivoSheet('${codigo}')"><span class="action-icon">✏️</span><span>Editar</span></button>
     </div>
     ${campos.map(([l,v])=>`<div class="det-field"><div class="det-field-label">${l}</div><div class="det-field-val">${v}</div></div>`).join("")}
-    <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Tickets vinculados (${tktsVinculados.length})</div>
-    ${tktsVinculados.length?tktsVinculados.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span style="font-family:monospace;font-size:11px;color:var(--text3)">${t.codigo}</span>
-      <span style="flex:1;font-size:13px">${sanitizeHTML(t.titulo)}</span>
-      <span class="badge b-${t.estado}">${t.estado}</span>
-    </div>`).join(""):`<div style="font-size:12px;color:var(--text3)">Sin tickets vinculados</div>`}
+    <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">🔑 Licencias instaladas (${licsVinculadas.length})</div>
+    ${licsVinculadas.length?licsVinculadas.map(l=>{
+      const hoy=new Date();hoy.setHours(0,0,0,0);
+      const v=l.fechaVencimiento?new Date(l.fechaVencimiento):null;
+      const vencida=v&&!isNaN(v.getTime())&&v<hoy;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:monospace;font-size:11px;color:var(--text3)">${l.codigo}</span>
+      <span style="flex:1;font-size:13px">${sanitizeHTML(l.nombre||"")}</span>
+      <span class="badge ${l.estado==="cancelada"?"b-normal":vencida?"b-urgente":"b-activo"}">${l.estado==="cancelada"?"Cancelada":vencida?"⛔ Vencida":"Vigente"}</span>
+    </div>`;}).join(""):`<div style="font-size:12px;color:var(--text3)">Sin licencias registradas</div>`}
     <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Historial (${(a.historial||[]).length})</div>
     ${(a.historial||[]).map(h=>`<div class="hist-item">
       <div class="hist-dot ${h.color||"navy"}"></div>
