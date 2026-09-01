@@ -58,10 +58,11 @@ enviarlo, genera un ticket real (código `TKT-XXXX`) visible de
 inmediato en el portal web y en la app de técnicos.
 
 **Protección contra abuso (agregada el 29-30 de agosto de 2026):**
-- Límite por "dispositivo": 3 reportes / 5 min — **es fácil de evadir**
-  (el ID de dispositivo lo genera el propio navegador, un script puede
-  inventar uno nuevo por request). Frena el doble clic accidental, no
-  a un atacante decidido.
+- Límite por "dispositivo": 3 reportes / 5 min — es la más débil de
+  las tres capas de esta lista. Frena el doble clic accidental, no a
+  alguien decidido a evadirla (detalle del mecanismo y su debilidad:
+  preguntarle directamente al desarrollador, no documentado aquí a
+  propósito).
 - Límite global: 200 reportes/hora, del lado del servidor — este sí es
   real, pero es un presupuesto compartido: un atacante que lo agota
   también bloquea a usuarios legítimos el resto de esa hora.
