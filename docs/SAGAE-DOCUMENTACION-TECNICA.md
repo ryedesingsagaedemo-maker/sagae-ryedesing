@@ -97,6 +97,14 @@ inmediato en el portal web y en la app de técnicos.
     dominios `google.com/recaptcha` y `gstatic.com` en su lista blanca,
     para recuperar la protección completa de reCAPTCHA ahí sin tocar
     código.
+- **Marca de correo externo** (agregada el 1 de septiembre de 2026) —
+  opcional, desactivada por defecto. Si se configura la Script Property
+  `DOMINIO_INSTITUCIONAL` (ej. `pca.edu.pa`), cualquier reporte cuyo
+  correo no termine en ese dominio **se crea igual** (nunca se bloquea
+  ni se pierde), pero queda marcado con `⚠️ [Correo externo]` al
+  inicio del título y con un evento de alerta en su historial, para que
+  el equipo técnico lo revise con más cuidado antes de actuar — sin
+  descartar reportes reales de padres de familia o proveedores externos.
 
 ## 5. Roles y permisos
 

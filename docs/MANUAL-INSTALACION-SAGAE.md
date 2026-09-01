@@ -134,6 +134,7 @@ Propiedades del script → Agregar propiedad del script**.
 |---|---|---|---|
 | `SAGAE_API_TOKEN` | **Sí** | Filtro de tráfico obviamente ajeno — no es la autorización real (esa vive en la sesión), pero sin ella el backend rechaza toda petición, incluso el login. | Genera uno nuevo y único para esta escuela — ver abajo. |
 | `RECAPTCHA_SECRET_KEY` | No — solo si vas a proteger el portal público con reCAPTCHA (ver sección 9) | Clave privada de verificación de Google reCAPTCHA. | La que te da [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin) al registrar el dominio de esta instalación. |
+| `DOMINIO_INSTITUCIONAL` | No — opcional | Si el correo de quien reporta no termina en este dominio, el ticket se crea igual pero queda marcado como "Correo externo" para revisarlo con más cuidado. No bloquea nada. | El dominio de correo de esta escuela, sin `@` (ej. `pca.edu.pa`). |
 
 **Cómo generar un `SAGAE_API_TOKEN` nuevo:** cualquier cadena
 suficientemente larga y aleatoria sirve — por ejemplo, en la consola del
