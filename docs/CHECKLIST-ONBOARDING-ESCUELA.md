@@ -40,9 +40,13 @@
 - [ ] Proyecto de Apps Script vinculado a esa Hoja, con la versión **más
       reciente y probada** de `Code.gs` pegada (confirmar contra el
       registro de instalaciones cuál es la última versión estable)
-- [ ] Script Properties configuradas: `RECAPTCHA_SECRET_KEY` (si esta
-      instalación va a usar el portal público con protección anti-bot) y
-      cualquier otra clave que dependa del entorno
+- [ ] Script Properties configuradas — **cada escuela tiene las suyas
+      propias, nunca se copian de otra instalación**:
+      `RECAPTCHA_SECRET_KEY` (si esta instalación va a usar el portal
+      público con protección anti-bot) y `DOMINIO_INSTITUCIONAL` (ej.
+      `pca.edu.pa`, sin la `@` — si esta escuela quiere marcar como
+      "correo externo" los reportes que no vengan de su propio dominio;
+      opcional, no bloquea nada si no se configura)
 - [ ] Implementado como aplicación web (**Implementar → Nueva
       implementación**), URL de despliegue copiada
 - [ ] Triggers instalados desde la barra "Sistema" del panel de
