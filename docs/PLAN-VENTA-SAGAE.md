@@ -30,14 +30,15 @@ recortadas a lo mínimo indispensable para no bloquear esta primera etapa.
 Esto es lo que de verdad hace falta pulir antes de repetir la instalación
 4 veces más (ya hay una corriendo — la actual):
 
-1. **Actualizar el manual de instalación al backend REAL.** El manual
-   detallado que se generó antes era una reconstrucción a partir del
-   frontend, no una copia del backend real — desde entonces se descubrió
-   que el formato de contraseñas, el orden de columnas y varias funciones
-   (cola de notificaciones, backup automático) son distintos a lo
-   reconstruido. Antes de instalar en la escuela #2, el manual debe
-   reflejar el `Code.gs` real tal como quedó hoy (con 2FA, `mi_perfil`,
-   etc.), no la versión reconstruida.
+1. ✅ **Actualizar el manual de instalación al backend REAL** —
+   resuelto el 1 de septiembre de 2026:
+   [`docs/MANUAL-INSTALACION-SAGAE.md`](MANUAL-INSTALACION-SAGAE.md),
+   14 secciones basadas en el `Code.gs` real (verificado línea por
+   línea, no reconstruido), incluyendo dos hallazgos que no estaban
+   documentados en ningún lado: las columnas `totpSecret`/`totpEnabled`
+   que hay que agregar a mano en Usuarios (el código las usa pero no
+   están en `HEADERS`), y el paso especial para crear el primer admin
+   (no tiene botón — hay que escribirlo directo en la Hoja).
 2. ✅ **Checklist de onboarding por escuela** — resuelto el 1 de
    septiembre de 2026:
    [`docs/CHECKLIST-ONBOARDING-ESCUELA.md`](CHECKLIST-ONBOARDING-ESCUELA.md),
