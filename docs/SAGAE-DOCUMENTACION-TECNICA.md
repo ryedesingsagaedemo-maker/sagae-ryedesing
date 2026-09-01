@@ -145,9 +145,9 @@ de columnas actual contra el del backup (por si cambió desde que se
 generó). Al terminar, manda un correo a los administradores con el link
 a la copia nueva, el conteo de filas restauradas por hoja, y cualquier
 advertencia (columnas nuevas o eliminadas desde ese backup).
-**Pendiente:** falta ejecutarlo una vez de verdad en la instalación
-actual para confirmar que funciona en producción, no solo en el
-diseño — ver `docs/PLAN-VENTA-SAGAE.md`, punto 6 de "Primera etapa".
+**Confirmado en producción el 1 de septiembre de 2026:** ejecutado en
+la instalación actual — restauró las 9 hojas completas en ~12 segundos,
+sin ninguna advertencia de esquema, sin tocar la Hoja real.
 
 ### 6.5 Auditoría
 Bitácora permanente de acciones, no editable desde la aplicación.

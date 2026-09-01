@@ -61,12 +61,14 @@ Esto es lo que de verdad hace falta pulir antes de repetir la instalación
    (entre RYE Design y la escuela). **Pendiente antes de usarlos con dinero
    real de por medio:** que un abogado panameño los revise — son un punto
    de partida serio, no asesoría legal validada.
-6. 🔶 **Probar una restauración real desde el backup** — el código ya
-   existe (31 de agosto de 2026): `restaurarUltimoBackupManual()` en
-   `Code.gs`, siempre a un Spreadsheet nuevo, nunca sobre la Hoja real
-   (ver `docs/SAGAE-DOCUMENTACION-TECNICA.md`, sección 6.4). **Falta
-   ejecutarlo una vez de verdad** en la instalación actual y confirmar
-   el resultado antes de repetir el proceso 4 veces más.
+6. ✅ **Probar una restauración real desde el backup** — confirmado el
+   1 de septiembre de 2026 en la instalación actual, ejecutando
+   `restaurarUltimoBackupManual()` desde el editor de Apps Script:
+   restauró las 9 hojas completas (Activos, Tickets, Auditoría,
+   Usuarios, Mobiliario, Licencias, Personas, Espacios, Departamentos)
+   en un Spreadsheet nuevo, sin ninguna advertencia de esquema, en ~12
+   segundos, sin tocar la Hoja real (ver
+   `docs/SAGAE-DOCUMENTACION-TECNICA.md`, sección 6.4).
 
 ## Contexto — qué ya está resuelto (28 de agosto de 2026)
 
