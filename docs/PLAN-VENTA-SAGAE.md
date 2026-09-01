@@ -38,12 +38,11 @@ Esto es lo que de verdad hace falta pulir antes de repetir la instalación
    reconstruido. Antes de instalar en la escuela #2, el manual debe
    reflejar el `Code.gs` real tal como quedó hoy (con 2FA, `mi_perfil`,
    etc.), no la versión reconstruida.
-2. **Checklist de onboarding por escuela**, como lista de verificación
-   corta (no el manual completo) para no saltarse pasos de seguridad al
-   repetir la instalación rápido: activar 2FA en la cuenta de Google de
-   cada escuela, confirmar que quedó como única con acceso de Editor a
-   su Hoja, instalar el trigger de backup automático, crear el primer
-   usuario admin con contraseña fuerte.
+2. ✅ **Checklist de onboarding por escuela** — resuelto el 1 de
+   septiembre de 2026:
+   [`docs/CHECKLIST-ONBOARDING-ESCUELA.md`](CHECKLIST-ONBOARDING-ESCUELA.md),
+   6 fases (legal → cuenta de Google → backend → frontend → primer
+   usuario y prueba en vivo → cierre y registro).
 3. **Registro interno de las 5 instalaciones** — qué escuela tiene qué
    Hoja/Script, en qué versión del código quedó cada una, y datos de
    contacto. Sin esto, aplicar un arreglo como el de hoy (el bug de
