@@ -1,6 +1,9 @@
 # SAGAE — Plan por fases: de "proyecto seguro" a "producto vendible"
 
-Última actualización: 2026-08-28
+Última actualización: 2026-09-01 — ✅ **Los 6 puntos de "Primera etapa"
+ya están resueltos.** SAGAE está listo para instalarse en la escuela #2
+con confianza real, no solo con la intención — ver el detalle de cada
+punto abajo.
 
 Este documento responde a una pregunta puntual del dueño del proyecto: qué
 le faltaría a SAGAE, más allá de la seguridad de login ya reforzada, para
@@ -44,15 +47,17 @@ Esto es lo que de verdad hace falta pulir antes de repetir la instalación
    [`docs/CHECKLIST-ONBOARDING-ESCUELA.md`](CHECKLIST-ONBOARDING-ESCUELA.md),
    6 fases (legal → cuenta de Google → backend → frontend → primer
    usuario y prueba en vivo → cierre y registro).
-3. **Registro interno de las 5 instalaciones** — qué escuela tiene qué
-   Hoja/Script, en qué versión del código quedó cada una, y datos de
-   contacto. Sin esto, aplicar un arreglo como el de hoy (el bug de
-   `computeHmacSha1Signature`) a las 5 por separado se vuelve caótico.
-4. **Proceso simple para propagar un arreglo a las 5 instalaciones.** Hoy
-   cada escuela es independiente — si aparece un bug como el de hoy, hay
-   que ir una por una pegando el `Code.gs` corregido. No hace falta
-   automatizarlo todavía, pero sí un procedimiento por escrito (y el
-   registro del punto 3) para no perder ninguna en el camino.
+3. ✅ **Registro interno de las 5 instalaciones** — resuelto el 1 de
+   septiembre de 2026: [`docs/REGISTRO-INSTALACIONES.md`](REGISTRO-INSTALACIONES.md),
+   con la instalación piloto ya cargada como fila #1, y un historial de
+   versiones de `Code.gs` (por fecha, ya que el backend no vive en git)
+   para saber qué significa cada fecha anotada.
+4. ✅ **Proceso simple para propagar un arreglo a las 5 instalaciones** —
+   resuelto el 1 de septiembre de 2026: [`docs/PROCESO-PROPAGAR-ARREGLOS.md`](PROCESO-PROPAGAR-ARREGLOS.md),
+   6 pasos (validar en la instalación de referencia → documentar →
+   revisar el registro → aplicar por escuela → probar → actualizar el
+   registro), con qué hacer si el propio arreglo resulta tener un
+   problema a mitad de camino.
 5. ✅ **Mínimo legal por escuela** — resuelto el 31 de agosto de 2026 como
    plantillas listas para reutilizar en cada escuela:
    [`docs/legal/AVISO-DE-PRIVACIDAD-PLANTILLA.md`](legal/AVISO-DE-PRIVACIDAD-PLANTILLA.md)
