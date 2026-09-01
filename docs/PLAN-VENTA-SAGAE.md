@@ -61,8 +61,12 @@ Esto es lo que de verdad hace falta pulir antes de repetir la instalación
    (entre RYE Design y la escuela). **Pendiente antes de usarlos con dinero
    real de por medio:** que un abogado panameño los revise — son un punto
    de partida serio, no asesoría legal validada.
-6. **Probar una restauración real desde el backup** al menos una vez,
-   en la instalación actual, antes de repetir el proceso 4 veces más.
+6. 🔶 **Probar una restauración real desde el backup** — el código ya
+   existe (31 de agosto de 2026): `restaurarUltimoBackupManual()` en
+   `Code.gs`, siempre a un Spreadsheet nuevo, nunca sobre la Hoja real
+   (ver `docs/SAGAE-DOCUMENTACION-TECNICA.md`, sección 6.4). **Falta
+   ejecutarlo una vez de verdad** en la instalación actual y confirmar
+   el resultado antes de repetir el proceso 4 veces más.
 
 ## Contexto — qué ya está resuelto (28 de agosto de 2026)
 

@@ -1,6 +1,6 @@
 # SAGAE — Documentación técnica completa
 
-Última actualización: 2026-08-30 (reCAPTCHA tolerante a redes filtradas)
+Última actualización: 2026-08-31 (restauración de backups)
 
 Este documento es la referencia de memoria del proyecto: qué hace cada
 parte de SAGAE, cómo está protegido, y qué límites de capacidad tiene
@@ -130,9 +130,24 @@ Sesión server-side con expiración de 30 minutos (se renueva con uso),
 una sesión activa por plataforma (web/móvil). Cambiar la contraseña
 cierra de inmediato cualquier sesión abierta con la clave anterior.
 
-### 6.4 Respaldo automático
+### 6.4 Respaldo automático y restauración
 Diario, automático, a Google Drive, con rotación de los últimos 30
 respaldos y aviso por correo (éxito o falla).
+
+**Restauración (agregada el 31 de agosto de 2026):** antes solo existía
+la creación del respaldo — no había ninguna forma de recuperarlo. Ahora
+`restaurarBackupDesdeArchivo(nombreArchivo)` (o `restaurarUltimoBackupManual`
+para correrlo a mano desde el editor de Apps Script, como ya se hace con
+`backupManual`) restaura un backup elegido — o el más reciente, por
+defecto — en un **Spreadsheet completamente nuevo**. **Nunca escribe
+sobre la Hoja en producción**, solo la lee para reconciliar el esquema
+de columnas actual contra el del backup (por si cambió desde que se
+generó). Al terminar, manda un correo a los administradores con el link
+a la copia nueva, el conteo de filas restauradas por hoja, y cualquier
+advertencia (columnas nuevas o eliminadas desde ese backup).
+**Pendiente:** falta ejecutarlo una vez de verdad en la instalación
+actual para confirmar que funciona en producción, no solo en el
+diseño — ver `docs/PLAN-VENTA-SAGAE.md`, punto 6 de "Primera etapa".
 
 ### 6.5 Auditoría
 Bitácora permanente de acciones, no editable desde la aplicación.
