@@ -38,3 +38,15 @@ Si el usuario pregunta de nuevo "qué necesitaría para vender esto" o
 similar, leer ese archivo primero en vez de re-derivar el análisis desde
 cero — actualizarlo si la conversación agrega algo nuevo, no duplicarlo
 en otro lado.
+
+## Material comercial y legal — no rehacer desde cero
+
+Ya existe un paquete comercial/legal completo en `docs/comercial/` y
+`docs/legal/`: plan de mercadeo, plantilla de propuesta comercial (PDF,
+en `marketing/` fuera del repo — pedir al dueño si hace falta),
+contrato de licencia de uso y servicio, aviso de privacidad, y acuerdo
+de responsabilidad de datos. Si el usuario pide "una propuesta para un
+cliente" o "el contrato", partir de esas plantillas, no escribir desde
+cero. Todas requieren revisión de un abogado panameño antes de usarse
+con dinero real de por medio — eso ya está anotado dentro de cada
+documento, no hace falta repetirlo aparte.
