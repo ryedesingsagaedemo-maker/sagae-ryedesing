@@ -53,10 +53,14 @@ Esto es lo que de verdad hace falta pulir antes de repetir la instalación
    que ir una por una pegando el `Code.gs` corregido. No hace falta
    automatizarlo todavía, pero sí un procedimiento por escrito (y el
    registro del punto 3) para no perder ninguna en el camino.
-5. **Mínimo legal por escuela, no el paquete completo de la Fase 2:** un
-   aviso de privacidad corto y un acuerdo simple de responsabilidad sobre
-   los datos (quién es dueño, dónde se guardan) — antes de tener datos
-   reales de personas en la escuela #2, no después.
+5. ✅ **Mínimo legal por escuela** — resuelto el 31 de agosto de 2026 como
+   plantillas listas para reutilizar en cada escuela:
+   [`docs/legal/AVISO-DE-PRIVACIDAD-PLANTILLA.md`](legal/AVISO-DE-PRIVACIDAD-PLANTILLA.md)
+   (lo publica la escuela hacia su propia comunidad) y
+   [`docs/legal/ACUERDO-DE-RESPONSABILIDAD-DE-DATOS-PLANTILLA.md`](legal/ACUERDO-DE-RESPONSABILIDAD-DE-DATOS-PLANTILLA.md)
+   (entre RYE Design y la escuela). **Pendiente antes de usarlos con dinero
+   real de por medio:** que un abogado panameño los revise — son un punto
+   de partida serio, no asesoría legal validada.
 6. **Probar una restauración real desde el backup** al menos una vez,
    en la instalación actual, antes de repetir el proceso 4 veces más.
 
