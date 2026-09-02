@@ -2008,6 +2008,17 @@ tbody tr.clickable{cursor:pointer;}
     <div class="f-lbl">Motivo de la edición *</div>
     <input class="f-inp" id="ea-motivo" placeholder="Ej: Corrección de nombre...">
   </div>
+  <div class="f-row" id="ea-condicion-wrap" style="display:none;">
+    <div class="f-lbl">Condición del equipo al devolver</div>
+    <select class="f-inp f-sel" id="ea-condicion-devuelto">
+      <option value="">— Selecciona —</option>
+      <option>Reparado — funciona correctamente</option>
+      <option>Reparado con observaciones</option>
+      <option>Sin reparación — pieza pendiente</option>
+      <option>No se pudo reparar</option>
+      <option>Reemplazado por equipo nuevo</option>
+    </select>
+  </div>
   <div class="modal-actions"><button class="btn" onclick="closeModals()">Cancelar</button><button class="btn btn-p" id="ea-save-btn" onclick="saveActivo()">Guardar activo</button></div>
 </div></div>
 
@@ -2058,6 +2069,21 @@ tbody tr.clickable{cursor:pointer;}
     <div class="req-note">Motivo obligatorio — queda registrado en auditoría.</div>
     <div class="f-lbl">Motivo de la edición *</div>
     <input class="f-inp" id="et-motivo" placeholder="Ej: Corrección de responsable...">
+  </div>
+  <div class="f-row" id="et-salida-mant-wrap" style="display:none;background:#EAF7EF;border-radius:6px;padding:8px;">
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer">
+      <input type="checkbox" id="et-marcar-salida" checked style="width:16px;height:16px;cursor:pointer">
+      ✅ Marcar el equipo vinculado como devuelto de mantenimiento
+    </label>
+    <div class="f-lbl" style="margin-top:6px">Condición del equipo al devolver</div>
+    <select class="f-inp f-sel" id="et-condicion-devuelto">
+      <option value="">— Selecciona —</option>
+      <option>Reparado — funciona correctamente</option>
+      <option>Reparado con observaciones</option>
+      <option>Sin reparación — pieza pendiente</option>
+      <option>No se pudo reparar</option>
+      <option>Reemplazado por equipo nuevo</option>
+    </select>
   </div>
   <div class="modal-actions"><button class="btn" onclick="closeModals()">Cancelar</button><button class="btn btn-p" id="et-save-btn" onclick="saveTicket()">Guardar ticket</button></div>
 </div></div>
@@ -3433,6 +3459,48 @@ async function cambiarMiPass(){
   alert('Contraseña actualizada.');document.getElementById('perfil-pass').value='';document.getElementById('perfil-pass2').value='';
 }
 
+// ══ MECANISMO CENTRAL DE ENTRADA/SALIDA DE MANTENIMIENTO ══
+// Único lugar autorizado para cambiar activo.estado a/desde 'mantenimiento'
+// y para escribir los eventos 'Entrada a Mantenimiento'/'Salida de
+// Mantenimiento' en el historial. Editar activo, el modal de mantenimiento
+// y los tickets tipo mantenimiento llaman aquí en vez de repetir la lógica,
+// así el correo de aviso (que el backend dispara según el ÚLTIMO evento del
+// historial) siempre se activa sin importar por dónde se entró.
+function marcarEntradaMantenimiento(activo, opts={}){
+  const {motivo, tecnico, emailResp, origen, extra} = opts;
+  activo.estado = 'mantenimiento';
+  activo.historial = activo.historial || [];
+  activo.historial.push(Object.assign({
+    tipo:      'Entrada a Mantenimiento',
+    desc:      `Equipo ingresado a IT para mantenimiento por ${tecnico||session.nombre}. Motivo: ${motivo||'Sin especificar'}. Equipo estará en el Departamento de Tecnología hasta ser devuelto.`,
+    tecnico:   tecnico || session.nombre,
+    emailResp: emailResp || '',
+    asignadoA: activo.asignado || '—',
+    origen:    origen || 'manual',
+    fecha:     ts(), usuario: session.nombre, color: 'amber'
+  }, extra||{}));
+  return activo;
+}
+function marcarSalidaMantenimiento(activo, opts={}){
+  const {motivo, tecnico, estadoNuevo, condicion, origen, extra} = opts;
+  const entradaEvt = (activo.historial||[]).slice().reverse().find(h=>h.tipo==='Entrada a Mantenimiento');
+  const emailResp = (opts.emailResp || entradaEvt?.emailResp || '');
+  activo.estado = estadoNuevo || 'activo';
+  activo.historial = activo.historial || [];
+  activo.historial.push(Object.assign({
+    tipo:      'Salida de Mantenimiento',
+    desc:      `Equipo devuelto de mantenimiento. Nuevo estado: ${activo.estado}. Técnico: ${tecnico||session.nombre}. Motivo: ${motivo||'Mantenimiento completado'}.`
+               + (condicion ? ` Condición al devolver: ${condicion}.` : ''),
+    tecnico:   tecnico || session.nombre,
+    emailResp,
+    asignadoA: activo.asignado || '—',
+    condicion: condicion || '',
+    origen:    origen || 'manual',
+    fecha:     ts(), usuario: session.nombre, color: 'green'
+  }, extra||{}));
+  return activo;
+}
+
 function openActivo(id){
   const isEdit=id!=null;
   // Poblar todos los selects (depto, espacios, personas)
@@ -3461,8 +3529,10 @@ function openActivo(id){
   document.getElementById('ea-save-btn').textContent=isEdit?'Guardar cambios':'Guardar activo';
   document.getElementById('ea-motivo-wrap').style.display=isEdit?'block':'none';
   document.getElementById('ea-motivo').value='';document.getElementById('ea-id').value=id||'';
+  document.getElementById('ea-condicion-devuelto').value='';
   if(isEdit){
     const a=activos.find(x=>x.codigo===id);if(!a)return;
+    document.getElementById('ea-condicion-wrap').style.display = (a.estado==='mantenimiento') ? 'block':'none';
     // Migración silenciosa de datos legados: "asignado" ya no es un valor
     // válido de estado (era redundante con el campo "Asignado a" — ver
     // auditoría). Si un activo antiguo quedó guardado con estado="asignado",
@@ -3496,6 +3566,7 @@ function openActivo(id){
     document.getElementById('ea-compra').value='';document.getElementById('ea-garantia').value='';document.getElementById('ea-estado').value='activo';
     document.getElementById('ea-tipo').selectedIndex=0;
     onChangeTipoActivo(document.getElementById('ea-tipo').value);
+    document.getElementById('ea-condicion-wrap').style.display='none';
   }
   document.getElementById('mod-activo').classList.add('open');
 }
@@ -3577,42 +3648,20 @@ async function saveActivo(){
     }
     a.historial.push({tipo:'Edición',desc:det,fecha:ts(),usuario:session.nombre,color:'amber'});
 
-    // ── DETECTAR ENTRADA A MANTENIMIENTO ────────────────────────
+    // ── DETECTAR ENTRADA / SALIDA DE MANTENIMIENTO ──────────────
+    // (delegado a las funciones centrales — ver marcarEntradaMantenimiento/
+    // marcarSalidaMantenimiento, arriba de openActivo)
     const _estadoNuevo = a.estado||'activo';
     if(_estadoAntes !== 'mantenimiento' && _estadoNuevo === 'mantenimiento'){
-      const motivoMant = motivo || 'Sin especificar';
-      // Capturar el correo del responsable desde el modal
-      // Email del responsable: primero el campo manual, si no el del activo
-    const emailRespManual = document.getElementById('mm-email-resp')?.value.trim() || '';
-    const emailResp = emailRespManual || activoActual?.asignadoEmail || '';
-      a.historial.push({
-        tipo:        'Entrada a Mantenimiento',
-        desc:        `Equipo ingresado a IT para mantenimiento por ${session.nombre}. Motivo: ${motivoMant}. Equipo estará en el Departamento de Tecnología hasta ser devuelto.`,
-        tecnico:     session.nombre,
-        emailResp:   emailResp,   // ← correo capturado al momento del retiro
-        asignadoA:   a.asignado||'—',
-        fecha:       ts(),
-        usuario:     session.nombre,
-        color:       'amber'
-      });
+      const emailRespManual = document.getElementById('mm-email-resp')?.value.trim() || '';
+      const emailResp = emailRespManual || activoActual?.asignadoEmail || '';
+      marcarEntradaMantenimiento(a, {motivo, tecnico:session.nombre, emailResp, origen:'edicion'});
       showToast('🔧 Equipo marcado en mantenimiento' + (emailResp?' — se notificará a '+emailResp:''),'');
     }
-    // ── DETECTAR SALIDA DE MANTENIMIENTO ────────────────────────
     if(_estadoAntes === 'mantenimiento' && _estadoNuevo !== 'mantenimiento'){
-      // Recuperar el correo del responsable del evento de entrada en historial
-      const entradaEvt = (a.historial||[]).slice().reverse().find(h=>h.tipo==='Entrada a Mantenimiento');
-      const emailRespSalida = entradaEvt?.emailResp || '';
-      a.historial.push({
-        tipo:        'Salida de Mantenimiento',
-        desc:        `Equipo devuelto de mantenimiento. Nuevo estado: ${_estadoNuevo}. Técnico: ${session.nombre}. Motivo: ${motivo||'Mantenimiento completado'}.`,
-        tecnico:     session.nombre,
-        emailResp:   emailRespSalida,
-        asignadoA:   a.asignado||'—',
-        fecha:       ts(),
-        usuario:     session.nombre,
-        color:       'green'
-      });
-      showToast('✅ Equipo devuelto de mantenimiento' + (emailRespSalida?' — se notificará a '+emailRespSalida:''),'success');
+      const condicion = document.getElementById('ea-condicion-devuelto')?.value.trim() || '';
+      marcarSalidaMantenimiento(a, {motivo, tecnico:session.nombre, estadoNuevo:_estadoNuevo, condicion, origen:'edicion'});
+      showToast('✅ Equipo devuelto de mantenimiento','success');
     }
 
     await apiPost('activos','update',a);audit('EDITAR','Activo',a.codigo,det);
@@ -3829,11 +3878,17 @@ function openTicket(id,forceReadOnly){
     document.getElementById('et-proy').value=t.proy!=='—'?t.proy:'';document.getElementById('et-desc').value=t.desc||'';
     _renderGaleriaFotosAdmin(t.fotos);
     renderTicketHistorial(t);
+    const actVinculado = t.activoId ? activos.find(a=>a.codigo===t.activoId) : null;
+    const _puedeSalida = t.tipo==='mantenimiento' && actVinculado && actVinculado.estado==='mantenimiento' && !readOnly;
+    document.getElementById('et-salida-mant-wrap').style.display = _puedeSalida ? 'block':'none';
+    document.getElementById('et-marcar-salida').checked = true;
+    document.getElementById('et-condicion-devuelto').value = '';
   }else{
     ['et-titulo','et-proy','et-desc'].forEach(i=>document.getElementById(i).value=''); document.getElementById('et-resp').value='';
     document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';
     _renderGaleriaFotosAdmin([]);
     document.getElementById('et-hist-wrap').style.display='none';
+    document.getElementById('et-salida-mant-wrap').style.display='none';
   }
   // Bloquear/desbloquear los campos del formulario según el modo
   ET_CAMPOS_FORM.forEach(fid=>{
@@ -4092,12 +4147,29 @@ async function saveTicket(){
       desc: det+(eventosDetalle.length?' | '+eventosDetalle.join(' · '):''),
       fecha:ts(),usuario:session.nombre,color:colorEvento
     });
+    // ── SALIDA DE MANTENIMIENTO AL CERRAR TICKET VINCULADO ──────────
+    let _actSalida = null;
+    if(t.tipo==='mantenimiento' && estadoAnteriorTicket!=='cerrado' && t.estado==='cerrado'
+       && t.activoId && document.getElementById('et-marcar-salida')?.checked){
+      const act = activos.find(a=>a.codigo===t.activoId);
+      if(act && act.estado==='mantenimiento'){
+        const condicion = document.getElementById('et-condicion-devuelto')?.value.trim() || '';
+        marcarSalidaMantenimiento(act, {
+          motivo: 'Ticket '+t.codigo+' cerrado: '+titulo,
+          tecnico: session.nombre, estadoNuevo: 'activo', condicion,
+          origen: 'ticket', extra: {ticketCodigo: t.codigo}
+        });
+        _actSalida = act;
+      }
+    }
+
     const rEdit = await apiPost('tickets','update',t);
+    if(_actSalida) await apiPost('activos','update',_actSalida);
     audit('EDITAR','Ticket',t.codigo,det);
     if(rEdit===false){
       showToast('⚠ Sin conexión: los cambios de '+t.codigo+' quedaron en cola y se enviarán solos.','error');
     }else{
-      showToast('✅ Cambios guardados en '+t.codigo,'success');
+      showToast('✅ Cambios guardados en '+t.codigo + (_actSalida?' — equipo marcado como devuelto de mantenimiento':''),'success');
     }
   }else{
     // ── CREACIÓN DE TICKET ────────────────────────────────────────
@@ -4150,7 +4222,15 @@ async function saveTicket(){
       if(act){
         act.historial=act.historial||[];
         act.historial.push({tipo:'Ticket vinculado',desc:codigoReal+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});
-        if(t.tipo==='mantenimiento')act.estado='mantenimiento';
+        if(t.tipo==='mantenimiento' && act.estado!=='mantenimiento'){
+          marcarEntradaMantenimiento(act, {
+            motivo: 'Ticket '+codigoReal+': '+titulo,
+            tecnico: session.nombre,
+            emailResp: act.asignadoEmail || '',
+            origen: 'ticket',
+            extra: {ticketCodigo: codigoReal}
+          });
+        }
         await apiPost('activos','update',act);
       }
     }
@@ -4307,6 +4387,17 @@ async function saveMant(){
     activoActual.historial.push(e);
   }
 
+  // ── "Entrega de equipo" = toma de custodia para mantenimiento ──────
+  // Empuja el evento canónico DESPUÉS del evento mm-tipo para que quede
+  // como último del historial y el backend dispare el correo de aviso.
+  let _entroAMant = false;
+  if(e.tipo === 'Entrega de equipo' && activoActual.estado !== 'mantenimiento'){
+    marcarEntradaMantenimiento(activoActual, {
+      motivo: desc, tecnico: e.tec, emailResp, origen: 'modal-mant'
+    });
+    _entroAMant = true;
+  }
+
   await apiPost('activos','update',activoActual);
   audit('CREAR','Mantenimiento',activoActual.codigo,`${e.tipo}: ${e.desc} | Técnico: ${e.tec}`);
 
@@ -4324,7 +4415,9 @@ async function saveMant(){
 
   closeModals();
   showDetalle(activoActual.codigo);
-  showToast('✅ Mantenimiento registrado' + (necesitaPiezas?' — Solicitud de compra enviada':''),'success');
+  showToast('✅ Mantenimiento registrado'
+    + (necesitaPiezas?' — Solicitud de compra enviada':'')
+    + (_entroAMant?' — equipo marcado en mantenimiento':''), 'success');
 }
 
 function closeModals(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('open'));}
