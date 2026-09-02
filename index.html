@@ -1817,6 +1817,16 @@ tbody tr.clickable{cursor:pointer;}
         </button>
         <span id="backup-status" style="font-size:11px;color:var(--text3);"></span>
       </div>
+      <!-- Diagnóstico de velocidad — responde con números si la lentitud al
+           guardar viene de la conexión del equipo o del servidor de Google. -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#F0F4F8;border:1px solid #CBD5E1;border-radius:6px;">
+        <span style="font-size:11px;font-weight:700;color:var(--navy);">🩺 ¿La lentitud es mi internet o el servidor?</span>
+        <button class="btn btn-p" onclick="medirVelocidadSAGAE()" id="btn-diag-vel"
+          style="font-size:11px;padding:4px 10px;" title="Compara cuánto tarda tu conexión contra cuánto tarda el servidor de Google Apps Script">
+          Medir ahora
+        </button>
+        <div id="diag-vel-status" style="font-size:11.5px;color:var(--text2);width:100%;"></div>
+      </div>
       <!-- Alertas de garantías/licencias y deadlines - solo visible para admin -->
       <div id="alertas-admin-bar" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;">
         <span style="font-size:11px;font-weight:700;color:#92400E;">⏰ Alertas de vencimiento (garantías, licencias y deadlines):</span>
@@ -2090,7 +2100,20 @@ tbody tr.clickable{cursor:pointer;}
       Márcalo solo si IT ya tiene el equipo físicamente. Si el equipo llega después,
       deja esto sin marcar y usa "Confirmar recepción" al abrir el ticket ya creado.
     </div>
+    <div id="et-recibir-ya-nota" style="display:none;font-size:11.5px;color:var(--blue);background:var(--blue-l,#E6F1FB);border:1px solid var(--blue-m,#B5D4F4);border-radius:6px;padding:8px;margin-top:8px;"></div>
     <div id="et-recibir-ya-campos" style="display:none;margin-top:10px">
+      <!-- Equipo que NO está en el inventario: personal del usuario, prestado o
+           de un proveedor. Se describe a mano porque no hay activo que lo represente. -->
+      <div id="et-recibir-ya-externo" style="display:none;margin-bottom:10px;padding:8px;background:#fff;border:1px dashed var(--border2);border-radius:6px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">
+          Este ticket no tiene un activo del inventario vinculado, así que el equipo se describe aquí
+          y el comprobante queda en el historial de este ticket.
+        </div>
+        <div class="f-lbl">Equipo recibido (marca, modelo, serie o señas)</div>
+        <input class="f-inp" id="et-recibir-ya-equipo" placeholder="Ej: Laptop HP Pavilion, serie 5CD123, del docente Juan Pérez">
+        <div class="f-lbl" style="margin-top:8px">Condición al recibirlo</div>
+        <input class="f-inp" id="et-recibir-ya-cond" placeholder="Ej: pantalla rota, sin cargador, con golpe en la tapa">
+      </div>
       <div class="f-lbl">¿Quién entrega el equipo?</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
         <input class="f-inp" id="et-recibir-ya-nombre" placeholder="Nombre de quien entrega" style="flex:1;min-width:160px">
@@ -3966,18 +3989,53 @@ function _etActualizarBloqueRecepcionNueva(){
   const tipo   = document.getElementById('et-tipo').value;
   const actCod = document.getElementById('et-activo').value;
   const act    = actCod ? activos.find(a=>a.codigo===actCod) : null;
-  const aplica = esCreacion && tipo==='mantenimiento' && act && act.estado!=='mantenimiento';
-  wrap.style.display = aplica ? 'block' : 'none';
-  if(!aplica){
+  const nota   = document.getElementById('et-recibir-ya-nota');
+  const camposExt = document.getElementById('et-recibir-ya-externo');
+
+  // Solo se oculta del todo cuando no es una creación de mantenimiento. En los
+  // demás casos SIEMPRE se muestra algo: o el bloque usable, o la explicación
+  // de por qué no aplica — desaparecer en silencio dejaba al técnico sin saber
+  // si el sistema estaba fallando.
+  if(!(esCreacion && tipo==='mantenimiento')){
+    wrap.style.display = 'none';
     document.getElementById('et-recibir-ya-chk').checked = false;
     document.getElementById('et-recibir-ya-campos').style.display = 'none';
     return;
   }
-  // Sugerir al asignado del equipo, igual que hace "Confirmar recepción"
-  const nom = document.getElementById('et-recibir-ya-nombre');
-  const ema = document.getElementById('et-recibir-ya-email');
-  if(nom && !nom.value) nom.value = (act.asignado && act.asignado!=='—') ? act.asignado : '';
-  if(ema && !ema.value) ema.value = act.asignadoEmail || '';
+  wrap.style.display = 'block';
+
+  // Caso 1: el activo del inventario YA está en mantenimiento — no hay nada
+  // que recibir. Se explica en vez de esconderse.
+  if(act && act.estado==='mantenimiento'){
+    document.getElementById('et-recibir-ya-chk').checked = false;
+    document.getElementById('et-recibir-ya-chk').disabled = true;
+    document.getElementById('et-recibir-ya-campos').style.display = 'none';
+    if(nota){
+      nota.style.display='block';
+      nota.textContent = 'ℹ '+act.codigo+' ya está marcado como recibido en mantenimiento, '
+        + 'así que no hay nada que confirmar aquí. Para devolverlo, abre el ticket vinculado y usa el bloque de devolución.';
+    }
+    if(camposExt) camposExt.style.display='none';
+    return;
+  }
+
+  document.getElementById('et-recibir-ya-chk').disabled = false;
+  if(nota) nota.style.display='none';
+
+  if(act){
+    // Caso 2: equipo del inventario, disponible para recibir.
+    if(camposExt) camposExt.style.display='none';
+    const nom = document.getElementById('et-recibir-ya-nombre');
+    const ema = document.getElementById('et-recibir-ya-email');
+    if(nom && !nom.value) nom.value = (act.asignado && act.asignado!=='—') ? act.asignado : '';
+    if(ema && !ema.value) ema.value = act.asignadoEmail || '';
+  }else{
+    // Caso 3: SIN activo vinculado — equipo que no pertenece al inventario
+    // (personal del usuario, prestado, de un proveedor). No hay ningún activo
+    // cuyo estado cambiar, así que el comprobante se guarda en el historial
+    // del propio ticket y se piden los datos del equipo a mano.
+    if(camposExt) camposExt.style.display='block';
+  }
 }
 
 function openTicket(id,forceReadOnly){
@@ -4067,6 +4125,8 @@ function openTicket(id,forceReadOnly){
     document.getElementById('et-recibir-ya-campos').style.display = 'none';
     document.getElementById('et-recibir-ya-nombre').value = '';
     document.getElementById('et-recibir-ya-email').value  = '';
+    document.getElementById('et-recibir-ya-equipo').value = '';
+    document.getElementById('et-recibir-ya-cond').value   = '';
     _etActualizarBloqueRecepcionNueva();
   }
   // Bloquear/desbloquear los campos del formulario según el modo
@@ -4494,99 +4554,33 @@ async function saveTicket(){
     const t={id:code,codigo:code,titulo,activoId:aId||'',activoNombre:aNom,resp:document.getElementById('et-resp').value||'—',tipo:document.getElementById('et-tipo').value,prior:document.getElementById('et-prior').value,estado:document.getElementById('et-estado').value,avance:Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0)),dead:document.getElementById('et-dead').value||'—',proy:document.getElementById('et-proy').value.trim()||'—',desc:document.getElementById('et-desc').value.trim(),fotos:JSON.stringify(_etFotosActuales),foto:_etFotosActuales.length?_etFotosActuales[0].url:'—',historial:[{tipo:'Creación',desc:'Creado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
     tickets.push(t);
 
+    // Los datos del formulario se leen AHORA, antes de cerrar el modal: la
+    // confirmación del servidor llega después y para entonces los campos ya
+    // están vacíos.
+    const _datosRecepcion = _etLeerDatosRecepcionNueva();
+
     // Identidad estable de ESTA creación: si el usuario vuelve a hacer clic
     // porque el servidor tardó, el intento viaja con el mismo _opId y el
     // servidor devuelve el ticket que ya creó en vez de crear otro.
     if(!_opIdTicketNuevo) _opIdTicketNuevo = _generarOpId();
-    const res = await apiPostAsync('tickets','insert',{...t, _opId:_opIdTicketNuevo}, 45000);
 
-    if(res && res.ok===false && res.error==='TIMEOUT'){
-      // No se pudo confirmar dentro del tiempo. NO se reintenta a ciegas.
-      // Se recarga la lista y se REVISA si el ticket entró, para decírselo al
-      // usuario en vez de dejarlo adivinando (antes solo decía "verificando").
-      tickets = tickets.filter(x=>x.codigo!==code);
-      showToast('⏱ El servidor tardó en confirmar. Verificando si el ticket se creó...','');
-      await recargarTickets();
-      const yaCreado = tickets.filter(x=>
-        (x.titulo||'')===titulo && x.estado!=='eliminado' &&
-        (parseHist(x.historial)||[]).some(h=>h.tipo==='Creación' && h.usuario===session.nombre)
-      ).pop();
-      if(yaCreado){
-        // Sí entró: se libera la identidad para que el próximo ticket sea nuevo.
-        _opIdTicketNuevo = null;
-        closeModals();
-        showToast('✅ Sí se creó: '+yaCreado.codigo+'. El servidor solo tardó en confirmarlo.','success');
-      }else{
-        // No entró. Se CONSERVA el _opId: si el usuario reintenta, el servidor
-        // reconocerá el intento como el mismo y no creará dos tickets.
-        showToast('⚠ El ticket no aparece todavía. Puedes volver a intentar sin miedo: si al final entró, no se duplicará.','error');
-      }
-      return;
-    }
-    if(res && res.ok===false){
-      tickets = tickets.filter(x=>x.codigo!==code);
-      showToast('⚠ No se pudo crear el ticket: '+(res.message||res.error||'error desconocido'),'error');
-      return;
-    }
-
-    // Adoptar el código REAL asignado por el servidor
-    const codigoReal = (res && res.codigo) ? res.codigo : code;
-    t.codigo = codigoReal; t.id = codigoReal;
-    // Creación confirmada: se descarta la identidad para que el próximo
-    // "Nuevo ticket" no herede la de este.
-    _opIdTicketNuevo = null;
-    if(res && res.duplicadoEvitado){
-      showToast('ℹ Este ticket ya se había registrado como '+codigoReal+'. No se creó un duplicado.','');
-    }else{
-      showToast('✅ Ticket '+codigoReal+' creado correctamente','success');
-    }
-
-    // Vincular el activo DESPUÉS de conocer el código real, para que su
-    // hoja de vida no quede apuntando a un código provisional inexistente.
-    if(aId){
-      const act=activos.find(a=>a.codigo===aId);
-      if(act){
-        act.historial=act.historial||[];
-        // La entrada a mantenimiento NO se marca aquí — crear el ticket
-        // solo significa "se reportó/solicitó". El paso de "IT ya tiene el
-        // equipo en sus manos" es una acción aparte y explícita (botón
-        // "Confirmar recepción" al abrir el ticket ya creado), porque el
-        // momento de crear el ticket casi nunca coincide con el momento
-        // real en que el equipo llega a manos del técnico.
-        act.historial.push({tipo:'Ticket vinculado',desc:codigoReal+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});
-        await apiPost('activos','update',act);
-
-        // ── "El equipo ya está en mis manos" ────────────────────────
-        // Excepción deliberada a lo de arriba: si el técnico marcó que ya
-        // recibió el equipo, se registra la entrada AQUÍ, una vez que ya se
-        // conoce el código real del ticket. Es el mismo camino de siempre
-        // (marcarEntradaMantenimiento), solo que sin obligarlo a guardar,
-        // reabrir el ticket y volver a confirmar.
-        const _recibirYa = document.getElementById('et-recibir-ya-chk');
-        if(_recibirYa && _recibirYa.checked && document.getElementById('et-tipo').value==='mantenimiento'
-           && act.estado!=='mantenimiento'){
-          const _entNom = document.getElementById('et-recibir-ya-nombre').value.trim();
-          const _entMail= document.getElementById('et-recibir-ya-email').value.trim();
-          marcarEntradaMantenimiento(act, {
-            motivo: 'Ticket '+codigoReal+': '+titulo,
-            tecnico: session.nombre,
-            emailResp: _entMail || act.asignadoEmail || '',
-            origen: 'ticket',
-            extra: {ticketCodigo: codigoReal,
-              entregadoPorNombre: _entNom || act.asignado || '',
-              entregadoPorEmail:  _entMail || act.asignadoEmail || ''}
-          });
-          await apiPost('activos','update',act);
-          t.historial = t.historial || [];
-          t.historial.push({tipo:'📥 Equipo recibido por IT',
-            desc:'Recibido al crear el ticket'+(_entNom?' — entregado por: '+_entNom:''),
-            fecha:ts(), usuario:session.nombre, color:'amber'});
-          await apiPost('tickets','update',t);
-          showToast('📥 '+act.codigo+' quedó marcado como recibido en mantenimiento','success');
-        }
-      }
-    }
-    audit('CREAR','Ticket',codigoReal,'Creado: '+titulo);
+    // ── LA ESPERA YA NO BLOQUEA LA PANTALLA ──────────────────────────
+    // Crear un ticket obliga a esperar al servidor porque el código real
+    // (TKT-XXXX) lo asigna él. Pero esa espera no tiene por qué congelar la
+    // aplicación: el ticket se muestra de inmediato marcado como "creando…"
+    // y la confirmación se resuelve en segundo plano. El usuario sigue
+    // trabajando; cuando el servidor responde, la fila adopta su código real.
+    t._creando = true;
+    const _t0 = Date.now();
+    const _promesa = apiPostAsync('tickets','insert',{...t, _opId:_opIdTicketNuevo}, 45000);
+    _promesa
+      .then(res => _finalizarCreacionTicket(res, t, code, aId, titulo, _datosRecepcion, _t0))
+      .catch(err => {
+        tickets = tickets.filter(x=>x.codigo!==code);
+        renderAll();
+        showToast('⚠ Error al crear el ticket: '+(err&&err.message?err.message:'desconocido'),'error');
+      });
+    showToast('Creando ticket… puedes seguir trabajando, te aviso cuando el servidor confirme.','');
   }
   closeModals();renderAll();
   }catch(err){
@@ -4597,6 +4591,124 @@ async function saveTicket(){
     // recargar la página.
     window._savingTicket = false;
     ocultarGuardando();
+  }
+}
+
+// Lee los campos de recepción del formulario de creación ANTES de cerrarlo.
+// Devuelve null si no aplica (no es mantenimiento, o no se marcó la casilla).
+function _etLeerDatosRecepcionNueva(){
+  const chk = document.getElementById('et-recibir-ya-chk');
+  if(!chk || !chk.checked) return null;
+  if(document.getElementById('et-tipo').value!=='mantenimiento') return null;
+  return {
+    nombre: (document.getElementById('et-recibir-ya-nombre')?.value||'').trim(),
+    email:  (document.getElementById('et-recibir-ya-email')?.value||'').trim(),
+    // Datos del equipo cuando NO es un activo del inventario (equipo personal
+    // del usuario, prestado, de un proveedor). Ver _etActualizarBloqueRecepcionNueva.
+    equipoDesc: (document.getElementById('et-recibir-ya-equipo')?.value||'').trim(),
+    condicion:  (document.getElementById('et-recibir-ya-cond')?.value||'').trim()
+  };
+}
+
+// Cierra la creación de un ticket cuando el servidor por fin responde. Corre
+// en segundo plano: la pantalla ya se liberó y el usuario está en otra cosa,
+// así que todo lo que pase aquí tiene que avisarse por sí solo.
+async function _finalizarCreacionTicket(res, t, code, aId, titulo, datosRecepcion, t0){
+  const segs = t0 ? ((Date.now()-t0)/1000).toFixed(1)+'s' : '';
+  try{
+    if(res && res.ok===false && res.error==='TIMEOUT'){
+      // No se pudo confirmar. NO se reintenta a ciegas: se recarga la lista y
+      // se REVISA si el ticket entró, para decírselo al usuario en vez de
+      // dejarlo adivinando.
+      tickets = tickets.filter(x=>x.codigo!==code);
+      await recargarTickets();
+      const yaCreado = tickets.filter(x=>
+        (x.titulo||'')===titulo && x.estado!=='eliminado' &&
+        (parseHist(x.historial)||[]).some(h=>h.tipo==='Creación' && h.usuario===session.nombre)
+      ).pop();
+      if(yaCreado){
+        _opIdTicketNuevo = null;
+        showToast('✅ Sí se creó: '+yaCreado.codigo+'. El servidor solo tardó en confirmarlo ('+segs+').','success');
+      }else{
+        // Se CONSERVA el _opId: si el usuario reintenta, el servidor
+        // reconocerá el intento como el mismo y no creará dos tickets.
+        showToast('⚠ El ticket no aparece todavía. Puedes volver a crearlo sin miedo: si al final entró, no se duplicará.','error');
+      }
+      renderAll();
+      return;
+    }
+    if(res && res.ok===false){
+      tickets = tickets.filter(x=>x.codigo!==code);
+      renderAll();
+      showToast('⚠ No se pudo crear el ticket: '+(res.message||res.error||'error desconocido'),'error');
+      return;
+    }
+
+    // Adoptar el código REAL asignado por el servidor
+    const codigoReal = (res && res.codigo) ? res.codigo : code;
+    t.codigo = codigoReal; t.id = codigoReal; delete t._creando;
+    _opIdTicketNuevo = null;
+    renderAll();
+    if(res && res.duplicadoEvitado){
+      showToast('ℹ Este ticket ya se había registrado como '+codigoReal+'. No se creó un duplicado.','');
+    }else{
+      showToast('✅ Ticket '+codigoReal+' creado correctamente ('+segs+')','success');
+    }
+
+    // Vincular el activo DESPUÉS de conocer el código real, para que su
+    // hoja de vida no quede apuntando a un código provisional inexistente.
+    const act = aId ? activos.find(a=>a.codigo===aId) : null;
+    if(act){
+      act.historial=act.historial||[];
+      act.historial.push({tipo:'Ticket vinculado',desc:codigoReal+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});
+      await apiPost('activos','update',act);
+    }
+
+    if(datosRecepcion){
+      if(act && act.estado!=='mantenimiento'){
+        // Equipo del inventario: camino de siempre (marcarEntradaMantenimiento),
+        // solo que sin obligar a guardar, reabrir el ticket y confirmar aparte.
+        marcarEntradaMantenimiento(act, {
+          motivo: 'Ticket '+codigoReal+': '+titulo,
+          tecnico: session.nombre,
+          emailResp: datosRecepcion.email || act.asignadoEmail || '',
+          origen: 'ticket',
+          extra: {ticketCodigo: codigoReal,
+            entregadoPorNombre: datosRecepcion.nombre || act.asignado || '',
+            entregadoPorEmail:  datosRecepcion.email  || act.asignadoEmail || ''}
+        });
+        await apiPost('activos','update',act);
+        t.historial = t.historial || [];
+        t.historial.push({tipo:'📥 Equipo recibido por IT',
+          desc:'Recibido al crear el ticket'+(datosRecepcion.nombre?' — entregado por: '+datosRecepcion.nombre:''),
+          fecha:ts(), usuario:session.nombre, color:'amber'});
+        await apiPost('tickets','update',t);
+        showToast('📥 '+act.codigo+' quedó marcado como recibido en mantenimiento','success');
+      }else if(!act){
+        // ── EQUIPO QUE NO ES UN ACTIVO DE LA INSTITUCIÓN ──────────────
+        // Equipo personal del usuario, prestado o de un proveedor: no existe
+        // en el inventario, así que no hay ningún activo cuyo estado cambiar
+        // ni en cuyo historial escribir. El comprobante vive en el historial
+        // del PROPIO TICKET, que es lo único que representa a ese equipo.
+        t.historial = t.historial || [];
+        t.historial.push({tipo:'📥 Equipo recibido por IT',
+          desc:'Equipo externo (no pertenece al inventario) recibido al crear el ticket'
+            + (datosRecepcion.equipoDesc?' — Equipo: '+datosRecepcion.equipoDesc:'')
+            + (datosRecepcion.condicion?' — Condición al recibirlo: '+datosRecepcion.condicion:'')
+            + (datosRecepcion.nombre?' — Entregado por: '+datosRecepcion.nombre:'')
+            + (datosRecepcion.email?' ('+datosRecepcion.email+')':''),
+          fecha:ts(), usuario:session.nombre, color:'amber',
+          equipoExterno: true,
+          entregadoPorNombre: datosRecepcion.nombre||'',
+          entregadoPorEmail:  datosRecepcion.email||''});
+        await apiPost('tickets','update',t);
+        showToast('📥 Recepción registrada en el ticket '+codigoReal+' (equipo externo)','success');
+      }
+    }
+    audit('CREAR','Ticket',codigoReal,'Creado: '+titulo);
+    renderAll();
+  }catch(err){
+    showToast('⚠ El ticket se creó, pero falló un paso posterior: '+(err&&err.message?err.message:'desconocido'),'error');
   }
 }
 
@@ -5423,7 +5535,9 @@ function renderTickets(){
     : tickets.filter(t=>t.estado===filtroT);
   if(!list.length){tb.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text3);font-size:12px">Sin tickets.</td></tr>`;return;}
   tb.innerHTML=list.map(t=>`<tr class="${t.estado==='eliminado'?'del-row':''}">
-    <td class="code-cell">${sanitizeHTML(t.codigo)}</td>
+    <td class="code-cell">${t._creando
+      ? '<span style="color:var(--text3)">creando…</span><div style="font-size:9px;color:var(--text3)">esperando código</div>'
+      : sanitizeHTML(t.codigo)}</td>
     <td><div style="font-weight:600;font-size:12px">${sanitizeHTML(t.titulo)}</div><div style="font-size:10px;color:var(--text3)">${sanitizeHTML(t.tipo||'')} · ${sanitizeHTML(t.proy||'—')}</div></td>
     <td style="font-size:11px">${sanitizeHTML(t.activoNombre||'—')}</td>
     <td>
@@ -9714,6 +9828,60 @@ function repActivosPorPersona(el, tsStr){
   el.innerHTML = html;
 }
 
+
+// ── DIAGNÓSTICO: ¿ES MI INTERNET O ES EL SERVIDOR? ────────────────
+// Mide dos cosas por separado desde el equipo del usuario:
+//  1. Cuánto tarda en traer un archivo del mismo sitio donde vive SAGAE
+//     (GitHub Pages) → eso es la conexión del equipo, pura y dura.
+//  2. Cuánto tarda el backend de Apps Script en contestar la petición más
+//     barata que existe (action=config) → eso es el servidor.
+// Si (1) es rápido y (2) lento, la lentitud NO es del internet.
+async function medirVelocidadSAGAE(){
+  const st  = document.getElementById('diag-vel-status');
+  const btn = document.getElementById('btn-diag-vel');
+  if(btn){ btn.disabled=true; btn.textContent='Midiendo...'; }
+  const medir = async (url) => {
+    const t0 = performance.now();
+    try{ await fetch(url+(url.includes('?')?'&':'?')+'_t='+Date.now(), {cache:'no-store', mode:'cors'}); }
+    catch(e){ /* incluso si CORS bloquea la lectura, el tiempo de ida y vuelta es válido */ }
+    return performance.now()-t0;
+  };
+  const prom = a => a.reduce((s,x)=>s+x,0)/a.length;
+  try{
+    if(st) st.textContent = 'Midiendo la conexión del equipo...';
+    const red = [];
+    for(let i=0;i<3;i++) red.push(await medir(location.href));
+    if(st) st.textContent = 'Midiendo el servidor de Google...';
+    const srv = [];
+    for(let i=0;i<3;i++) srv.push(await medir(API+'?action=config'));
+
+    const mRed = prom(red), mSrv = prom(srv);
+    const veces = mRed>0 ? Math.round(mSrv/mRed) : 0;
+    let veredicto, color;
+    if(mSrv < 1200){
+      veredicto = 'El servidor está respondiendo rápido ahora mismo. Si al crear un ticket ves demora, es por los pasos que ese proceso hace, no por la red.';
+      color = '#1A7A4A';
+    }else if(mRed < 600 && mSrv >= 1200){
+      veredicto = 'Tu conexión está bien; el que tarda es el servidor de Google Apps Script. La lentitud al crear tickets NO es de tu internet.';
+      color = '#92400E';
+    }else{
+      veredicto = 'Tanto tu conexión como el servidor están lentos en este momento — puede ser la red del lugar.';
+      color = '#B91C1C';
+    }
+    if(st) st.innerHTML =
+      '<div style="margin-top:6px;line-height:1.6">'
+      + '<b>Tu conexión</b> (cargar esta misma página): <b>'+Math.round(mRed)+' ms</b><br>'
+      + '<b>Servidor de Google</b> (la petición más simple que existe): <b>'+Math.round(mSrv)+' ms</b>'
+      + (veces>1?' — <b>'+veces+' veces más lento</b> que tu conexión':'')
+      + '<div style="margin-top:6px;color:'+color+';font-weight:600">'+veredicto+'</div>'
+      + '<div style="margin-top:4px;color:var(--text3);font-size:11px">Crear un ticket es lo más lento del sistema porque es lo único que espera al servidor: necesita que él asigne el código TKT-XXXX. Editar no espera nada, por eso se siente instantáneo.</div>'
+      + '</div>';
+  }catch(e){
+    if(st) st.textContent = 'No se pudo completar la medición: '+(e&&e.message?e.message:'error');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Medir ahora'; }
+  }
+}
 
 // ── BACKUP MANUAL ──────────────────────────────────────────────
 async function ejecutarBackupManual(){
