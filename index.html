@@ -1312,7 +1312,7 @@ tbody tr.clickable{cursor:pointer;}
           </select>
         </div>
         <div class="f-row">
-          <div class="f-lbl">🏷️ Departamento *
+          <div class="f-lbl">🏷️ Departamento
             <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Al que pertenece este espacio</span>
           </div>
           <select class="f-inp f-sel" id="esp-depto">
@@ -1433,7 +1433,9 @@ tbody tr.clickable{cursor:pointer;}
           </select>
         </div>
         <div class="f-row">
-          <div class="f-lbl">Cantidad *</div>
+          <div class="f-lbl">Cantidad
+            <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Si lo dejas vacío se registra como 1 unidad</span>
+          </div>
           <input class="f-inp" id="mob-cantidad" type="number" min="1" placeholder="1">
         </div>
         <div class="f-row">
@@ -1621,6 +1623,7 @@ tbody tr.clickable{cursor:pointer;}
         <option value="activo">Activa</option>
         <option value="vencida">Vencida</option>
         <option value="cancelada">Cancelada</option>
+        <option value="eliminado">Eliminadas</option>
       </select>
       <input class="f-inp" id="fil-lic-q" placeholder="Buscar licencia, proveedor..." oninput="renderLicencias()" style="min-width:180px;flex:1;">
     </div>
@@ -1680,6 +1683,7 @@ tbody tr.clickable{cursor:pointer;}
         <div class="f-row">
           <div class="f-lbl">Vence / debe renovarse *</div>
           <input class="f-inp" type="date" id="lic-venc" min="1990-01-01" max="2046-12-31" onchange="validateDateField(this)">
+          <div class="f-err" id="err-lic-venc">⚠ La fecha de vencimiento debe ser posterior al inicio de vigencia</div>
           <div class="f-hint">💡 Aquí llegan las alertas automáticas de renovación</div>
         </div>
         <div class="f-row">
@@ -1718,7 +1722,7 @@ tbody tr.clickable{cursor:pointer;}
         <button class="modal-close" onclick="closeModals()">✕</button>
       </div>
       <div id="lic-det-info" style="font-size:12px;color:var(--text3);margin-bottom:12px;"></div>
-      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap;">
+      <div id="lic-asignar-wrap" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap;">
         <div class="f-row" style="flex:1;min-width:220px;margin-bottom:0">
           <div class="f-lbl">Asignar / instalar en equipo</div>
           <select class="f-inp f-sel" id="lic-asignar-activo"><option value="">— Seleccionar activo —</option></select>
@@ -1956,6 +1960,7 @@ tbody tr.clickable{cursor:pointer;}
         <span style="font-size:10px;font-weight:400;color:var(--text3);display:block;margin-top:1px">Para notificarle cuando su equipo entre o salga de mantenimiento</span>
       </div>
       <input class="f-inp" type="email" id="ea-asignado-email" placeholder="correo@institucion.edu.pa" autocomplete="off" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
+      <div class="f-err" id="err-ea-asignado-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
     </div>
     <div class="f-row">
       <div class="f-lbl">Cargo / Rol</div>
@@ -2079,8 +2084,9 @@ tbody tr.clickable{cursor:pointer;}
     <div class="f-lbl">¿Quién entrega el equipo?</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
       <input class="f-inp" id="et-entrega-nombre" placeholder="Nombre de quien entrega" style="flex:1;min-width:160px">
-      <input class="f-inp" type="email" id="et-entrega-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px">
+      <input class="f-inp" type="email" id="et-entrega-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
     </div>
+    <div class="f-err" id="err-et-entrega-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
     <div style="font-size:10px;color:var(--text3);margin-bottom:10px">
       Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo entrega físicamente.
     </div>
@@ -2100,8 +2106,9 @@ tbody tr.clickable{cursor:pointer;}
     <div class="f-lbl" style="margin-top:6px">¿A quién se le entrega el equipo de vuelta?</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
       <input class="f-inp" id="et-devuelto-nombre" placeholder="Nombre de quien recibe" style="flex:1;min-width:160px">
-      <input class="f-inp" type="email" id="et-devuelto-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px">
+      <input class="f-inp" type="email" id="et-devuelto-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
     </div>
+    <div class="f-err" id="err-et-devuelto-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
     <div style="font-size:10px;color:var(--text3);margin-bottom:10px">
       Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo recibe físicamente.
     </div>
@@ -2142,10 +2149,10 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div class="f-2">
     <div class="f-row"><div class="f-lbl">Nombre completo *</div><input class="f-inp" id="eu-nombre" placeholder="Juan Pérez"></div>
-    <div class="f-row"><div class="f-lbl">Correo electrónico</div><input class="f-inp" type="email" id="eu-email" type="email" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')" placeholder="juan@empresa.com"></div>
+    <div class="f-row"><div class="f-lbl">Correo electrónico</div><input class="f-inp" type="email" id="eu-email" type="email" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')" placeholder="juan@empresa.com"><div class="f-err" id="err-eu-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div></div>
   </div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Teléfono</div><input class="f-inp" id="eu-tel" oninput="validateField(this,'phone','Ej: 6000-0000')" onblur="validateField(this,'phone','Ej: 6000-0000')" placeholder="+507 6000-0000"></div>
+    <div class="f-row"><div class="f-lbl">Teléfono</div><input class="f-inp" id="eu-tel" oninput="validateField(this,'phone','Ej: 6000-0000')" onblur="validateField(this,'phone','Ej: 6000-0000')" placeholder="+507 6000-0000"><div class="f-err" id="err-eu-tel">⚠ Solo números, guiones y paréntesis. Ej: 6000-0000</div></div>
     <div class="f-row"><div class="f-lbl">Departamento</div>
 <select class="f-inp f-sel" id="eu-depto">
   <option value="">— Seleccionar departamento —</option>
@@ -2190,7 +2197,8 @@ tbody tr.clickable{cursor:pointer;}
       <span style="font-size:10px;font-weight:400;color:#666;display:block;margin-top:2px">Opcional — para notificarle que su equipo está en IT</span>
     </div>
     <input class="f-inp" type="email" id="mm-email-resp"
-      placeholder="correo@dominio.com" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')">
+      placeholder="correo@dominio.com" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
+    <div class="f-err" id="err-mm-email-resp">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
     <div id="mm-email-resp-info" style="font-size:11px;color:var(--navy);margin-top:4px;display:none;padding:4px 8px;background:var(--blue-l,#EFF6FF);border-radius:4px;border-left:3px solid var(--navy)"></div>
   </div>
   <div class="f-2">
@@ -2222,6 +2230,7 @@ tbody tr.clickable{cursor:pointer;}
         </div>
         <div class="f-row"><div class="f-lbl">Correo del encargado de compras *</div>
           <input class="f-inp" type="email" id="mm-piezas-email" placeholder="compras@colegio.edu" oninput="validateField(this,'email','Ej: correo@pca.edu.pa')">
+          <div class="f-err" id="err-mm-piezas-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
         </div>
       </div>
       <div class="f-row"><div class="f-lbl">Presupuesto estimado ($)</div>
@@ -3284,6 +3293,10 @@ async function adminResetear2FA(){
 }
 
 async function saveUsuario(){
+  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
+  // función también lo verifica — así ninguna ruta de escritura depende solo
+  // de que la interfaz haya escondido el control.
+  if(!(PERMS[session.rol]||{}).usuarios){ showToast('⛔ Sin permiso para administrar usuarios',''); return; }
   const isEdit=document.getElementById('eu-id').value!=='';
   const username=document.getElementById('eu-username').value.trim();
   const pass=document.getElementById('eu-pass').value;
@@ -3618,6 +3631,10 @@ function openActivo(id){
 }
 
 async function saveActivo(){
+  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
+  // función también lo verifica — así ninguna ruta de escritura depende solo
+  // de que la interfaz haya escondido el control.
+  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar activos',''); return; }
   // ── VALIDACIÓN COMPLETA ANTES DE GUARDAR ──────────────────────
   let formOk = true;
   const nombre = document.getElementById('ea-nombre').value.trim();
@@ -4315,6 +4332,13 @@ async function saveTicket(){
         const condicion = document.getElementById('et-condicion-devuelto')?.value.trim() || '';
         const devueltoNombre = document.getElementById('et-devuelto-nombre')?.value.trim() || '';
         const devueltoEmail  = document.getElementById('et-devuelto-email')?.value.trim() || '';
+        // De este correo sale el aviso de devolución — si viene mal escrito la
+        // notificación se pierde en silencio, así que se bloquea el guardado.
+        // El `finally` de esta función libera el candado y el overlay.
+        if(devueltoEmail && !_emailValido(devueltoEmail)){
+          showToast('El correo de quien recibe el equipo no tiene un formato válido','');
+          return;
+        }
         marcarSalidaMantenimiento(act, {
           motivo: 'Ticket '+t.codigo+' cerrado: '+titulo,
           tecnico: session.nombre, condicion,
@@ -4429,6 +4453,13 @@ async function confirmarRecepcionMantenimiento(){
     showToast('Este equipo ya está marcado en mantenimiento.','');
     return;
   }
+  // De este correo sale el comprobante de entrada para quien entregó el equipo —
+  // se valida ANTES de tomar el candado para no dejar la pantalla en "Confirmando...".
+  const _entregaEmailPrev = document.getElementById('et-entrega-email').value.trim();
+  if(_entregaEmailPrev && !_emailValido(_entregaEmailPrev)){
+    showToast('El correo de quien entrega el equipo no tiene un formato válido','');
+    return;
+  }
   if(window._confirmandoRecepcion) return;
   window._confirmandoRecepcion = true;
   mostrarGuardando('Confirmando recepción...','No cierres esta ventana.');
@@ -4482,6 +4513,10 @@ function openDelete(type,id){
 }
 
 async function confirmDelete(){
+  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
+  // función también lo verifica — así ninguna ruta de escritura depende solo
+  // de que la interfaz haya escondido el control.
+  if(!(PERMS[session.rol]||{}).delete){ showToast('⛔ Sin permiso para eliminar registros',''); return; }
   const motivo=document.getElementById('del-motivo').value.trim();if(!motivo){alert('El motivo es obligatorio.');return;}
   const{type,id}=pendingDelete;
   if(type==='activo'){
@@ -4552,6 +4587,9 @@ async function saveMant(){
   if(!desc){ showToast('La descripción es obligatoria','error'); return; }
 
   const emailRespManual = document.getElementById('mm-email-resp')?.value.trim() || '';
+  if(emailRespManual && !_emailValido(emailRespManual)){
+    showToast('El correo del responsable no tiene un formato válido','error'); return;
+  }
   const emailResp = emailRespManual || activoActual?.asignadoEmail || activoActual?.responsableEspacioEmail || '';
   const e = {
     tipo:     document.getElementById('mm-tipo').value,
@@ -4575,6 +4613,7 @@ async function saveMant(){
 
     if(!piezasDesc){ showToast('Describe las piezas necesarias','error'); return; }
     if(!emailCompras){ showToast('El correo del encargado de compras es obligatorio','error'); return; }
+    if(!_emailValido(emailCompras)){ showToast('El correo del encargado de compras no tiene un formato válido','error'); return; }
 
     // Registro de la solicitud en el historial del activo
     const solicitud = {
@@ -4776,6 +4815,15 @@ function validateDateField(input){
     }, 800);
   }
   return isValid;
+}
+
+// Mismo criterio de formato que usa validateField('email') más abajo, expuesto
+// aparte para poder BLOQUEAR el guardado en los flujos que disparan correos
+// automáticos (solicitud de piezas, entrega/devolución de equipo): antes solo
+// se verificaba que el campo no estuviera vacío, así que una dirección mal
+// escrita se aceptaba y la notificación se perdía en silencio.
+function _emailValido(v){
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v||'').trim());
 }
 
 function validateField(input, tipo, hint){
@@ -7958,6 +8006,10 @@ function openMob(codigo){
 
 // ── GUARDAR ───────────────────────────────────────────────────────
 async function guardarMobiliario(){
+  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
+  // función también lo verifica — así ninguna ruta de escritura depende solo
+  // de que la interfaz haya escondido el control.
+  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar mobiliario',''); return; }
   const nombre    = document.getElementById('mob-nombre').value.trim();
   const tipo      = document.getElementById('mob-tipo').value;
   const condicion = document.getElementById('mob-condicion').value;
@@ -8021,6 +8073,10 @@ async function guardarMobiliario(){
 
 // ── ELIMINAR ──────────────────────────────────────────────────────
 async function eliminarMob(codigo){
+  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
+  // función también lo verifica — así ninguna ruta de escritura depende solo
+  // de que la interfaz haya escondido el control.
+  if(!(PERMS[session.rol]||{}).delete){ showToast('⛔ Sin permiso para eliminar',''); return; }
   const m = mobiliario.find(x=>x.codigo===codigo);
   if(!m) return;
   const motivo = prompt(`Eliminar "${m.nombre}" del inventario de mobiliario.\n\nMotivo (obligatorio, queda en el historial):`);
@@ -8066,8 +8122,13 @@ function renderLicencias(){
   const estFil = document.getElementById('fil-lic-estado')?.value||'todos';
   const per = PERMS[session.rol]||{};
 
-  let list = licencias.filter(l => l.estado !== 'eliminado');
-  if(estFil !== 'todos'){
+  // Antes una licencia eliminada desaparecía por completo de la interfaz, sin
+  // forma de volver a consultar qué equipos la tenían instalada — el mismo
+  // hueco que Mobiliario tenía y que ya se corrigió.
+  let list = estFil==='eliminado'
+    ? licencias.filter(l => l.estado === 'eliminado')
+    : licencias.filter(l => l.estado !== 'eliminado');
+  if(estFil !== 'todos' && estFil !== 'eliminado'){
     list = list.filter(l => estFil==='cancelada' ? l.estado==='cancelada' : (l.estado!=='cancelada' && _licVencComputado(l)===estFil));
   }
   if(qRaw) list = list.filter(l =>
@@ -8124,8 +8185,9 @@ function renderLicencias(){
       <td><span class="badge" style="background:${estColor[vc]||'#888'}22;color:${estColor[vc]||'#888'};border:1px solid ${estColor[vc]||'#888'}44">${vcLabel}</span></td>
       <td onclick="event.stopPropagation()">
         <button class="act-btn" onclick="abrirDetalleLicencia('${l.codigo}')" title="Ver equipos">👁</button>
+        ${l.estado==='eliminado' ? '<span style="font-size:10px;color:var(--red)">Eliminada</span>' : `
         ${per.edit?`<button class="act-btn" onclick="openLicencia('${l.codigo}')">✎</button>`:''}
-        ${per.delete?`<button class="act-btn" onclick="eliminarLicencia('${l.codigo}')" style="color:var(--red)">×</button>`:''}
+        ${per.delete?`<button class="act-btn" onclick="eliminarLicencia('${l.codigo}')" style="color:var(--red)">×</button>`:''}`}
       </td>
     </tr>`;
   }).join('');
@@ -8158,12 +8220,25 @@ function openLicencia(codigo){
 
 // ── GUARDAR ───────────────────────────────────────────────────────
 async function guardarLicencia(){
+  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar licencias',''); return; }
   const nombre    = document.getElementById('lic-nombre').value.trim();
   const proveedor = document.getElementById('lic-proveedor').value.trim();
+  const inicio    = document.getElementById('lic-inicio').value;
   const venc      = document.getElementById('lic-venc').value;
   if(!nombre)    { showToast('El nombre del paquete es obligatorio',''); return; }
   if(!proveedor) { showToast('El proveedor es obligatorio',''); return; }
   if(!venc)      { showToast('La fecha de vencimiento/renovación es obligatoria — de ahí salen las alertas',''); return; }
+  // Mismo criterio que Activos con Compra/Garantía: la fecha final no puede
+  // ser anterior a la inicial, o las alertas de renovación quedan sin sentido.
+  if(inicio && venc <= inicio){
+    const errV = document.getElementById('err-lic-venc');
+    if(errV){ errV.textContent='⚠ La fecha de vencimiento debe ser posterior al inicio de vigencia'; errV.classList.add('show'); }
+    showToast('La fecha de vencimiento debe ser posterior al inicio de vigencia','');
+    return;
+  } else {
+    const errV = document.getElementById('err-lic-venc');
+    if(errV) errV.classList.remove('show');
+  }
 
   const editCodigo = document.getElementById('mod-licencia')._editCodigo;
   const isEdit     = !!editCodigo;
@@ -8211,13 +8286,35 @@ async function guardarLicencia(){
 
 // ── ELIMINAR ──────────────────────────────────────────────────────
 async function eliminarLicencia(codigo){
-  if(!confirm('¿Eliminar este paquete de licencia? Esto no desinstala nada de los equipos, solo deja de rastrearse en SAGAE.')) return;
+  if(!(PERMS[session.rol]||{}).delete){ showToast('⛔ Sin permiso para eliminar',''); return; }
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
+  const instaladas = (l.instalaciones||[]).length;
+  const motivo = prompt(
+    `Eliminar el paquete "${l.nombre}".\n` +
+    (instaladas ? `Tiene ${instaladas} instalación(es) registrada(s); el registro de qué equipos la tenían se conserva en el historial.\n` : '') +
+    `Esto no desinstala nada de los equipos, solo deja de rastrearse en SAGAE.\n\n` +
+    `Motivo (obligatorio, queda en el historial):`
+  );
+  if(motivo===null) return; // canceló
+  if(!motivo.trim()){ showToast('El motivo es obligatorio',''); return; }
   try{
-    await apiPost('licencias','update',{...l, estado:'eliminado', instalaciones:JSON.stringify(l.instalaciones||[]), historial:JSON.stringify(l.historial||[])});
+    // Antes esto era un confirm() simple, sin motivo y sin dejar rastro en el
+    // historial propio del paquete — el único módulo tipo catálogo que no
+    // seguía el patrón de Activos/Mobiliario. Ahora sí queda registrado qué
+    // equipos la tenían instalada al momento de eliminarla.
+    const historialPrevio = parseHist(l.historial);
+    const equiposAlEliminar = (l.instalaciones||[]).map(i=>i.activoCodigo).filter(Boolean).join(', ');
+    const nuevoHistorial = [...historialPrevio, {
+      tipo:'Eliminación lógica',
+      desc:`Eliminado por ${session.nombre}. Motivo: ${motivo.trim()}`
+        + (equiposAlEliminar ? ` — Equipos con la licencia instalada al eliminar: ${equiposAlEliminar}` : ' — Sin instalaciones registradas'),
+      fecha: ts(), usuario: session.nombre, color:'red'
+    }];
+    await apiPost('licencias','update',{...l, estado:'eliminado', instalaciones:JSON.stringify(l.instalaciones||[]), historial:JSON.stringify(nuevoHistorial)});
     l.estado='eliminado';
-    audit('ELIMINAR','Licencia',codigo,`Eliminado: ${l.nombre}`);
+    l.historial=nuevoHistorial;
+    audit('ELIMINAR','Licencia',codigo,`Eliminado: ${l.nombre}. Motivo: ${motivo.trim()}`);
     renderLicencias();
     showToast('Licencia eliminada','success');
   }catch(e){ showToast('Error: '+e.message,''); }
@@ -8227,6 +8324,13 @@ async function eliminarLicencia(codigo){
 function abrirDetalleLicencia(codigo){
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
+  // Este submodal se saltaba el chequeo de permisos que sí hace renderLicencias():
+  // cualquier rol con acceso a Licencias (incluido consultor, que es de solo
+  // lectura) podía registrar o quitar instalaciones desde aquí.
+  const per = PERMS[session.rol]||{};
+  const puedeEditarLic = !!per.edit && l.estado!=='eliminado';
+  const wrapAsignar = document.getElementById('lic-asignar-wrap');
+  if(wrapAsignar) wrapAsignar.style.display = puedeEditarLic ? 'flex' : 'none';
   document.getElementById('mod-lic-det-title').textContent = `${l.nombre} — Equipos con licencia instalada`;
   const usadas = (l.instalaciones||[]).length;
   document.getElementById('lic-det-info').innerHTML =
@@ -8249,7 +8353,7 @@ function abrirDetalleLicencia(codigo){
       <td>${sanitizeHTML(i.activoNombre||'—')}</td>
       <td style="font-size:11px">${i.fecha||'—'}</td>
       <td style="font-size:11px">${sanitizeHTML(i.usuario||'—')}</td>
-      <td><button class="act-btn" onclick="quitarInstalacionLicencia('${l.codigo}',${idx})" style="color:var(--red)" title="Quitar de este equipo">×</button></td>
+      <td>${puedeEditarLic?`<button class="act-btn" onclick="quitarInstalacionLicencia('${l.codigo}',${idx})" style="color:var(--red)" title="Quitar de este equipo">×</button>`:''}</td>
     </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Aún no está instalada en ningún equipo registrado</td></tr>`;
 
   document.getElementById('mod-licencia-detalle')._codigo = codigo;
@@ -8257,6 +8361,8 @@ function abrirDetalleLicencia(codigo){
 }
 
 async function asignarLicenciaAEquipo(){
+  // Defensa en profundidad: no basta con ocultar el botón (ver abrirDetalleLicencia)
+  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar licencias',''); return; }
   const codigo = document.getElementById('mod-licencia-detalle')._codigo;
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
@@ -8271,11 +8377,20 @@ async function asignarLicenciaAEquipo(){
   }
 
   try{
+    // El historial propio del paquete existía en el modelo de datos pero nunca
+    // se escribía — quedaba vacío para siempre. Ahora cada instalación deja
+    // constancia en ambos lados (licencia y activo).
+    const histLic = [...parseHist(l.historial), {
+      tipo:'Instalación registrada',
+      desc:`Instalada en ${activoCodigo} — ${activo?.nombre||'—'} por ${session.nombre}`,
+      fecha: ts(), usuario: session.nombre, color:'blue'
+    }];
     await apiPost('licencias','update',{
-      ...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[]),
+      ...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(histLic),
       costoAnual:l.costoAnual, cantidadTotal:l.cantidadTotal
     });
     l.instalaciones = instalacionesNuevas;
+    l.historial = histLic;
     audit('EDITAR','Licencia',codigo,`Instalada en equipo ${activoCodigo} por ${session.nombre}`);
     // Deja constancia en el propio historial del activo de cuándo se le
     // instaló la licencia — antes solo quedaba registrado dentro de la
@@ -8293,14 +8408,24 @@ async function asignarLicenciaAEquipo(){
 }
 
 async function quitarInstalacionLicencia(codigo, idx){
+  // Defensa en profundidad: no basta con ocultar el botón (ver abrirDetalleLicencia)
+  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar licencias',''); return; }
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
   if(!confirm('¿Quitar este equipo de la lista de instalaciones de la licencia?')) return;
   const instalacionRemovida = (l.instalaciones||[])[idx];
   const instalacionesNuevas = (l.instalaciones||[]).filter((_,i)=>i!==idx);
   try{
-    await apiPost('licencias','update',{...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[])});
+    // Igual que al instalar: dejar constancia también en el historial propio
+    // del paquete, no solo en el del activo afectado.
+    const histLic = [...parseHist(l.historial), {
+      tipo:'Instalación removida',
+      desc:`Removida de ${instalacionRemovida?.activoCodigo||'—'} — ${instalacionRemovida?.activoNombre||'—'} por ${session.nombre}`,
+      fecha: ts(), usuario: session.nombre, color:'red'
+    }];
+    await apiPost('licencias','update',{...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(histLic)});
     l.instalaciones = instalacionesNuevas;
+    l.historial = histLic;
     audit('EDITAR','Licencia',codigo,`Instalación removida por ${session.nombre}`);
     // Misma lógica que al instalar: registrar la fecha de remoción en el
     // historial del activo, para no perder ese dato al borrar la fila de
@@ -8726,6 +8851,10 @@ function openPersona(codigo){
 
 // ── GUARDAR PERSONA ───────────────────────────────────────────────
 async function guardarPersona(){
+  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
+  // función también lo verifica — así ninguna ruta de escritura depende solo
+  // de que la interfaz haya escondido el control.
+  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar personas',''); return; }
   const nombre = document.getElementById('per-nombre').value.trim();
   const email  = document.getElementById('per-email').value.trim();
   if(!nombre){ showToast('El nombre es obligatorio',''); return; }
@@ -8800,6 +8929,10 @@ async function guardarPersona(){
 
 // ── ELIMINAR PERSONA ──────────────────────────────────────────────
 async function eliminarPersona(codigo){
+  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
+  // función también lo verifica — así ninguna ruta de escritura depende solo
+  // de que la interfaz haya escondido el control.
+  if(!(PERMS[session.rol]||{}).delete){ showToast('⛔ Sin permiso para eliminar',''); return; }
   const p0 = personas.find(x=>x.codigo===codigo);
   if(!p0) return;
   const equiposAsignados = activos.filter(a=>a.asignado===p0.nombre && a.estado!=='eliminado');
@@ -8952,10 +9085,20 @@ function openEspacio(codigo){
 
 // ── GUARDAR ESPACIO ───────────────────────────────────────────────
 async function guardarEspacio(){
+  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar espacios',''); return; }
   const nombre = document.getElementById('esp-nombre').value.trim();
   if(!nombre){ showToast('El nombre del espacio es obligatorio',''); return; }
   const editCod = document.getElementById('mod-espacio')._editCodigo;
   const isEdit  = !!editCod;
+  // El nombre del espacio es la clave con la que se vincula todo el sistema
+  // (activos.ubicacion, mobiliario.ubicacion, personas.espacioResponsable),
+  // así que dos espacios con el mismo nombre son indistinguibles. Departamentos,
+  // Personas y Usuarios ya bloqueaban duplicados; Espacios era el único que no.
+  const espDuplicado = espacios.find(e=>
+    (e.nombre||'').toLowerCase()===nombre.toLowerCase() &&
+    e.codigo!==editCod && e.estado!=='eliminado'
+  );
+  if(espDuplicado){ showToast(`Ya existe un espacio llamado "${espDuplicado.nombre}"`,''); return; }
   // Detectar renombrado para propagar en cascada (mismo patrón que Departamentos)
   let nombreAnterior = null;
   if(isEdit){
@@ -9125,6 +9268,10 @@ function openDepartamento(codigo){
 }
 
 async function guardarDepartamento(){
+  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
+  // función también lo verifica — así ninguna ruta de escritura depende solo
+  // de que la interfaz haya escondido el control.
+  if(!(PERMS[session.rol]||{}).departamentos){ showToast('⛔ Sin permiso para modificar departamentos',''); return; }
   const nombre = document.getElementById('dep-nombre').value.trim();
   if(!nombre){ showToast('El nombre es obligatorio',''); return; }
   const editCod = document.getElementById('mod-departamento')._editCodigo;
@@ -9207,6 +9354,10 @@ async function guardarDepartamento(){
 }
 
 async function eliminarDepartamento(codigo){
+  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
+  // función también lo verifica — así ninguna ruta de escritura depende solo
+  // de que la interfaz haya escondido el control.
+  if(!(PERMS[session.rol]||{}).delete || !(PERMS[session.rol]||{}).departamentos){ showToast('⛔ Sin permiso para eliminar departamentos',''); return; }
   const d = departamentos.find(x=>x.codigo===codigo);
   if(!d) return;
   const enUso = activos.filter(a=>a.depto===d.nombre).length +
