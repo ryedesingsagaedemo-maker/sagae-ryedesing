@@ -1207,22 +1207,24 @@ tbody tr.clickable{cursor:pointer;}
           <input class="f-inp" id="per-nombre" placeholder="Ej: María González Herrera">
         </div>
         <div class="f-row">
-          <div class="f-lbl">Cargo / Función *</div>
+          <div class="f-lbl">Cargo / Función</div>
           <input class="f-inp" id="per-cargo" placeholder="Ej: Docente de Informática">
         </div>
         <div class="f-row">
-          <div class="f-lbl">Departamento *</div>
+          <div class="f-lbl">Departamento</div>
           <select class="f-inp f-sel" id="per-depto">
             <option value="">— Seleccionar departamento —</option>
           </select>
         </div>
         <div class="f-row">
-          <div class="f-lbl">📧 Correo electrónico *</div>
+          <div class="f-lbl">📧 Correo electrónico</div>
           <input class="f-inp" type="email" id="per-email" placeholder="correo@institucion.edu.pa" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
+          <div class="f-err" id="err-per-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
         </div>
         <div class="f-row">
           <div class="f-lbl">Teléfono</div>
-          <input class="f-inp" id="per-tel" placeholder="Ej: 6123-4567">
+          <input class="f-inp" id="per-tel" placeholder="Ej: 6123-4567" oninput="validateField(this,'phone','Ej: 6000-0000')" onblur="validateField(this,'phone','Ej: 6000-0000')">
+          <div class="f-err" id="err-per-tel">⚠ Solo números, guiones y paréntesis. Ej: 6000-0000</div>
         </div>
         <div class="f-row" style="grid-column:1/-1;">
           <div class="f-lbl">🏫 Responsable del espacio
@@ -1366,6 +1368,7 @@ tbody tr.clickable{cursor:pointer;}
         <option value="regular">Regular</option>
         <option value="deteriorado">Deteriorado</option>
         <option value="baja">Dado de baja</option>
+        <option value="eliminado">Eliminados</option>
       </select>
       <select class="f-sel" id="fil-mob-tipo" onchange="renderMobiliario()" style="min-width:140px;">
         <option value="todos">Todos los tipos</option>
@@ -1902,7 +1905,13 @@ tbody tr.clickable{cursor:pointer;}
     <option>Vehículo</option>
     <option>Otro</option>
   </optgroup>
-</select></div>
+</select>
+<div class="f-hint" id="note-ea-licencia" style="display:none;background:#FDF8E1;border-radius:6px;padding:8px 10px;margin-top:6px;">
+  💡 Si esta licencia se va a instalar en <strong>varios equipos</strong> y quieres controlar cupos
+  (cuántas instalaciones permite), usa mejor el módulo dedicado <strong>Licencias</strong> del menú —
+  este registro de Activo queda como una ficha individual, sin control de cupos ni instalaciones.
+</div>
+</div>
     <div class="f-row"><div class="f-lbl">Estado *</div><select class="f-inp f-sel" id="ea-estado"><option value="activo">Activo</option><option value="disponible">Disponible</option><option value="mantenimiento">Mantenimiento</option><option value="descarte">Descarte</option></select></div>
   </div>
   <div class="f-2">
@@ -4840,6 +4849,9 @@ function onChangeTipoActivo(tipo){
   const set = (id, texto) => { const el = document.getElementById(id); if(el) el.textContent = texto; };
   const placeholder = (id, texto) => { const el = document.getElementById(id); if(el) el.placeholder = texto; };
 
+  const noteLic = document.getElementById('note-ea-licencia');
+  if(noteLic) noteLic.style.display = esLicencia ? 'block' : 'none';
+
   if(esLicencia){
     set('lbl-ea-marca', 'Proveedor');
     placeholder('ea-marca', 'Microsoft, Adobe, Google...');
@@ -6275,6 +6287,11 @@ function repTrazabilidad(el, ts){
   ).filter(a=>(a.asignado||'Sin asignar')!==persona); // excluir los que ya están en actuales
 
   const totalActivos = activosActuales.length + activosHistoricos.length;
+  // Antes repDatosActuales se quedaba en [] para siempre en este reporte — el
+  // CSV/exportación salía vacío sin importar qué se agregara a exportCSV(),
+  // porque nunca había datos reales para exportar.
+  repDatosActuales = [...activosActuales, ...activosHistoricos].map(a=>({...a, _personaTrazada: persona,
+    _esActual: activosActuales.includes(a)}));
 
   // Para cada activo — buscar tickets vinculados
   const getTicketsActivo = (cod) => tickets.filter(t=>t.activoId===cod && t.estado!=='eliminado');
@@ -6491,6 +6508,21 @@ function exportCSV(){
   } else if(tipo==='mantenimientos'){
     headers=['Fecha','Activo código','Activo nombre','Tipo activo','Depto','Tipo mantenimiento','Descripción','Técnico','Costo'];
     rows=repDatosActuales.map(m=>[m.fecha||'',m.activoCodigo,m.activoNombre,m.activoTipo,m.activoDepto,m.tipo,m.desc,m.tec||'',m.costo||0]);
+  } else if(tipo==='trazabilidad'){
+    headers=['Código','Nombre','Tipo','Departamento','Estado','¿Actualmente asignado?','Tickets vinculados','Tickets cerrados'];
+    rows=repDatosActuales.map(a=>{
+      const tks=tickets.filter(t=>t.activoId===a.codigo && t.estado!=='eliminado');
+      return [a.codigo,a.nombre,a.tipo,a.depto||'',a.estado,a._esActual?'Sí':'No (histórico)',tks.length,tks.filter(t=>t.estado==='cerrado').length];
+    });
+  } else if(tipo==='mobiliario_inv'){
+    headers=['Código','Descripción','Tipo','Cantidad','Condición','Ubicación','Departamento','Material','Color','Fecha adquisición','Valor unitario','Valor total'];
+    rows=repDatosActuales.map(m=>[m.codigo,m.nombre,m.tipo,m.cantidad||1,m.condicion||'',m.ubicacion||'',m.depto||'',m.material||'',m.color||'',m.fecha||'',m.valor||0,(m.valor||0)*(m.cantidad||1)]);
+  } else if(tipo==='activos_espacio'){
+    headers=['Código','Nombre','Tipo','Espacio/Ubicación','Asignado a','Estado','Valor depreciado'];
+    rows=repDatosActuales.map(a=>[a.codigo,a.nombre,a.tipo,a.ubicacion||'Sin espacio definido',a.asignado||'',a.estado,calcDepre(a)]);
+  } else if(tipo==='activos_persona'){
+    headers=['Código','Nombre','Tipo','Asignado a','Ubicación','Estado','Garantía hasta'];
+    rows=repDatosActuales.map(a=>[a.codigo,a.nombre,a.tipo,a.asignado||'',a.ubicacion||'',a.estado,a.garantia||'']);
   }
 
   const csv=[headers,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
@@ -7171,11 +7203,14 @@ function descargarPlantillaActivos(){
       ['✅ Columna CÓDIGO', 'Dejarla VACÍA — el sistema la asigna automáticamente'],
       [''],
       ['VALORES VÁLIDOS PARA COLUMNA TIPO'],
-      ['Laptop', 'Computadora', 'Impresora', 'Monitor', 'Proyector', 'Tablet'],
-      ['Teléfono', 'Servidor', 'Switch', 'Router', 'Cámara', 'UPS', 'Escáner', 'Otro'],
+      ['Computadora', 'Laptop', 'Tablet', 'Móvil', 'Monitor', 'Impresora'],
+      ['Escáner', 'Lector de Código de Barras', 'Servidor', 'Router', 'Switch / Hub', 'Access Point'],
+      ['Antena WiFi', 'Firewall', 'Cableado / Patch Panel', 'Cámara', 'NVR', 'Proyector'],
+      ['Televisor', 'Bocina / Audio', 'UPS', 'Regulador', 'Teléfono IP', 'Licencia de Software'],
+      ['Red / Switch', 'Vehículo', 'Otro'],
       [''],
       ['VALORES VÁLIDOS PARA COLUMNA ESTADO'],
-      ['activo', 'mantenimiento', 'baja'],
+      ['activo', 'mantenimiento', 'descarte'],
       [''],
       ['¿Dudas? Contacta a RYE Design: corpas84@hotmail.com  ·  (507) 6225-1042'],
     ];
@@ -7219,12 +7254,14 @@ function descargarPlantillaActivos(){
 
     // Validaciones de datos (desplegables)
     if(!wsData['!dataValidation']) wsData['!dataValidation'] = [];
-    // TIPO — columna C (index 2), filas 5-204
+    // TIPO — columna C (index 2), filas 5-204. Antes esta lista solo tenía 14
+    // de los 21+ tipos del formulario normal (faltaba, entre otros, "Licencia
+    // de Software") — un equipo de esos tipos no se podía importar por lote.
     wsData['!dataValidation'].push({
       type:'list', sqref:'C5:C204', allowBlank:true,
-      formula1:'"Laptop,Computadora,Impresora,Monitor,Proyector,Tablet,Teléfono,Servidor,Switch,Router,Cámara,UPS,Escáner,Otro"',
+      formula1:'"Computadora,Laptop,Tablet,Móvil,Monitor,Impresora,Escáner,Lector de Código de Barras,Servidor,Router,Switch / Hub,Access Point,Antena WiFi,Firewall,Cableado / Patch Panel,Cámara,NVR,Proyector,Televisor,Bocina / Audio,UPS,Regulador,Teléfono IP,Licencia de Software,Red / Switch,Vehículo,Otro"',
       showDropDown:false, showErrorMessage:true,
-      errorTitle:'Tipo inválido', error:'Use el desplegable: Laptop, Computadora, Impresora...'
+      errorTitle:'Tipo inválido', error:'Use el desplegable de la columna TIPO'
     });
     // ESTADO — columna D (index 3), filas 5-204
     wsData['!dataValidation'].push({
@@ -7314,7 +7351,25 @@ function procesarCSVActivos(csvText){
     return;
   }
 
-  const TIPOS_VALIDOS = ['laptop','computadora','impresora','monitor','proyector','tablet','teléfono','telefono','servidor','switch','router','cámara','camara','ups','escáner','escaner','otro'];
+  // Lista completa de tipos del formulario normal — antes solo cubría 14 de
+  // los 21+ tipos reales (faltaba, entre otros, "Licencia de Software"), así
+  // que un equipo de esos tipos no se podía importar por lote. Cada entrada
+  // mapea el texto tal como aparece en el desplegable al valor interno real
+  // que usa el sistema (para "Licencia de Software" ese valor es "Software").
+  const TIPOS_CANONICOS = {
+    'computadora':'Computadora', 'laptop':'Laptop', 'tablet':'Tablet', 'móvil':'Móvil', 'movil':'Móvil',
+    'monitor':'Monitor', 'impresora':'Impresora', 'escáner':'Escáner', 'escaner':'Escáner',
+    'lector de código de barras':'Lector de Código de Barras', 'lector de codigo de barras':'Lector de Código de Barras',
+    'servidor':'Servidor', 'router':'Router', 'switch / hub':'Switch / Hub', 'switch/hub':'Switch / Hub',
+    'red / switch':'Red / Switch', 'red/switch':'Red / Switch', 'switch':'Switch / Hub',
+    'access point':'Access Point', 'antena wifi':'Antena WiFi', 'firewall':'Firewall',
+    'cableado / patch panel':'Cableado / Patch Panel', 'cableado/patch panel':'Cableado / Patch Panel',
+    'cámara':'Cámara', 'camara':'Cámara', 'nvr':'NVR', 'proyector':'Proyector', 'televisor':'Televisor',
+    'bocina / audio':'Bocina / Audio', 'bocina/audio':'Bocina / Audio', 'ups':'UPS', 'regulador':'Regulador',
+    'teléfono ip':'Teléfono IP', 'telefono ip':'Teléfono IP', 'teléfono':'Teléfono IP', 'telefono':'Teléfono IP',
+    'licencia de software':'Software', 'software':'Software',
+    'vehículo':'Vehículo', 'vehiculo':'Vehículo', 'otro':'Otro'
+  };
   const ESTADOS_VALIDOS = ['activo','mantenimiento','descarte'];
 
   let registros = [], errores = [], filaNum = 2;
@@ -7338,7 +7393,7 @@ function procesarCSVActivos(csvText){
     const errs = [];
     if(!obj.nombre) errs.push('nombre vacío');
     if(!obj.tipo)   errs.push('tipo vacío');
-    else if(!TIPOS_VALIDOS.includes(obj.tipo.toLowerCase())) errs.push(`tipo inválido: "${obj.tipo}"`);
+    else if(!TIPOS_CANONICOS[obj.tipo.toLowerCase().trim()]) errs.push(`tipo inválido: "${obj.tipo}"`);
     if(!obj.estado) errs.push('estado vacío');
     else if(!ESTADOS_VALIDOS.includes(obj.estado.toLowerCase())) errs.push(`estado inválido: "${obj.estado}"`);
     if(obj.valor && isNaN(parseFloat(obj.valor))) errs.push('valor no es número');
@@ -7347,8 +7402,11 @@ function procesarCSVActivos(csvText){
     if(errs.length){
       errores.push({fila:filaNum, nombre:obj.nombre||'(sin nombre)', errores:errs});
     } else {
-      // Normalizar
-      obj.tipo   = obj.tipo.charAt(0).toUpperCase()+obj.tipo.slice(1).toLowerCase();
+      // Normalizar — usar el valor interno real del tipo (ej. "Software"
+      // para "Licencia de Software"), no una capitalización a ciegas que
+      // rompía los tipos de dos palabras (ej. "Switch / hub" en vez de
+      // "Switch / Hub").
+      obj.tipo   = TIPOS_CANONICOS[obj.tipo.toLowerCase().trim()];
       obj.estado = obj.estado.toLowerCase();
       obj.valor  = obj.valor ? parseFloat(obj.valor)||0 : 0;
       obj.vida   = obj.vida  ? parseInt(obj.vida)||0    : 0;
@@ -7806,8 +7864,13 @@ function renderMobiliario(){
   const tipoFil = document.getElementById('fil-mob-tipo')?.value||'todos';
   const per = PERMS[session.rol]||{};
 
-  let list = mobiliario.filter(m => m.estado !== 'eliminado');
-  if(estFil  !== 'todos') list = list.filter(m=>m.condicion===estFil);
+  // Antes un mobiliario eliminado desaparecía por completo de la interfaz —
+  // sin pestaña "Eliminados" como sí tiene Activos, no había forma de
+  // volver a verlo desde la pantalla normal.
+  let list = estFil==='eliminado'
+    ? mobiliario.filter(m => m.estado === 'eliminado')
+    : mobiliario.filter(m => m.estado !== 'eliminado');
+  if(estFil  !== 'todos' && estFil!=='eliminado') list = list.filter(m=>m.condicion===estFil);
   if(tipoFil !== 'todos') list = list.filter(m=>m.tipo===tipoFil);
   if(qRaw) list = list.filter(m=>
     (m.nombre||'').toLowerCase().includes(qRaw)||
@@ -7858,8 +7921,9 @@ function renderMobiliario(){
         <div style="font-weight:700;color:#3B6D11">Total: $${((m.valor||0)*(m.cantidad||1)).toLocaleString()}</div>
       </td>
       <td onclick="event.stopPropagation()">
+        ${m.estado==='eliminado' ? '<span style="font-size:10px;color:var(--red)">Eliminado</span>' : `
         ${per.edit?`<button class="act-btn" onclick="openMob('${m.codigo}')">✎</button>`:''}
-        ${per.delete?`<button class="act-btn" onclick="eliminarMob('${m.codigo}')" style="color:var(--red)">×</button>`:''}
+        ${per.delete?`<button class="act-btn" onclick="eliminarMob('${m.codigo}')" style="color:var(--red)">×</button>`:''}`}
       </td>
     </tr>`).join('');
 }
@@ -7902,6 +7966,10 @@ async function guardarMobiliario(){
 
   const editCodigo = document.getElementById('mod-mob')._editCodigo;
   const isEdit     = !!editCodigo;
+  // Antes esto REEMPLAZABA el historial completo con un solo evento nuevo en
+  // cada edición — se perdía todo lo anotado antes. Ahora se conserva y se
+  // agrega el evento nuevo al final, igual que en Activos.
+  const historialPrevio = isEdit ? parseHist(mobiliario.find(m=>m.codigo===editCodigo)?.historial) : [];
   const obj = {
     codigo:     isEdit ? editCodigo : '',
     nombre, tipo, condicion,
@@ -7915,7 +7983,7 @@ async function guardarMobiliario(){
     foto:       document.getElementById('mob-foto').value.trim(),
     obs:        document.getElementById('mob-obs').value.trim(),
     estado:     'activo',
-    historial:  JSON.stringify([{
+    historial:  JSON.stringify([...historialPrevio, {
       tipo: isEdit?'Edición':'Creación',
       desc: isEdit?`Editado por ${session.nombre}`:`Registrado por ${session.nombre}`,
       fecha: ts(), usuario: session.nombre, color:'blue'
@@ -7930,7 +7998,7 @@ async function guardarMobiliario(){
     await apiPost('mobiliario', isEdit?'update':'insert', obj);
     if(isEdit){
       const idx = mobiliario.findIndex(m=>m.codigo===editCodigo);
-      if(idx>=0) mobiliario[idx]={...obj, cantidad:parseInt(obj.cantidad)||1, valor:parseFloat(obj.valor)||0};
+      if(idx>=0) mobiliario[idx]={...obj, cantidad:parseInt(obj.cantidad)||1, valor:parseFloat(obj.valor)||0, historial:parseHist(obj.historial)};
     } else {
       // Código asignado por el servidor — recargar
       const raw = await apiGet('mobiliario');
@@ -7953,13 +8021,25 @@ async function guardarMobiliario(){
 
 // ── ELIMINAR ──────────────────────────────────────────────────────
 async function eliminarMob(codigo){
-  if(!confirm('¿Eliminar este elemento del inventario de mobiliario?')) return;
   const m = mobiliario.find(x=>x.codigo===codigo);
   if(!m) return;
+  const motivo = prompt(`Eliminar "${m.nombre}" del inventario de mobiliario.\n\nMotivo (obligatorio, queda en el historial):`);
+  if(motivo===null) return; // canceló
+  if(!motivo.trim()){ showToast('El motivo es obligatorio',''); return; }
   try{
-    await apiPost('mobiliario','update',{...m, estado:'eliminado'});
+    // Antes esto no dejaba ningún rastro en el propio historial del elemento
+    // (a diferencia de Activos, que sí exige motivo y anota "Eliminación
+    // lógica") — solo quedaba en la Auditoría general, invisible desde la
+    // ficha del mobiliario.
+    const historialPrevio = parseHist(m.historial);
+    const nuevoHistorial = [...historialPrevio, {
+      tipo:'Eliminación lógica', desc:`Eliminado por ${session.nombre}. Motivo: ${motivo.trim()}`,
+      fecha: ts(), usuario: session.nombre, color:'red'
+    }];
+    await apiPost('mobiliario','update',{...m, estado:'eliminado', historial:JSON.stringify(nuevoHistorial)});
     m.estado='eliminado';
-    audit('ELIMINAR','Mobiliario',codigo,`Eliminado: ${m.nombre}`);
+    m.historial=nuevoHistorial;
+    audit('ELIMINAR','Mobiliario',codigo,`Eliminado: ${m.nombre}. Motivo: ${motivo.trim()}`);
     showToast('Elemento eliminado','success');
     go('mobiliario',document.getElementById('nav-mobiliario'));
   }catch(e){ showToast('Error: '+e.message,''); }
@@ -8636,7 +8716,7 @@ function openPersona(codigo){
   // Poblar select de espacios
   const selEsp = document.getElementById('per-espacio');
   selEsp.innerHTML = '<option value="">— No es responsable de ningún espacio —</option>' +
-    espacios.filter(e=>e.estado!=='inactivo').map(e=>
+    espacios.filter(e=>e.estado!=='inactivo' && e.estado!=='eliminado').map(e=>
       `<option value="${e.nombre}">${e.nombre} (${e.tipo||'Espacio'})</option>`
     ).join('');
   selEsp.value = p.espacioResponsable||'';
@@ -8684,10 +8764,26 @@ async function guardarPersona(){
       const raw = await apiGet('personas');
       personas = Array.isArray(raw) ? raw.map(r=>({...r})) : personas;
     }
-    // Si tiene espacio responsable, actualizar el espacio
+    // Si tiene espacio responsable, actualizar el espacio — en memoria Y en el servidor
+    // (antes solo se actualizaba en memoria: el cambio se perdía al recargar la página)
+    const espaciosAActualizar = [];
     if(obj.espacioResponsable){
       const esp = espacios.find(e=>e.nombre===obj.espacioResponsable);
-      if(esp){ esp.responsableNombre=nombre; esp.responsableEmail=email; }
+      if(esp && (esp.responsableNombre!==nombre || esp.responsableEmail!==email)){
+        esp.responsableNombre=nombre; esp.responsableEmail=email;
+        espaciosAActualizar.push(esp);
+      }
+    }
+    // Si esta persona dejó de ser responsable de un espacio (se quitó o se cambió a otro),
+    // limpiar ese espacio para que no siga mostrando a alguien que ya no es su responsable.
+    if(Array.isArray(espacios)){
+      espacios.filter(e=>e.responsableNombre===nombre && e.nombre!==obj.espacioResponsable).forEach(e=>{
+        e.responsableNombre=''; e.responsableEmail='';
+        espaciosAActualizar.push(e);
+      });
+    }
+    if(espaciosAActualizar.length){
+      await Promise.all(espaciosAActualizar.map(e=>apiPost('espacios','update',e)));
     }
     if(isEdit){
       audit('EDITAR','Personas',obj.codigo,`Editada por ${session.nombre}: ${nombre}`);
@@ -8704,13 +8800,37 @@ async function guardarPersona(){
 
 // ── ELIMINAR PERSONA ──────────────────────────────────────────────
 async function eliminarPersona(codigo){
-  if(!confirm('¿Eliminar esta persona? Los equipos que tenga asignados quedarán sin asignado.')) return;
+  const p0 = personas.find(x=>x.codigo===codigo);
+  if(!p0) return;
+  const equiposAsignados = activos.filter(a=>a.asignado===p0.nombre && a.estado!=='eliminado');
+  const espacioAResp = Array.isArray(espacios) ? espacios.find(e=>e.responsableNombre===p0.nombre) : null;
+  const partes = [];
+  if(equiposAsignados.length) partes.push(`${equiposAsignados.length} equipo(s) quedarán sin asignado`);
+  if(espacioAResp) partes.push(`dejará de ser responsable del espacio "${espacioAResp.nombre}"`);
+  const msg = partes.length
+    ? `¿Eliminar a "${p0.nombre}"? ${partes.join(' y ')}.`
+    : `¿Eliminar a "${p0.nombre}"?`;
+  if(!confirm(msg)) return;
   const p = personas.find(x=>x.codigo===codigo);
   if(!p) return;
   try{
     await apiPost('personas','update',{...p,estado:'eliminado'});
     p.estado='eliminado';
-    audit('ELIMINAR','Personas',codigo,`Eliminada: ${p.nombre}`);
+    // Cascada real: limpiar la referencia en los equipos que la tenían asignada,
+    // y en el espacio del que era responsable — antes el mensaje lo prometía
+    // pero el código no lo hacía, y los registros quedaban apuntando en silencio
+    // a una persona eliminada.
+    const promesas = [];
+    equiposAsignados.forEach(a=>{
+      a.asignado=''; a.asignadoEmail=''; a.asignadoCargo='';
+      promesas.push(apiPost('activos','update',a));
+    });
+    if(espacioAResp){
+      espacioAResp.responsableNombre=''; espacioAResp.responsableEmail='';
+      promesas.push(apiPost('espacios','update',espacioAResp));
+    }
+    if(promesas.length) await Promise.all(promesas);
+    audit('ELIMINAR','Personas',codigo,`Eliminada: ${p.nombre}. Cascada: ${equiposAsignados.length} equipo(s) desasignados${espacioAResp?`, espacio "${espacioAResp.nombre}" sin responsable`:''}`);
     renderPersonas();
     showToast('Persona eliminada','success');
   }catch(e){ showToast('Error: '+e.message,''); }
@@ -8836,11 +8956,18 @@ async function guardarEspacio(){
   if(!nombre){ showToast('El nombre del espacio es obligatorio',''); return; }
   const editCod = document.getElementById('mod-espacio')._editCodigo;
   const isEdit  = !!editCod;
+  // Detectar renombrado para propagar en cascada (mismo patrón que Departamentos)
+  let nombreAnterior = null;
+  if(isEdit){
+    const espActual = espacios.find(e=>e.codigo===editCod);
+    if(espActual && espActual.nombre !== nombre) nombreAnterior = espActual.nombre;
+  }
   // Obtener email del responsable desde el select
   const selResp = document.getElementById('esp-responsable');
   const respNombre = selResp.value;
   const respOpt = selResp.options[selResp.selectedIndex];
   const respEmail = respOpt?.dataset?.email || '';
+  const respAnterior = isEdit ? (espacios.find(e=>e.codigo===editCod)?.responsableNombre||'') : '';
   const obj = {
     codigo:             isEdit ? editCod : '',
     nombre,
@@ -8861,26 +8988,52 @@ async function guardarEspacio(){
     if(isEdit){
       const idx = espacios.findIndex(e=>e.codigo===editCod);
       if(idx>=0) espacios[idx]={...obj};
-      // Actualizar email en activos del espacio — memoria Y Sheets
-    const activosEspacio = activos.filter(a=>a.ubicacion===nombre && a.estado!=='eliminado');
-    activosEspacio.forEach(a=>{ a.responsableEspacioEmail = respEmail; });
-    if(activosEspacio.length > 0){
-      await Promise.all(activosEspacio.map(a=>apiPost('activos','update',a)));
-    }
+      // Los activos/mobiliario de este espacio se buscan por el nombre ANTERIOR
+      // (antes de este fix se buscaban por el nombre nuevo, que todavía ningún
+      // registro tiene — esa comparación siempre daba 0 resultados tras un
+      // renombrado real).
+      const buscarPorNombre = nombreAnterior || nombre;
+      const activosEspacio = activos.filter(a=>a.ubicacion===buscarPorNombre && a.estado!=='eliminado');
+      const promesas = [];
+      activosEspacio.forEach(a=>{
+        a.responsableEspacioEmail = respEmail;
+        if(nombreAnterior) a.ubicacion = nombre;
+        promesas.push(apiPost('activos','update',a));
+      });
+      // Cascada a Mobiliario si se renombró (Activos ya se cubría antes; Mobiliario no)
+      if(nombreAnterior && Array.isArray(mobiliario)){
+        mobiliario.filter(m=>m.ubicacion===nombreAnterior).forEach(m=>{
+          m.ubicacion=nombre;
+          promesas.push(apiPost('mobiliario','update',m));
+        });
+      }
+      if(promesas.length > 0) await Promise.all(promesas);
     } else {
       const raw = await apiGet('espacios');
       espacios = Array.isArray(raw) ? raw.map(r=>({...r})) : espacios;
     }
-    // Actualizar la persona como responsable del espacio
+    // Actualizar la persona como responsable del espacio — en memoria Y en el
+    // servidor (antes solo quedaba en memoria y se perdía al recargar), y
+    // limpiar a quien dejó de serlo si el responsable cambió.
+    const personasAActualizar = [];
     if(respNombre){
       const per = personas.find(p=>p.nombre===respNombre);
-      if(per) per.espacioResponsable = nombre;
+      if(per && per.espacioResponsable!==nombre){ per.espacioResponsable = nombre; personasAActualizar.push(per); }
     }
-    audit('CREAR','Espacios',obj.codigo||'NUEVO',isEdit?`Espacio editado: ${nombre}`:`Espacio registrado: ${nombre}`);
+    if(respAnterior && respAnterior!==respNombre){
+      const pa = personas.find(p=>p.nombre===respAnterior);
+      if(pa && pa.espacioResponsable===(nombreAnterior||nombre)){ pa.espacioResponsable=''; personasAActualizar.push(pa); }
+    }
+    if(personasAActualizar.length) await Promise.all(personasAActualizar.map(p=>apiPost('personas','update',p)));
+    if(nombreAnterior){
+      audit('EDITAR','Espacios',obj.codigo,`Renombrado por ${session.nombre}: "${nombreAnterior}" → "${nombre}". Cascada aplicada a activos y mobiliario.`);
+    } else {
+      audit('CREAR','Espacios',obj.codigo||'NUEVO',isEdit?`Espacio editado: ${nombre}`:`Espacio registrado: ${nombre}`);
+    }
     closeModals();
     renderEspacios();
     buildDataLists();
-    showToast(isEdit?'✅ Espacio actualizado':'✅ Espacio registrado','success');
+    showToast(isEdit?(nombreAnterior?'✅ Espacio renombrado. Referencias actualizadas.':'✅ Espacio actualizado'):'✅ Espacio registrado','success');
   }catch(e){ showToast('Error: '+e.message,''); }
   finally{ btn.disabled=false; btn.textContent='Guardar espacio'; }
 }
@@ -8889,13 +9042,15 @@ async function guardarEspacio(){
 async function eliminarEspacio(codigo){
   const e0 = espacios.find(x=>x.codigo===codigo);
   if(!e0) return;
-  const equiposEnEspacio = activos.filter(a=>a.ubicacion===e0.nombre && a.estado!=='eliminado').length;
-  const persResponsable  = Array.isArray(personas) ? personas.filter(p=>p.espacioResponsable===e0.nombre && p.estado!=='inactivo').length : 0;
-  if(equiposEnEspacio > 0 || persResponsable > 0){
+  const equiposEnEspacio  = activos.filter(a=>a.ubicacion===e0.nombre && a.estado!=='eliminado');
+  const mobiliarioEspacio = Array.isArray(mobiliario) ? mobiliario.filter(m=>m.ubicacion===e0.nombre && m.estado!=='eliminado') : [];
+  const persResponsable   = Array.isArray(personas) ? personas.filter(p=>p.espacioResponsable===e0.nombre && p.estado!=='inactivo') : [];
+  if(equiposEnEspacio.length || mobiliarioEspacio.length || persResponsable.length){
     const msg = [];
-    if(equiposEnEspacio > 0) msg.push(`${equiposEnEspacio} equipo(s) tienen este espacio como ubicación`);
-    if(persResponsable  > 0) msg.push(`${persResponsable} persona(s) son responsables de este espacio`);
-    if(!confirm('⚠️ Atención:\n' + msg.join('\n') + '\n\n¿Deseas eliminar el espacio de todas formas? Los registros relacionados quedarán sin espacio asignado.')) return;
+    if(equiposEnEspacio.length)  msg.push(`${equiposEnEspacio.length} equipo(s) tienen este espacio como ubicación`);
+    if(mobiliarioEspacio.length) msg.push(`${mobiliarioEspacio.length} elemento(s) de mobiliario tienen este espacio como ubicación`);
+    if(persResponsable.length)   msg.push(`${persResponsable.length} persona(s) son responsables de este espacio`);
+    if(!confirm('⚠️ Atención:\n' + msg.join('\n') + '\n\n¿Deseas eliminar el espacio de todas formas? Se les quitará esta ubicación/responsabilidad a esos registros.')) return;
   } else {
     if(!confirm(`¿Eliminar el espacio "${e0.nombre}"?`)) return;
   }
@@ -8904,8 +9059,18 @@ async function eliminarEspacio(codigo){
   try{
     await apiPost('espacios','update',{...e,estado:'eliminado'});
     e.estado='eliminado';
-    audit('ELIMINAR','Espacios',codigo,`Eliminado: ${e.nombre}`);
+    // Cascada real: antes el mensaje decía que estos registros "quedarían sin
+    // espacio asignado" pero seguían apuntando en silencio a un espacio ya
+    // eliminado — ahora sí se limpia la referencia en cada uno.
+    const promesas = [];
+    equiposEnEspacio.forEach(a=>{ a.ubicacion=''; a.responsableEspacioEmail=''; promesas.push(apiPost('activos','update',a)); });
+    mobiliarioEspacio.forEach(m=>{ m.ubicacion=''; promesas.push(apiPost('mobiliario','update',m)); });
+    persResponsable.forEach(p=>{ p.espacioResponsable=''; promesas.push(apiPost('personas','update',p)); });
+    if(promesas.length) await Promise.all(promesas);
+    audit('ELIMINAR','Espacios',codigo,`Eliminado: ${e.nombre}. Cascada: ${equiposEnEspacio.length} activo(s), ${mobiliarioEspacio.length} mobiliario, ${persResponsable.length} persona(s) desvinculados.`);
     renderEspacios();
+    renderActivos();
+    if(typeof renderMobiliario==='function') renderMobiliario();
     showToast('Espacio eliminado','success');
   }catch(e2){ showToast('Error: '+e2.message,''); }
 }
@@ -9019,6 +9184,11 @@ async function guardarDepartamento(){
       if(Array.isArray(mobiliario)) mobiliario.filter(m=>m.depto===nombreAnterior).forEach(m=>{
         m.depto=nombre; promises.push(apiPost('mobiliario','update',m)); cascadeCount++;
       });
+      // Espacios — antes no se incluía en esta cascada; un espacio podía quedar
+      // apuntando al nombre viejo del departamento sin que nada lo actualizara.
+      if(Array.isArray(espacios)) espacios.filter(e=>e.depto===nombreAnterior).forEach(e=>{
+        e.depto=nombre; promises.push(apiPost('espacios','update',e)); cascadeCount++;
+      });
       if(promises.length>0){
         await Promise.all(promises);
         showToast(`✅ Departamento renombrado. ${cascadeCount} registro(s) actualizados en cascada.`,'success');
@@ -9040,7 +9210,10 @@ async function eliminarDepartamento(codigo){
   const d = departamentos.find(x=>x.codigo===codigo);
   if(!d) return;
   const enUso = activos.filter(a=>a.depto===d.nombre).length +
-    (Array.isArray(personas)?personas.filter(p=>p.depto===d.nombre).length:0);
+    (Array.isArray(personas)?personas.filter(p=>p.depto===d.nombre).length:0) +
+    // Antes este chequeo no contaba Espacios — se podía eliminar un departamento
+    // que todavía tenía espacios asignados.
+    (Array.isArray(espacios)?espacios.filter(e=>e.depto===d.nombre && e.estado!=='eliminado').length:0);
   if(enUso > 0){
     showToast(`No se puede eliminar: ${enUso} registro(s) usan este departamento`,'');
     return;

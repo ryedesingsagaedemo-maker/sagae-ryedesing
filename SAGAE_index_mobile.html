@@ -1468,6 +1468,17 @@ async function _completarLoginExitosoMobile_(resp, usernameIngresado, err){
   resetInactivityTimer();
   renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();
   iniciarPollingMobile(); pedirPermisosNotifMobile();
+  _aplicarDeepLinkMobile();
+}
+// v2.4: soporta los accesos directos del manifest.json (#tickets,
+// #inventario) — se llama solo después de que el login/sesión ya resolvió
+// y la UI principal está visible, nunca antes.
+function _aplicarDeepLinkMobile(){
+  const hash = (location.hash||"").replace("#","");
+  const navPorTab = {tickets:"nav-tickets", inventario:"nav-inventario"};
+  if(navPorTab[hash]){
+    goScreen(hash, document.getElementById(navPorTab[hash]));
+  }
 }
 function goScreen(name, el){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
@@ -2761,6 +2772,7 @@ async function saveForcePass(){
   document.getElementById("um-role").textContent=session.rol==="admin"?"Administrador":"Técnico";
   renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();resetInactivityTimer();iniciarControlSesionUnicaMobile();
   showToast("¡Contraseña creada exitosamente! ✓","success");
+  _aplicarDeepLinkMobile();
 }
 window.addEventListener("online",()=>{
   /* v2.4: volver a tener red NO significa que los datos ya estén al día.
@@ -2815,7 +2827,13 @@ async function solicitarNotificaciones(){
   const perm=await Notification.requestPermission();
   if(perm==="granted"){ showToast("Notificaciones activadas ✓","success"); verificarDeadlinesMobile(); }
 }
+function _abrirTicketDesdeNotifMobile(codigo){
+  window.focus();
+  goScreen("tickets", document.getElementById("nav-tickets"));
+  openTicketSheet(codigo);
+}
 function verificarDeadlinesMobile(){
+  if(!("Notification" in window) || Notification.permission !== "granted") return;
   const hoy=new Date();
   tickets.filter(t=>{
     if(!t.dead||t.dead==="—"||t.estado==="cerrado")return false;
@@ -2824,7 +2842,8 @@ function verificarDeadlinesMobile(){
     return dias>=0&&dias<=3;
   }).forEach(t=>{
     const dias=Math.ceil((new Date(t.dead)-hoy)/(24*3600*1000));
-    new Notification("SAGAE — Deadline próximo",{body:`${t.codigo}: ${t.titulo} vence ${dias===0?"hoy":"en "+dias+" días"}`,icon:"icons/icon-192.png",badge:"icons/icon-96.png"});
+    const n=new Notification("SAGAE — Deadline próximo",{body:`${t.codigo}: ${t.titulo} vence ${dias===0?"hoy":"en "+dias+" días"}`,icon:"icons/icon-192.png",badge:"icons/icon-96.png"});
+    n.onclick=()=>{ _abrirTicketDesdeNotifMobile(t.codigo); n.close(); };
   });
 }
 document.addEventListener("DOMContentLoaded",()=>{
@@ -2931,11 +2950,12 @@ async function _ejecutarPollMob(){
         showToast('⚠ '+t.resp+' tomó tu ticket '+t.codigo, 'error');
         if('Notification' in window && Notification.permission==='granted'){
           try{
-            new Notification('SAGAE — Ticket reasignado', {
+            const n=new Notification('SAGAE — Ticket reasignado', {
               body: t.codigo+': '+t.titulo+' — ahora lo atiende '+t.resp,
               icon:'icons/icon-192.png', badge:'icons/icon-96.png',
               tag:'reasignado-'+t.codigo
             });
+            n.onclick=()=>{ _abrirTicketDesdeNotifMobile(t.codigo); n.close(); };
           }catch(e){}
         }
       });
@@ -2952,7 +2972,7 @@ function _notifNativaMobile(nuevos){
   if(Notification.permission !== 'granted') return;
   nuevos.slice(0,2).forEach(t=>{
     try{
-      new Notification('SAGAE — Nuevo ticket', {
+      const n=new Notification('SAGAE — Nuevo ticket', {
         body: t.titulo+(t.prior==='urgente'?' 🔴 URGENTE':'')
              +' | '+( t.resp&&t.resp!=='—'&&t.resp!=='Sin asignar'
                ? 'Asignado a: '+t.resp : 'Sin asignar'),
@@ -2961,6 +2981,7 @@ function _notifNativaMobile(nuevos){
         tag:   t.codigo,
         vibrate: t.prior==='urgente' ? [200,100,200] : [150]
       });
+      n.onclick=()=>{ _abrirTicketDesdeNotifMobile(t.codigo); n.close(); };
     }catch(e){}
   });
 }
