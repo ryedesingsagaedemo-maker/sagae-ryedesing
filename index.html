@@ -2029,13 +2029,16 @@ tbody tr.clickable{cursor:pointer;}
 <div class="modal-bg" id="mod-ticket"><div class="modal">
   <div class="modal-title"><span id="mod-ticket-title">Nuevo ticket</span><button id="et-expediente-btn" class="btn" style="display:none;font-size:11px;padding:4px 10px;margin-left:8px;" onclick="imprimirExpedienteTicket(document.getElementById('et-id').value)"><span class="nav-ico" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span> Expediente</button><button class="modal-close" onclick="closeModals()">✕</button></div>
   <input type="hidden" id="et-id">
+  <!-- Distingue de un vistazo si se está creando o editando: antes las dos
+       pantallas se veían prácticamente iguales y era fácil confundirlas. -->
+  <div id="et-modo-banner" style="display:none;font-size:11.5px;font-weight:600;border-radius:6px;padding:7px 10px;margin-bottom:10px;"></div>
   <div class="f-row"><div class="f-lbl">Título *</div><input class="f-inp" id="et-titulo" placeholder="Describe el problema o tarea..."></div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Activo vinculado</div><select class="f-inp f-sel" id="et-activo"><option value="">— Sin activo —</option></select></div>
+    <div class="f-row"><div class="f-lbl">Activo vinculado</div><select class="f-inp f-sel" id="et-activo" onchange="_etActualizarBloqueRecepcionNueva()"><option value="">— Sin activo —</option></select></div>
     <div class="f-row"><div class="f-lbl">Responsable</div><select class="f-inp f-sel" id="et-resp"><option value="">— Selecciona responsable —</option></select></div>
   </div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Tipo</div><select class="f-inp f-sel" id="et-tipo"><option value="incidencia">Incidencia</option><option value="mantenimiento">Mantenimiento</option><option value="solicitud">Solicitud</option><option value="tarea">Tarea</option></select></div>
+    <div class="f-row"><div class="f-lbl">Tipo</div><select class="f-inp f-sel" id="et-tipo" onchange="_etActualizarBloqueRecepcionNueva()"><option value="incidencia">Incidencia</option><option value="mantenimiento">Mantenimiento</option><option value="solicitud">Solicitud</option><option value="tarea">Tarea</option></select></div>
     <div class="f-row"><div class="f-lbl">Prioridad</div><select class="f-inp f-sel" id="et-prior"><option value="urgente">Urgente</option><option value="importante" selected>Importante</option><option value="normal">Normal</option></select></div>
   </div>
   <div class="f-2">
@@ -2072,6 +2075,34 @@ tbody tr.clickable{cursor:pointer;}
     <div class="req-note">Motivo obligatorio — queda registrado en auditoría.</div>
     <div class="f-lbl">Motivo de la edición *</div>
     <input class="f-inp" id="et-motivo" placeholder="Ej: Corrección de responsable...">
+  </div>
+  <!-- SOLO EN CREACIÓN: el técnico que ya tiene el equipo en la mano no debería
+       tener que guardar el ticket, reabrirlo y recién ahí confirmar recepción.
+       Si marca esto, la entrada a mantenimiento se registra sola apenas el
+       servidor devuelve el código real del ticket. -->
+  <div class="f-row" id="et-recibir-ya-wrap" style="display:none;background:#FDF8E1;border-radius:6px;padding:8px;">
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer">
+      <input type="checkbox" id="et-recibir-ya-chk" style="width:16px;height:16px;cursor:pointer"
+        onchange="document.getElementById('et-recibir-ya-campos').style.display=this.checked?'block':'none'">
+      📥 El equipo ya está en mis manos — confirmar recepción al crear el ticket
+    </label>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px">
+      Márcalo solo si IT ya tiene el equipo físicamente. Si el equipo llega después,
+      deja esto sin marcar y usa "Confirmar recepción" al abrir el ticket ya creado.
+    </div>
+    <div id="et-recibir-ya-campos" style="display:none;margin-top:10px">
+      <div class="f-lbl">¿Quién entrega el equipo?</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+        <input class="f-inp" id="et-recibir-ya-nombre" placeholder="Nombre de quien entrega" style="flex:1;min-width:160px">
+        <input class="f-inp" type="email" id="et-recibir-ya-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px"
+          oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
+      </div>
+      <div class="f-err" id="err-et-recibir-ya-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
+      <div style="font-size:10px;color:var(--text3)">
+        Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo entrega físicamente.
+        La foto del equipo al recibirlo se agrega después, desde el ticket ya creado.
+      </div>
+    </div>
   </div>
   <div class="f-row" id="et-entrada-mant-wrap" style="display:none;background:#FDF8E1;border-radius:6px;padding:8px;">
     <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">
@@ -2376,6 +2407,20 @@ function _generarOpId(){
   return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12);
 }
 
+// ── IDENTIDAD ESTABLE DEL TICKET QUE SE ESTÁ CREANDO ────────────────
+// El servidor descarta una operación repetida si llega con el mismo _opId
+// (la recuerda 10 minutos). Pero hasta ahora cada clic en "Guardar ticket"
+// generaba un _opId NUEVO, así que para el servidor eran operaciones
+// distintas y creaba un ticket por cada clic. Ese era el origen real de los
+// duplicados cuando alguien, cansado de esperar, volvía a hacer clic.
+//
+// Ahora el _opId se genera UNA vez por cada "Nuevo ticket" que se abre y se
+// mantiene mientras la creación no se haya confirmado: si el usuario insiste,
+// todos los intentos viajan con la misma identidad y el servidor devuelve el
+// ticket que ya creó en vez de crear otro. Solo se descarta al confirmarse
+// la creación (o al abrir un ticket nuevo distinto).
+let _opIdTicketNuevo = null;
+
 async function apiPost(sheet,action,payload){
   // uploadFoto no necesita sheet
   const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _sessionToken: session?session.token:null,
@@ -2553,7 +2598,11 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
   await new Promise(r=>setTimeout(r, 800));
 
   const inicio = Date.now();
-  let intervalo = 500;
+  // Cada sondeo es una ejecución nueva de Apps Script que compite con el POST
+  // que todavía está escribiendo. Sondear cada 500ms generaba una ráfaga que
+  // retrasaba justo la operación que se estaba esperando; con un intervalo
+  // más espaciado se hacen menos de la mitad de llamadas en el mismo tiempo.
+  let intervalo = 1200;
   while(Date.now()-inicio < timeoutMs){
     try{
       const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(), {mode:'cors'});
@@ -2563,7 +2612,7 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
       }
     }catch(e){ /* seguir intentando hasta agotar el tiempo */ }
     await new Promise(r=>setTimeout(r, intervalo));
-    if(intervalo < 2000) intervalo = Math.min(intervalo * 1.4, 2000);
+    if(intervalo < 3000) intervalo = Math.min(intervalo * 1.4, 3000);
   }
   return {ok:false, error:'TIMEOUT', message:'El servidor tardó demasiado en responder. Intenta de nuevo.'};
 }
@@ -3905,6 +3954,32 @@ function renderTicketHistorial(t){
   wrap.style.display='block';
 }
 
+// Muestra el bloque "el equipo ya está en mis manos" solo cuando tiene
+// sentido: creando un ticket, de tipo Mantenimiento, con un activo vinculado
+// que no esté ya en mantenimiento. Se llama al abrir el modal y cada vez que
+// cambia Tipo o Activo vinculado, porque en la creación esos dos se eligen
+// sobre la marcha.
+function _etActualizarBloqueRecepcionNueva(){
+  const wrap = document.getElementById('et-recibir-ya-wrap');
+  if(!wrap) return;
+  const esCreacion = !document.getElementById('et-id').value;
+  const tipo   = document.getElementById('et-tipo').value;
+  const actCod = document.getElementById('et-activo').value;
+  const act    = actCod ? activos.find(a=>a.codigo===actCod) : null;
+  const aplica = esCreacion && tipo==='mantenimiento' && act && act.estado!=='mantenimiento';
+  wrap.style.display = aplica ? 'block' : 'none';
+  if(!aplica){
+    document.getElementById('et-recibir-ya-chk').checked = false;
+    document.getElementById('et-recibir-ya-campos').style.display = 'none';
+    return;
+  }
+  // Sugerir al asignado del equipo, igual que hace "Confirmar recepción"
+  const nom = document.getElementById('et-recibir-ya-nombre');
+  const ema = document.getElementById('et-recibir-ya-email');
+  if(nom && !nom.value) nom.value = (act.asignado && act.asignado!=='—') ? act.asignado : '';
+  if(ema && !ema.value) ema.value = act.asignadoEmail || '';
+}
+
 function openTicket(id,forceReadOnly){
   const isEdit=id!=null;
   const per=PERMS[session.rol]||{};
@@ -3917,6 +3992,22 @@ function openTicket(id,forceReadOnly){
   document.getElementById('et-save-btn').style.display=readOnly?'none':'';
   document.getElementById('et-motivo-wrap').style.display=(isEdit&&!readOnly)?'block':'none';
   document.getElementById('et-readonly-note').style.display=readOnly?'block':'none';
+  // Banner de modo — crear y editar se veían casi idénticos
+  const _banner = document.getElementById('et-modo-banner');
+  if(_banner){
+    _banner.style.display='block';
+    if(!isEdit){
+      _banner.textContent='🆕 Estás creando un ticket nuevo';
+      _banner.style.background='var(--blue-l,#E6F1FB)';
+      _banner.style.color='var(--blue,#0C447C)';
+      _banner.style.border='1px solid var(--blue-m,#B5D4F4)';
+    }else{
+      _banner.textContent=(readOnly?'👁 Viendo ':'✏️ Editando ')+(id||'');
+      _banner.style.background='var(--amber-l,#FAEEDA)';
+      _banner.style.color='var(--amber,#633806)';
+      _banner.style.border='1px solid var(--amber-m,#FAC775)';
+    }
+  }
   if(readOnly){
     document.getElementById('et-readonly-msg').textContent = per.edit
       ? 'Estás viendo este ticket en modo solo lectura. Toca ✎ en la lista si quieres editarlo.'
@@ -3956,6 +4047,10 @@ function openTicket(id,forceReadOnly){
     }
     _etEntradaFotosActuales = []; _renderGaleriaFotosEntradaMant();
     _etSalidaFotosActuales  = []; _renderGaleriaFotosSalidaMant();
+    // El bloque "el equipo ya está en mis manos" es exclusivo de la creación:
+    // al editar existe el botón real de "Confirmar recepción" de arriba.
+    document.getElementById('et-recibir-ya-wrap').style.display = 'none';
+    document.getElementById('et-recibir-ya-chk').checked = false;
   }else{
     ['et-titulo','et-proy','et-desc'].forEach(i=>document.getElementById(i).value=''); document.getElementById('et-resp').value='';
     document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';
@@ -3964,6 +4059,15 @@ function openTicket(id,forceReadOnly){
     document.getElementById('et-entrada-mant-wrap').style.display='none';
     document.getElementById('et-salida-mant-wrap').style.display='none';
     _etEntradaFotosActuales = []; _etSalidaFotosActuales = [];
+    // Identidad única de ESTA creación — ver _opIdTicketNuevo. Se renueva al
+    // abrir un ticket nuevo, no en cada clic de guardar.
+    _opIdTicketNuevo = _generarOpId();
+    // Bloque "el equipo ya está en mis manos" (solo en creación)
+    document.getElementById('et-recibir-ya-chk').checked = false;
+    document.getElementById('et-recibir-ya-campos').style.display = 'none';
+    document.getElementById('et-recibir-ya-nombre').value = '';
+    document.getElementById('et-recibir-ya-email').value  = '';
+    _etActualizarBloqueRecepcionNueva();
   }
   // Bloquear/desbloquear los campos del formulario según el modo
   ET_CAMPOS_FORM.forEach(fid=>{
@@ -4290,6 +4394,17 @@ async function saveTicket(){
     motivo=document.getElementById('et-motivo').value.trim();
     if(!motivo){alert('El motivo es obligatorio.');return;}
     if(!tickets.find(x=>x.codigo===editId)){showToast('No se encontró el ticket a editar.','error');return;}
+  }else{
+    // De este correo sale el comprobante de entrada si se marcó "el equipo ya
+    // está en mis manos" — se valida antes de bloquear la pantalla.
+    const _chkYa = document.getElementById('et-recibir-ya-chk');
+    if(_chkYa && _chkYa.checked){
+      const _mailYa = document.getElementById('et-recibir-ya-email').value.trim();
+      if(_mailYa && !_emailValido(_mailYa)){
+        showToast('El correo de quien entrega el equipo no tiene un formato válido','');
+        return;
+      }
+    }
   }
 
   window._savingTicket = true;
@@ -4379,15 +4494,33 @@ async function saveTicket(){
     const t={id:code,codigo:code,titulo,activoId:aId||'',activoNombre:aNom,resp:document.getElementById('et-resp').value||'—',tipo:document.getElementById('et-tipo').value,prior:document.getElementById('et-prior').value,estado:document.getElementById('et-estado').value,avance:Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0)),dead:document.getElementById('et-dead').value||'—',proy:document.getElementById('et-proy').value.trim()||'—',desc:document.getElementById('et-desc').value.trim(),fotos:JSON.stringify(_etFotosActuales),foto:_etFotosActuales.length?_etFotosActuales[0].url:'—',historial:[{tipo:'Creación',desc:'Creado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
     tickets.push(t);
 
-    const res = await apiPostAsync('tickets','insert',t,30000);
+    // Identidad estable de ESTA creación: si el usuario vuelve a hacer clic
+    // porque el servidor tardó, el intento viaja con el mismo _opId y el
+    // servidor devuelve el ticket que ya creó en vez de crear otro.
+    if(!_opIdTicketNuevo) _opIdTicketNuevo = _generarOpId();
+    const res = await apiPostAsync('tickets','insert',{...t, _opId:_opIdTicketNuevo}, 45000);
 
     if(res && res.ok===false && res.error==='TIMEOUT'){
-      // No se pudo confirmar. NO se reintenta a ciegas: se recarga la lista
-      // desde el servidor para que el usuario vea si el ticket entró o no.
-      // Reintentar aquí sin confirmar es justamente lo que duplicaba filas.
+      // No se pudo confirmar dentro del tiempo. NO se reintenta a ciegas.
+      // Se recarga la lista y se REVISA si el ticket entró, para decírselo al
+      // usuario en vez de dejarlo adivinando (antes solo decía "verificando").
       tickets = tickets.filter(x=>x.codigo!==code);
-      showToast('⏱ El servidor tardó en confirmar. Actualizando la lista para verificar si el ticket se creó...','error');
+      showToast('⏱ El servidor tardó en confirmar. Verificando si el ticket se creó...','');
       await recargarTickets();
+      const yaCreado = tickets.filter(x=>
+        (x.titulo||'')===titulo && x.estado!=='eliminado' &&
+        (parseHist(x.historial)||[]).some(h=>h.tipo==='Creación' && h.usuario===session.nombre)
+      ).pop();
+      if(yaCreado){
+        // Sí entró: se libera la identidad para que el próximo ticket sea nuevo.
+        _opIdTicketNuevo = null;
+        closeModals();
+        showToast('✅ Sí se creó: '+yaCreado.codigo+'. El servidor solo tardó en confirmarlo.','success');
+      }else{
+        // No entró. Se CONSERVA el _opId: si el usuario reintenta, el servidor
+        // reconocerá el intento como el mismo y no creará dos tickets.
+        showToast('⚠ El ticket no aparece todavía. Puedes volver a intentar sin miedo: si al final entró, no se duplicará.','error');
+      }
       return;
     }
     if(res && res.ok===false){
@@ -4399,6 +4532,9 @@ async function saveTicket(){
     // Adoptar el código REAL asignado por el servidor
     const codigoReal = (res && res.codigo) ? res.codigo : code;
     t.codigo = codigoReal; t.id = codigoReal;
+    // Creación confirmada: se descarta la identidad para que el próximo
+    // "Nuevo ticket" no herede la de este.
+    _opIdTicketNuevo = null;
     if(res && res.duplicadoEvitado){
       showToast('ℹ Este ticket ya se había registrado como '+codigoReal+'. No se creó un duplicado.','');
     }else{
@@ -4419,6 +4555,35 @@ async function saveTicket(){
         // real en que el equipo llega a manos del técnico.
         act.historial.push({tipo:'Ticket vinculado',desc:codigoReal+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});
         await apiPost('activos','update',act);
+
+        // ── "El equipo ya está en mis manos" ────────────────────────
+        // Excepción deliberada a lo de arriba: si el técnico marcó que ya
+        // recibió el equipo, se registra la entrada AQUÍ, una vez que ya se
+        // conoce el código real del ticket. Es el mismo camino de siempre
+        // (marcarEntradaMantenimiento), solo que sin obligarlo a guardar,
+        // reabrir el ticket y volver a confirmar.
+        const _recibirYa = document.getElementById('et-recibir-ya-chk');
+        if(_recibirYa && _recibirYa.checked && document.getElementById('et-tipo').value==='mantenimiento'
+           && act.estado!=='mantenimiento'){
+          const _entNom = document.getElementById('et-recibir-ya-nombre').value.trim();
+          const _entMail= document.getElementById('et-recibir-ya-email').value.trim();
+          marcarEntradaMantenimiento(act, {
+            motivo: 'Ticket '+codigoReal+': '+titulo,
+            tecnico: session.nombre,
+            emailResp: _entMail || act.asignadoEmail || '',
+            origen: 'ticket',
+            extra: {ticketCodigo: codigoReal,
+              entregadoPorNombre: _entNom || act.asignado || '',
+              entregadoPorEmail:  _entMail || act.asignadoEmail || ''}
+          });
+          await apiPost('activos','update',act);
+          t.historial = t.historial || [];
+          t.historial.push({tipo:'📥 Equipo recibido por IT',
+            desc:'Recibido al crear el ticket'+(_entNom?' — entregado por: '+_entNom:''),
+            fecha:ts(), usuario:session.nombre, color:'amber'});
+          await apiPost('tickets','update',t);
+          showToast('📥 '+act.codigo+' quedó marcado como recibido en mantenimiento','success');
+        }
       }
     }
     audit('CREAR','Ticket',codigoReal,'Creado: '+titulo);
