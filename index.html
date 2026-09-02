@@ -2067,7 +2067,19 @@ tbody tr.clickable{cursor:pointer;}
       Haz clic cuando el técnico tenga el equipo físicamente en sus manos — así queda el comprobante de
       entrada y se le avisa al responsable.
     </div>
-    <button type="button" class="btn btn-p" onclick="confirmarRecepcionMantenimiento()">📥 Confirmar recepción del equipo</button>
+    <div class="f-lbl">¿Quién entrega el equipo?</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+      <input class="f-inp" id="et-entrega-nombre" placeholder="Nombre de quien entrega" style="flex:1;min-width:160px">
+      <input class="f-inp" type="email" id="et-entrega-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px">
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">
+      Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo entrega físicamente.
+    </div>
+    <div class="f-lbl">📷 Foto del equipo al recibirlo (opcional)</div>
+    <div id="et-entrada-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin:6px 0;"></div>
+    <button type="button" class="btn" id="et-entrada-fotos-add-btn" onclick="agregarFotoEntradaMant()" style="padding:8px 12px;font-size:12px;">📂 Agregar foto</button>
+    <div id="et-entrada-fotos-limite-note" style="display:none;font-size:10px;color:var(--text3);margin-top:4px;">Máximo de 3 fotos.</div>
+    <div style="margin-top:12px"><button type="button" class="btn btn-p" onclick="confirmarRecepcionMantenimiento()">📥 Confirmar recepción del equipo</button></div>
   </div>
   <div class="f-row" id="et-salida-mant-wrap" style="display:none;background:#EAF7EF;border-radius:6px;padding:8px;">
     <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer">
@@ -2083,6 +2095,10 @@ tbody tr.clickable{cursor:pointer;}
       <option>No se pudo reparar</option>
       <option>Reemplazado por equipo nuevo</option>
     </select>
+    <div class="f-lbl" style="margin-top:8px">📷 Foto del equipo al devolver (opcional)</div>
+    <div id="et-salida-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin:6px 0;"></div>
+    <button type="button" class="btn" id="et-salida-fotos-add-btn" onclick="agregarFotoSalidaMant()" style="padding:8px 12px;font-size:12px;">📂 Agregar foto</button>
+    <div id="et-salida-fotos-limite-note" style="display:none;font-size:10px;color:var(--text3);margin-top:4px;">Máximo de 3 fotos.</div>
   </div>
   <div class="modal-actions"><button class="btn" onclick="closeModals()">Cancelar</button><button class="btn btn-p" id="et-save-btn" onclick="saveTicket()">Guardar ticket</button></div>
 </div></div>
@@ -3467,11 +3483,14 @@ async function cambiarMiPass(){
 // historial) siempre se activa sin importar por dónde se entró.
 function marcarEntradaMantenimiento(activo, opts={}){
   const {motivo, tecnico, emailResp, origen, extra} = opts;
+  const entregadoPorNombre = extra?.entregadoPorNombre || '';
   activo.estado = 'mantenimiento';
   activo.historial = activo.historial || [];
   activo.historial.push(Object.assign({
     tipo:      'Entrada a Mantenimiento',
-    desc:      `Equipo ingresado a IT para mantenimiento por ${tecnico||session.nombre}. Motivo: ${motivo||'Sin especificar'}. Equipo estará en el Departamento de Tecnología hasta ser devuelto.`,
+    desc:      `Equipo ingresado a IT para mantenimiento por ${tecnico||session.nombre}. Motivo: ${motivo||'Sin especificar'}.`
+               + (entregadoPorNombre ? ` Entregado por: ${entregadoPorNombre}.` : '')
+               + ` Equipo estará en el Departamento de Tecnología hasta ser devuelto.`,
     tecnico:   tecnico || session.nombre,
     emailResp: emailResp || '',
     asignadoA: activo.asignado || '—',
@@ -3879,6 +3898,12 @@ function openTicket(id,forceReadOnly){
     document.getElementById('et-salida-mant-wrap').style.display = _puedeSalida ? 'block':'none';
     document.getElementById('et-marcar-salida').checked = true;
     document.getElementById('et-condicion-devuelto').value = '';
+    if(_puedeEntrada && actVinculado){
+      document.getElementById('et-entrega-nombre').value = actVinculado.asignado && actVinculado.asignado!=='—' ? actVinculado.asignado : '';
+      document.getElementById('et-entrega-email').value  = actVinculado.asignadoEmail || '';
+    }
+    _etEntradaFotosActuales = []; _renderGaleriaFotosEntradaMant();
+    _etSalidaFotosActuales  = []; _renderGaleriaFotosSalidaMant();
   }else{
     ['et-titulo','et-proy','et-desc'].forEach(i=>document.getElementById(i).value=''); document.getElementById('et-resp').value='';
     document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';
@@ -3886,6 +3911,7 @@ function openTicket(id,forceReadOnly){
     document.getElementById('et-hist-wrap').style.display='none';
     document.getElementById('et-entrada-mant-wrap').style.display='none';
     document.getElementById('et-salida-mant-wrap').style.display='none';
+    _etEntradaFotosActuales = []; _etSalidaFotosActuales = [];
   }
   // Bloquear/desbloquear los campos del formulario según el modo
   ET_CAMPOS_FORM.forEach(fid=>{
@@ -4058,6 +4084,107 @@ function agregarFotoMantenimiento(){
   input.click();
 }
 
+// ── FOTOS OPCIONALES AL CONFIRMAR RECEPCIÓN / AL DEVOLVER (ticket) ──
+// Mismo mecanismo de subida que agregarFotoMantenimiento(), pero con su
+// propio arreglo — el modal de ticket y el de "Registrar mantenimiento"
+// pueden coexistir en la sesión y no deben compartir estado.
+let _etEntradaFotosActuales = [];
+let _etSalidaFotosActuales  = [];
+
+function _renderGaleriaFotosEntradaMant(){
+  const list = document.getElementById('et-entrada-fotos-list');
+  if(!list) return;
+  list.innerHTML = _etEntradaFotosActuales.length ? _etEntradaFotosActuales.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#FFF9EC;border-left:3px solid #B8960C;border-radius:6px;padding:6px 10px;font-size:11px;color:#7A5C0A;">
+      <div style="flex:1;min-width:0">📷 <a href="${f.url}" target="_blank" style="color:#7A5C0A;font-weight:600">Ver foto ↗</a></div>
+      <button type="button" class="btn" onclick="quitarFotoEntradaMant(${i})" style="padding:4px 8px;font-size:11px;white-space:nowrap;">🗑</button>
+    </div>`).join('') : '<div style="font-size:11px;color:var(--text3);">Sin fotos todavía.</div>';
+  document.getElementById('et-entrada-fotos-limite-note').style.display = _etEntradaFotosActuales.length>=3 ? 'block' : 'none';
+  const addBtn = document.getElementById('et-entrada-fotos-add-btn');
+  if(addBtn) addBtn.style.display = _etEntradaFotosActuales.length>=3 ? 'none' : '';
+}
+function quitarFotoEntradaMant(index){ _etEntradaFotosActuales.splice(index,1); _renderGaleriaFotosEntradaMant(); }
+function agregarFotoEntradaMant(){
+  if(_etEntradaFotosActuales.length >= 3){ showToast('Ya hay 3 fotos, el máximo permitido.','error'); return; }
+  const codigoActivo = document.getElementById('et-activo')?.value || '';
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*'; input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async () => {
+    const file = input.files[0];
+    document.body.removeChild(input);
+    if(!file) return;
+    if(file.size > 10*1024*1024){ showToast('El archivo no puede superar 10MB','error'); return; }
+    const btn = document.getElementById('et-entrada-fotos-add-btn');
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
+    try{
+      const base64full = await new Promise((res,rej)=>{
+        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(file);
+      });
+      const data = await apiPostAsync(null,'uploadFoto',{
+        base64:base64full.split(',')[1], mimeType:file.type, nombreArchivo:file.name,
+        modulo:'Activos', codigoRegistro: codigoActivo, _sessionToken: session?session.token:null
+      }, 25000);
+      if(data && data.url){
+        _etEntradaFotosActuales.push({ url:data.url, fecha:ts(), usuario:session.nombre });
+        _renderGaleriaFotosEntradaMant();
+        showToast('Foto agregada ✓','success');
+      }else{
+        showToast('No se pudo subir la foto: '+(data?.error||'sin respuesta'),'error');
+      }
+    }catch(e){ showToast('Error al subir la foto: '+e.message,'error'); }
+    finally{ if(btn){ btn.disabled=false; btn.textContent='📂 Agregar foto'; } }
+  };
+  input.click();
+}
+
+function _renderGaleriaFotosSalidaMant(){
+  const list = document.getElementById('et-salida-fotos-list');
+  if(!list) return;
+  list.innerHTML = _etSalidaFotosActuales.length ? _etSalidaFotosActuales.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#EAF7EF;border-left:3px solid #059669;border-radius:6px;padding:6px 10px;font-size:11px;color:#065F46;">
+      <div style="flex:1;min-width:0">📷 <a href="${f.url}" target="_blank" style="color:#065F46;font-weight:600">Ver foto ↗</a></div>
+      <button type="button" class="btn" onclick="quitarFotoSalidaMant(${i})" style="padding:4px 8px;font-size:11px;white-space:nowrap;">🗑</button>
+    </div>`).join('') : '<div style="font-size:11px;color:var(--text3);">Sin fotos todavía.</div>';
+  document.getElementById('et-salida-fotos-limite-note').style.display = _etSalidaFotosActuales.length>=3 ? 'block' : 'none';
+  const addBtn = document.getElementById('et-salida-fotos-add-btn');
+  if(addBtn) addBtn.style.display = _etSalidaFotosActuales.length>=3 ? 'none' : '';
+}
+function quitarFotoSalidaMant(index){ _etSalidaFotosActuales.splice(index,1); _renderGaleriaFotosSalidaMant(); }
+function agregarFotoSalidaMant(){
+  if(_etSalidaFotosActuales.length >= 3){ showToast('Ya hay 3 fotos, el máximo permitido.','error'); return; }
+  const codigoActivo = document.getElementById('et-activo')?.value || '';
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*'; input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async () => {
+    const file = input.files[0];
+    document.body.removeChild(input);
+    if(!file) return;
+    if(file.size > 10*1024*1024){ showToast('El archivo no puede superar 10MB','error'); return; }
+    const btn = document.getElementById('et-salida-fotos-add-btn');
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
+    try{
+      const base64full = await new Promise((res,rej)=>{
+        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(file);
+      });
+      const data = await apiPostAsync(null,'uploadFoto',{
+        base64:base64full.split(',')[1], mimeType:file.type, nombreArchivo:file.name,
+        modulo:'Activos', codigoRegistro: codigoActivo, _sessionToken: session?session.token:null
+      }, 25000);
+      if(data && data.url){
+        _etSalidaFotosActuales.push({ url:data.url, fecha:ts(), usuario:session.nombre });
+        _renderGaleriaFotosSalidaMant();
+        showToast('Foto agregada ✓','success');
+      }else{
+        showToast('No se pudo subir la foto: '+(data?.error||'sin respuesta'),'error');
+      }
+    }catch(e){ showToast('Error al subir la foto: '+e.message,'error'); }
+    finally{ if(btn){ btn.disabled=false; btn.textContent='📂 Agregar foto'; } }
+  };
+  input.click();
+}
+
 // ════════════════════════════════════════════════════════════════════
 // BLOQUEO VISUAL DE GUARDADO
 // ════════════════════════════════════════════════════════════════════
@@ -4154,9 +4281,11 @@ async function saveTicket(){
         marcarSalidaMantenimiento(act, {
           motivo: 'Ticket '+t.codigo+' cerrado: '+titulo,
           tecnico: session.nombre, estadoNuevo: 'activo', condicion,
-          origen: 'ticket', extra: {ticketCodigo: t.codigo}
+          origen: 'ticket', extra: {ticketCodigo: t.codigo,
+            fotos: _etSalidaFotosActuales.length ? _etSalidaFotosActuales : undefined}
         });
         _actSalida = act;
+        _etSalidaFotosActuales = []; _renderGaleriaFotosSalidaMant();
       }
     }
 
@@ -4264,21 +4393,29 @@ async function confirmarRecepcionMantenimiento(){
   window._confirmandoRecepcion = true;
   mostrarGuardando('Confirmando recepción...','No cierres esta ventana.');
   try{
+    const entregaNombre = document.getElementById('et-entrega-nombre').value.trim();
+    const entregaEmail  = document.getElementById('et-entrega-email').value.trim();
     marcarEntradaMantenimiento(act, {
       motivo: 'Ticket '+t.codigo+': '+t.titulo,
       tecnico: session.nombre,
-      emailResp: act.asignadoEmail || '',
+      emailResp: entregaEmail || act.asignadoEmail || '',
       origen: 'ticket',
-      extra: {ticketCodigo: t.codigo}
+      extra: {
+        ticketCodigo: t.codigo,
+        entregadoPorNombre: entregaNombre || act.asignado || '',
+        entregadoPorEmail:  entregaEmail  || act.asignadoEmail || '',
+        fotos: _etEntradaFotosActuales.length ? _etEntradaFotosActuales : undefined
+      }
     });
     await apiPost('activos','update',act);
     t.historial = t.historial || [];
-    t.historial.push({tipo:'📥 Equipo recibido por IT',desc:'Recepción confirmada por '+session.nombre+' — equipo marcado en mantenimiento.',fecha:ts(),usuario:session.nombre,color:'amber'});
+    t.historial.push({tipo:'📥 Equipo recibido por IT',desc:'Recepción confirmada por '+session.nombre+' — equipo marcado en mantenimiento.'+(entregaNombre?' Entregado por: '+entregaNombre+'.':''),fecha:ts(),usuario:session.nombre,color:'amber'});
     await apiPost('tickets','update',t);
     audit('EDITAR','Ticket',t.codigo,'Recepción de equipo confirmada — activo '+act.codigo+' marcado en mantenimiento');
     showToast('📥 Recepción confirmada — equipo marcado en mantenimiento','success');
     renderTicketHistorial(t);
     document.getElementById('et-entrada-mant-wrap').style.display='none';
+    _etEntradaFotosActuales = []; _renderGaleriaFotosEntradaMant();
   } finally {
     window._confirmandoRecepcion = false;
     ocultarGuardando();
@@ -4893,8 +5030,9 @@ function showDetalle(id){
         }
         return '<div class="hist-item"><div class="hist-dot '+(h.color||'')+'"></div>' +
           '<div><div style="font-size:12px;color:var(--text)"><strong>'+h.tipo+'</strong> — '+h.desc+'</div>' +
-          '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(h.fecha||'')+' · '+(h.usuario||'—')+(h.tec&&h.tec!==h.usuario?' · Técnico: '+h.tec:'')+(h.costo?' · $'+h.costo:'')+'</div></div>' +
-          '</div>';
+          '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(h.fecha||'')+' · '+(h.usuario||'—')+(h.tec&&h.tec!==h.usuario?' · Técnico: '+h.tec:'')+(h.costo?' · $'+h.costo:'')+'</div>' +
+          (Array.isArray(h.fotos)&&h.fotos.length?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">'+h.fotos.map(f=>'<a href="'+f.url+'" target="_blank" style="font-size:10px;color:#B8960C;font-weight:600">📷 Ver foto ↗</a>').join('')+'</div>':'') +
+          '</div></div>';
       }).join('')}
     </div>
     ${['admin','tecnico','inventario'].includes(session.rol)?`

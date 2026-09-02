@@ -503,6 +503,43 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <button type="button" class="btn-secondary" id="mt-fotos-add-btn" onclick="agregarFotoTicketMobile()">📷 Agregar foto</button>
       <div id="mt-fotos-limite-note" style="display:none;margin-top:6px;font-size:11px;color:#666;">Se alcanzó el máximo de 5 fotos.</div>
     </div>
+    <div class="form-group" id="mt-entrada-mant-wrap" style="display:none;background:var(--gold-l);border-radius:var(--r-md);padding:12px;">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px">📥 Equipo aún no recibido por IT</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Toca "Confirmar recepción" cuando tengas el equipo físicamente en tus manos.</div>
+      <div class="form-group"><label class="form-label">¿Quién entrega el equipo?</label>
+        <input class="form-input" id="mt-entrega-nombre" placeholder="Nombre de quien entrega" style="margin-bottom:8px">
+        <input class="form-input" type="email" id="mt-entrega-email" placeholder="correo@dominio.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">📷 Foto al recibir (opcional)</label>
+        <div id="mte-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+        <button type="button" class="btn-secondary" id="mte-fotos-add-btn" onclick="agregarFotoEntradaMantMobile()">📷 Tomar / agregar foto</button>
+        <div id="mte-fotos-limite-note" style="display:none;margin-top:6px;font-size:11px;color:#666;">Máximo de 3 fotos.</div>
+      </div>
+      <button type="button" class="btn-primary" onclick="confirmarRecepcionMantenimientoMobile()">📥 Confirmar recepción del equipo</button>
+    </div>
+    <div class="form-group" id="mt-salida-mant-wrap" style="display:none;background:var(--green-l);border-radius:var(--r-md);padding:12px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="mt-marcar-salida" checked style="width:18px;height:18px;accent-color:var(--navy)">
+        <span style="font-size:13px;font-weight:700;color:var(--navy)">✅ Marcar equipo como devuelto de mantenimiento</span>
+      </label>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Condición al devolver</label>
+        <select class="form-select" id="mt-condicion-devuelto">
+          <option value="">— Selecciona —</option>
+          <option>Reparado — funciona correctamente</option>
+          <option>Reparado con observaciones</option>
+          <option>Sin reparación — pieza pendiente</option>
+          <option>No se pudo reparar</option>
+          <option>Reemplazado por equipo nuevo</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">📷 Foto al devolver (opcional)</label>
+        <div id="mts-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+        <button type="button" class="btn-secondary" id="mts-fotos-add-btn" onclick="agregarFotoSalidaMantMobile()">📷 Tomar / agregar foto</button>
+        <div id="mts-fotos-limite-note" style="display:none;margin-top:6px;font-size:11px;color:#666;">Máximo de 3 fotos.</div>
+      </div>
+    </div>
     <div class="form-group" id="mt-motivo-wrap" style="display:none">
       <label class="form-label" style="color:var(--red)">Motivo de edición *</label>
       <input class="form-input" id="mt-motivo" placeholder="¿Por qué se edita este ticket?">
@@ -1901,6 +1938,70 @@ function agregarFotoMantenimientoMobile(){
   };
   input.click();
 }
+
+// ── FOTOS OPCIONALES AL CONFIRMAR RECEPCIÓN / AL DEVOLVER (ticket) ──
+let _mteFotosActuales = [];
+let _mtsFotosActuales = [];
+function _renderGaleriaFotosMobileGenerica(arr, listId, addBtnId, limiteId){
+  const list = document.getElementById(listId);
+  if(!list) return;
+  list.innerHTML = arr.length ? arr.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#FFF3D6;border-left:3px solid #B8960C;border-radius:8px;padding:8px 10px;font-size:12px;color:#7A5C0A;">
+      <div style="flex:1;min-width:0">📷 <a href="${f.url}" target="_blank" style="color:#7A5C0A;font-weight:600">Ver foto ↗</a></div>
+      <button type="button" class="btn-secondary" onclick="_quitarFotoMobileGenerica('${listId}',${i})" style="padding:4px 8px;font-size:12px;">🗑</button>
+    </div>`).join('') : '<div style="font-size:11px;color:#666;">Sin fotos todavía.</div>';
+  const limiteEl = document.getElementById(limiteId);
+  if(limiteEl) limiteEl.style.display = arr.length>=3 ? 'block' : 'none';
+  const addBtn = document.getElementById(addBtnId);
+  if(addBtn) addBtn.style.display = arr.length>=3 ? 'none' : '';
+}
+function _quitarFotoMobileGenerica(listId, index){
+  if(listId==='mte-fotos-list'){ _mteFotosActuales.splice(index,1); _renderGaleriaFotosMobileGenerica(_mteFotosActuales,'mte-fotos-list','mte-fotos-add-btn','mte-fotos-limite-note'); }
+  else if(listId==='mts-fotos-list'){ _mtsFotosActuales.splice(index,1); _renderGaleriaFotosMobileGenerica(_mtsFotosActuales,'mts-fotos-list','mts-fotos-add-btn','mts-fotos-limite-note'); }
+}
+function _agregarFotoMantTicketMobile(arr, listId, addBtnId, limiteId){
+  if(arr.length >= 3){ showToast('Ya hay 3 fotos, el máximo permitido.','error'); return; }
+  const codigoActivo = document.getElementById('mt-activo')?.value || '';
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment'; input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async () => {
+    const file = input.files[0];
+    document.body.removeChild(input);
+    if(!file) return;
+    if(file.size > 10*1024*1024){ showToast('La imagen no puede superar 10MB','error'); return; }
+    const btn = document.getElementById(addBtnId);
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Comprimiendo...'; }
+    try{
+      const fileComprimido = await _comprimirImagenMobile(file);
+      if(btn) btn.textContent='⏳ Subiendo...';
+      const base64full = await new Promise((res,rej)=>{
+        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(fileComprimido);
+      });
+      const data = await apiPostAsync(null,'uploadFoto',{
+        base64:base64full.split(',')[1], mimeType:fileComprimido.type, nombreArchivo:fileComprimido.name,
+        modulo:'Activos', codigoRegistro: codigoActivo, _sessionToken: session?session.token:null
+      }, 60000);
+      if(data && data.url){
+        arr.push({ url:data.url, fecha:ts(), usuario:session.nombre });
+        _renderGaleriaFotosMobileGenerica(arr, listId, addBtnId, limiteId);
+        showToast('✅ Foto agregada','success');
+      }else if(data && data.error==='TIMEOUT'){
+        showToast('⏱ La subida tardó demasiado. Verifica tu señal y vuelve a intentar.','error');
+      }else{
+        showToast('Error al subir: '+(data?.error||'sin respuesta'),'error');
+      }
+    }catch(e){
+      showToast('Error: '+e.message,'error');
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='📷 Tomar / agregar foto'; }
+    }
+  };
+  input.click();
+}
+function agregarFotoEntradaMantMobile(){ _agregarFotoMantTicketMobile(_mteFotosActuales,'mte-fotos-list','mte-fotos-add-btn','mte-fotos-limite-note'); }
+function agregarFotoSalidaMantMobile(){ _agregarFotoMantTicketMobile(_mtsFotosActuales,'mts-fotos-list','mts-fotos-add-btn','mts-fotos-limite-note'); }
+
 function agregarFotoTicketMobile(){
   if(_mtFotosActuales.length >= 5){ showMobToast('Ya hay 5 fotos en este ticket, el máximo permitido.'); return; }
   const input = document.createElement('input');
@@ -2022,6 +2123,9 @@ function openNuevoTicket(){
   _resetMobPiezasTicket();
   document.getElementById("mt-piezas-nota-activo").textContent="";
   document.getElementById("mt-motivo-wrap").style.display="none";
+  document.getElementById("mt-entrada-mant-wrap").style.display="none";
+  document.getElementById("mt-salida-mant-wrap").style.display="none";
+  _mteFotosActuales = []; _mtsFotosActuales = [];
   document.getElementById("mt-save-btn").textContent="Crear ticket";
   const sel=document.getElementById("mt-activo");
   sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=="eliminado").map(a=>`<option value="${a.codigo}">${a.codigo} — ${a.nombre}</option>`).join("");
@@ -2060,6 +2164,19 @@ function openEditTicket(codigo){
   const sel=document.getElementById("mt-activo");
   sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=="eliminado").map(a=>`<option value="${a.codigo}">${a.codigo} — ${a.nombre}</option>`).join("");
   sel.value=t.activoId||"";
+  const actVinculadoM = t.activoId ? activos.find(a=>a.codigo===t.activoId) : null;
+  const puedeEntradaM = t.tipo==='mantenimiento' && actVinculadoM && actVinculadoM.estado!=='mantenimiento';
+  const puedeSalidaM  = t.tipo==='mantenimiento' && actVinculadoM && actVinculadoM.estado==='mantenimiento';
+  document.getElementById('mt-entrada-mant-wrap').style.display = puedeEntradaM ? 'block' : 'none';
+  document.getElementById('mt-salida-mant-wrap').style.display  = puedeSalidaM  ? 'block' : 'none';
+  if(puedeEntradaM && actVinculadoM){
+    document.getElementById('mt-entrega-nombre').value = actVinculadoM.asignado && actVinculadoM.asignado!=='—' ? actVinculadoM.asignado : '';
+    document.getElementById('mt-entrega-email').value  = actVinculadoM.asignadoEmail || '';
+  }
+  document.getElementById('mt-marcar-salida').checked = true;
+  document.getElementById('mt-condicion-devuelto').value = '';
+  _mteFotosActuales = []; _renderGaleriaFotosMobileGenerica(_mteFotosActuales,'mte-fotos-list','mte-fotos-add-btn','mte-fotos-limite-note');
+  _mtsFotosActuales = []; _renderGaleriaFotosMobileGenerica(_mtsFotosActuales,'mts-fotos-list','mts-fotos-add-btn','mts-fotos-limite-note');
   document.getElementById("modal-overlay").classList.add("open");
   document.getElementById("modal-ticket").classList.add("open");
 }
@@ -2148,10 +2265,28 @@ async function saveTicket(){
       fecha:ts(), usuario:session.nombre, color:colorM
     });
     if(solicitudPiezas) t.historial.push(solicitudPiezas);
+    // ── SALIDA DE MANTENIMIENTO AL CERRAR TICKET VINCULADO ──────────
+    let _actSalidaM = null;
+    if(t.tipo==='mantenimiento' && estadoAntes!=='cerrado' && t.estado==='cerrado'
+       && t.activoId && document.getElementById('mt-marcar-salida')?.checked){
+      const actM = activos.find(a=>a.codigo===t.activoId);
+      if(actM && actM.estado==='mantenimiento'){
+        const condicionM = document.getElementById('mt-condicion-devuelto')?.value.trim() || '';
+        marcarSalidaMantenimientoMobile(actM, {
+          motivo: 'Ticket '+t.codigo+' cerrado: '+titulo,
+          tecnico: session.nombre, estadoNuevo: 'activo', condicion: condicionM,
+          origen: 'ticket', extra: {ticketCodigo: t.codigo,
+            fotos: _mtsFotosActuales.length ? _mtsFotosActuales : undefined}
+        });
+        _actSalidaM = actM;
+        _mtsFotosActuales = []; _renderGaleriaFotosMobileGenerica(_mtsFotosActuales,'mts-fotos-list','mts-fotos-add-btn','mts-fotos-limite-note');
+      }
+    }
     await apiPost("tickets","update",t);
+    if(_actSalidaM) await apiPost("activos","update",_actSalidaM);
     if(solicitudPiezas) await _propagarSolicitudPiezasAlActivo(t.activoId, solicitudPiezas);
-    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Ticket",codigo:t.codigo,detalle:`Motivo: ${motivo}${solicitudPiezas?" | Solicitud de compra":""} | App Móvil`});
-    showToast("Ticket actualizado"+(solicitudPiezas?" + solicitud de compra":"")+" ✓","success");
+    await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Ticket",codigo:t.codigo,detalle:`Motivo: ${motivo}${solicitudPiezas?" | Solicitud de compra":""}${_actSalidaM?" | Equipo marcado como devuelto de mantenimiento":""} | App Móvil`});
+    showToast("Ticket actualizado"+(solicitudPiezas?" + solicitud de compra":"")+(_actSalidaM?" — equipo devuelto":"")+" ✓","success");
   } else {
     const _sfxM = Date.now().toString(36).toUpperCase().slice(-4)
                + Math.random().toString(36).toUpperCase().slice(2,4);
@@ -2261,7 +2396,9 @@ function openActivoDetalle(codigo){
     <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Historial (${(a.historial||[]).length})</div>
     ${(a.historial||[]).map(h=>`<div class="hist-item">
       <div class="hist-dot ${h.color||"navy"}"></div>
-      <div><div class="hist-tipo">${h.tipo}</div><div class="hist-desc">${h.desc}</div><div class="hist-ts">${h.fecha||""}</div></div>
+      <div><div class="hist-tipo">${h.tipo}</div><div class="hist-desc">${h.desc}</div><div class="hist-ts">${h.fecha||""}</div>
+      ${Array.isArray(h.fotos)&&h.fotos.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">${h.fotos.map(f=>`<a href="${f.url}" target="_blank" style="font-size:10px;color:#B8960C;font-weight:600">📷 Ver foto ↗</a>`).join("")}</div>`:""}
+      </div>
     </div>`).join("")||`<div style="font-size:12px;color:var(--text3)">Sin historial</div>`}
   `;
   document.getElementById("sheet-overlay").classList.add("open");
@@ -2313,6 +2450,85 @@ function openEditActivoSheet(codigo){
   document.getElementById('mob-activo-overlay').classList.add('open');
   modal.classList.add('open');
 }
+
+// ══ MECANISMO CENTRAL DE ENTRADA/SALIDA DE MANTENIMIENTO (MÓVIL) ══
+// Espejo exacto de marcarEntradaMantenimiento()/marcarSalidaMantenimiento()
+// en index.html — mismos nombres de campo, para que un evento creado desde
+// el celular se lea igual de bien si luego se abre el mismo activo en la
+// versión web, y viceversa. Único lugar autorizado para cambiar
+// activo.estado a/desde 'mantenimiento' desde la app móvil.
+function marcarEntradaMantenimientoMobile(activo, opts={}){
+  const {motivo, tecnico, emailResp, origen, extra} = opts;
+  const entregadoPorNombre = extra?.entregadoPorNombre || '';
+  activo.estado = 'mantenimiento';
+  activo.historial = activo.historial || [];
+  activo.historial.push(Object.assign({
+    tipo:      'Entrada a Mantenimiento',
+    desc:      `Equipo ingresado a IT para mantenimiento por ${tecnico||session.nombre}. Motivo: ${motivo||'Sin especificar'}.`
+               + (entregadoPorNombre ? ` Entregado por: ${entregadoPorNombre}.` : '')
+               + ` Equipo estará en el Departamento de Tecnología hasta ser devuelto.`,
+    tecnico:   tecnico || session.nombre,
+    emailResp: emailResp || '',
+    asignadoA: activo.asignado || '—',
+    origen:    origen || 'manual',
+    fecha:     ts(), usuario: session.nombre, color: 'amber'
+  }, extra||{}));
+  return activo;
+}
+function marcarSalidaMantenimientoMobile(activo, opts={}){
+  const {motivo, tecnico, estadoNuevo, condicion, origen, extra} = opts;
+  const entradaEvt = (activo.historial||[]).slice().reverse().find(h=>h.tipo==='Entrada a Mantenimiento');
+  const emailResp = (opts.emailResp || entradaEvt?.emailResp || '');
+  activo.estado = estadoNuevo || 'activo';
+  activo.historial = activo.historial || [];
+  activo.historial.push(Object.assign({
+    tipo:      'Salida de Mantenimiento',
+    desc:      `Equipo devuelto de mantenimiento. Nuevo estado: ${activo.estado}. Técnico: ${tecnico||session.nombre}. Motivo: ${motivo||'Mantenimiento completado'}.`
+               + (condicion ? ` Condición al devolver: ${condicion}.` : ''),
+    tecnico:   tecnico || session.nombre,
+    emailResp,
+    asignadoA: activo.asignado || '—',
+    condicion: condicion || '',
+    origen:    origen || 'manual',
+    fecha:     ts(), usuario: session.nombre, color: 'green'
+  }, extra||{}));
+  return activo;
+}
+async function confirmarRecepcionMantenimientoMobile(){
+  const editId = document.getElementById('mt-id').value; if(!editId) return;
+  const t = tickets.find(x=>x.codigo===editId); if(!t) return;
+  if(t.tipo!=='mantenimiento' || !t.activoId){ showToast('Este ticket no es de mantenimiento o no tiene activo vinculado.','error'); return; }
+  const act = activos.find(a=>a.codigo===t.activoId); if(!act){ showToast('No se encontró el activo vinculado.','error'); return; }
+  if(act.estado==='mantenimiento'){ showToast('Este equipo ya está en mantenimiento.',''); return; }
+  if(window._confirmandoRecepcionMob) return;
+  window._confirmandoRecepcionMob = true;
+  const entregaNombre = document.getElementById('mt-entrega-nombre').value.trim();
+  const entregaEmail  = document.getElementById('mt-entrega-email').value.trim();
+  mostrarGuardandoMob('Confirmando recepción...');
+  try{
+    marcarEntradaMantenimientoMobile(act, {
+      motivo: 'Ticket '+t.codigo+': '+t.titulo, tecnico: session.nombre,
+      emailResp: entregaEmail || act.asignadoEmail || '', origen: 'ticket',
+      extra: { ticketCodigo: t.codigo,
+               entregadoPorNombre: entregaNombre || act.asignado || '',
+               entregadoPorEmail:  entregaEmail  || act.asignadoEmail || '',
+               fotos: _mteFotosActuales.length ? _mteFotosActuales : undefined }
+    });
+    await apiPost('activos','update',act);
+    t.historial = t.historial || [];
+    t.historial.push({tipo:'📥 Equipo recibido por IT',desc:'Recepción confirmada por '+session.nombre+' — equipo marcado en mantenimiento.'+(entregaNombre?' Entregado por: '+entregaNombre+'.':''),fecha:ts(),usuario:session.nombre,color:'amber'});
+    await apiPost('tickets','update',t);
+    await apiPost('auditoria','insert',{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:'EDITAR',tipo:'Ticket',codigo:t.codigo,detalle:'Recepción de equipo confirmada — activo '+act.codigo+' marcado en mantenimiento | App Móvil'});
+    showToast('📥 Recepción confirmada','success');
+    document.getElementById('mt-entrada-mant-wrap').style.display='none';
+    _mteFotosActuales = []; _renderGaleriaFotosMobileGenerica(_mteFotosActuales,'mte-fotos-list','mte-fotos-add-btn','mte-fotos-limite-note');
+    saveCache(); renderActivos(); renderTickets(); renderDashboard();
+  } finally {
+    window._confirmandoRecepcionMob = false;
+    ocultarGuardandoMob();
+  }
+}
+
 function openMantActivo(){
   document.getElementById("mm-tipo").value="Preventivo";
   document.getElementById("mm-desc").value="";
@@ -2831,6 +3047,20 @@ async function guardarNuevoActivoMobile(){
   const modal = document.getElementById('mob-modal-activo');
   const editCodigo = modal?._editCodigo || null;
   const existente = editCodigo ? activos.find(x=>x.codigo===editCodigo) : null;
+  // "Mantenimiento" no se activa/quita a mano aquí — único camino: el
+  // ticket vinculado (espejo del mismo bloqueo en index.html/saveActivo()).
+  if(existente){
+    const estadoActualM = existente.estado||'activo';
+    const estadoSolicitadoM = document.getElementById('mob-ea-estado')?.value||'activo';
+    if(estadoActualM!=='mantenimiento' && estadoSolicitadoM==='mantenimiento'){
+      showToast('⚠ "Mantenimiento" solo se activa desde un ticket vinculado. Usa el ticket de mantenimiento para confirmar la recepción.','error');
+      return;
+    }
+    if(estadoActualM==='mantenimiento' && estadoSolicitadoM!=='mantenimiento'){
+      showToast('⚠ Este equipo está en mantenimiento por un ticket vinculado. Ciérralo desde ese ticket para sacarlo de mantenimiento.','error');
+      return;
+    }
+  }
   if(btn){ btn.disabled=true; btn.textContent = editCodigo ? 'Guardando cambios...' : 'Guardando...'; }
   try{
     const nuevoAsignado = document.getElementById('mob-ea-asignado')?.value||'—';
