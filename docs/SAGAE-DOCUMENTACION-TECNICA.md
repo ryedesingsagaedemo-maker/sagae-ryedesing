@@ -206,6 +206,47 @@ la operación), pero el aviso falla en silencio hasta la medianoche.
 Si hace falta más margen, la cuenta de Google Workspace sube esa cuota
 a 1,500/día sin tocar código.
 
+### 7.1 Entrada/salida de mantenimiento — un solo mecanismo, tres puntos de entrada
+
+Un activo puede entrar en estado "mantenimiento" desde tres pantallas
+distintas (editar activo, el modal "Registrar mantenimiento", o crear/
+cerrar un ticket con Tipo = Mantenimiento vinculado a un activo). Hasta
+que se corrigió esto (2026-09), cada pantalla tenía su propia lógica
+suelta y solo una de las tres avisaba realmente al responsable por
+correo — las otras dos cambiaban el dato en silencio, sin comprobante
+ni notificación.
+
+Ahora las tres llaman a dos funciones centrales en `index.html`
+(`marcarEntradaMantenimiento()` / `marcarSalidaMantenimiento()`), que
+son el único lugar que cambia `estado` a/desde `'mantenimiento'` y que
+escribe los eventos de historial `Entrada a Mantenimiento` / `Salida de
+Mantenimiento`. El backend decide si manda el correo mirando el
+**último** evento del historial (`despacharNotificacion_` en
+`Code.gs`), así que con que las tres rutas terminen empujando ese mismo
+evento canónico como último, el aviso se dispara siempre, sin importar
+por dónde se originó:
+
+- **Editar activo** — cambiar el campo Estado a/desde `mantenimiento`
+  (comportamiento de referencia, sin cambios de fondo).
+- **Modal "Registrar mantenimiento"** — elegir tipo "Entrega de
+  equipo" ahora también marca la entrada a mantenimiento (antes solo
+  quedaba como texto en el historial, sin avisar a nadie). "Daño
+  reportado" se agregó a la lista `tiposMant` del backend, que antes
+  la excluía silenciosamente de las notificaciones.
+- **Ticket tipo Mantenimiento** — crear un ticket vinculado a un
+  activo dispara la entrada (antes cambiaba `estado` directo sin pasar
+  por la detección, sin avisar a nadie). Cerrar un ticket de
+  mantenimiento vinculado a un activo que sigue en `mantenimiento`
+  ofrece un checkbox ("✅ Marcar el equipo vinculado como devuelto de
+  mantenimiento", marcado por defecto) que dispara la salida — esto no
+  existía antes en absoluto.
+
+Se agregó también un campo **"Condición del equipo al devolver"** (en
+el formulario de editar activo y al cerrar un ticket de mantenimiento)
+que viaja hasta el correo de salida (`notificarSalidaMantenimiento`),
+para que el aviso de devolución no dependa solo de un texto libre
+genérico.
+
 ## 8. Base de datos — 9 hojas
 
 Activos, Mobiliario, Tickets, Licencias, Personas, Espacios,
