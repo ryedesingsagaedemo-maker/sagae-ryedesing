@@ -308,6 +308,9 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="closeUserMenu();showToast('Edita tu perfil desde la versión web','')">
       <span style="font-size:18px">👤</span><span style="font-size:14px;color:var(--text)">Mi perfil</span>
     </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="closeUserMenu();medirVelocidadMobile()">
+      <span style="font-size:18px">📡</span><span style="font-size:14px;color:var(--text)">Velocidad de red</span>
+    </div>
     <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;" onclick="confirmLogout()">
       <span style="font-size:18px">🚪</span><span style="font-size:14px;font-weight:600;color:var(--red)">Cerrar sesión</span>
     </div>
@@ -1071,9 +1074,13 @@ function setEstadoConexion(estado){
   if(!b) return;
   if(estado==="ok"){ b.classList.remove("show"); return; }
   if(txt){
-    txt.textContent = (estado==="sin-red")
-      ? "📡 Sin conexión — mostrando datos en caché"
-      : "⚠️ Datos sin actualizar"+(_ultimaSyncOk?" ("+_hace_(_ultimaSyncOk)+")":"")+" — toca para reintentar";
+    if(estado==="sincronizando"){
+      txt.textContent = "⏳ Sincronizando datos...";
+    }else if(estado==="sin-red"){
+      txt.textContent = "📡 Sin conexión — mostrando datos en caché";
+    }else{
+      txt.textContent = "⚠️ Datos sin actualizar"+(_ultimaSyncOk?" ("+_hace_(_ultimaSyncOk)+")":"")+" — toca para reintentar";
+    }
   }
   b.classList.add("show");
 }
@@ -1511,13 +1518,7 @@ async function _completarLoginExitosoMobile_(resp, usernameIngresado, err){
     document.getElementById("force-pass-screen").style.display="flex";
     return;
   }
-  const btnLogin=document.querySelector(".btn-login");
-  const _txtOriginal="Iniciar sesión";
-  if(btnLogin){ btnLogin.disabled=true; btnLogin.textContent="Cargando datos..."; }
-  const _avisoLargo2=setTimeout(()=>{ if(btnLogin) btnLogin.textContent="Esto está tardando más de lo normal..."; },8000);
-  await cargarDatosPostLogin();
-  clearTimeout(_avisoLargo2);
-  if(btnLogin){ btnLogin.disabled=false; btnLogin.textContent=_txtOriginal; }
+  // No bloquear — mostrar app inmediatamente, cargar datos en background
   iniciarControlSesionUnicaMobile();
   document.getElementById("login-screen").style.display="none";
   document.getElementById("app").classList.add("visible");
@@ -1528,6 +1529,20 @@ async function _completarLoginExitosoMobile_(resp, usernameIngresado, err){
   renderDashboard();renderTickets();renderActivos();renderReportes();updateBadge();
   iniciarPollingMobile(); pedirPermisosNotifMobile();
   _aplicarDeepLinkMobile();
+
+  // Cargar datos en background — no bloquea la interfaz
+  setEstadoConexion("sincronizando");
+  cargarDatosPostLogin()
+    .then(ok=>{
+      if(!ok){
+        marcarFalloSync();
+      }
+      // Si ok=true, setEstadoConexion("ok") fue llamado dentro de cargarDatosPostLogin()
+    })
+    .catch(err=>{
+      console.warn('[SAGAE Mobile] Error cargando datos post-login:', err);
+      marcarFalloSync();
+    });
 }
 // v2.4: soporta los accesos directos del manifest.json (#tickets,
 // #inventario) — se llama solo después de que el login/sesión ya resolvió
@@ -3455,6 +3470,60 @@ function showMobToast(msg){
     'font-size:13px;z-index:9999;max-width:90vw;text-align:center;';
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),3000);
+}
+
+async function medirVelocidadMobile(){
+  showMobToast('📡 Midiendo velocidad...');
+  const medir = async (url) => {
+    const t0 = performance.now();
+    try{ await fetch(url+(url.includes('?')?'&':'?')+'_t='+Date.now(), {cache:'no-store', mode:'cors'}); }
+    catch(e){ /* incluso si CORS bloquea la lectura, el tiempo de ida y vuelta es válido */ }
+    return performance.now()-t0;
+  };
+  const prom = a => a.reduce((s,x)=>s+x,0)/a.length;
+  try{
+    const red = [];
+    for(let i=0;i<3;i++) red.push(await medir(location.href));
+    const srv = [];
+    for(let i=0;i<3;i++) srv.push(await medir(API+'?action=config'));
+
+    const mRed = prom(red), mSrv = prom(srv);
+    const veces = mRed>0 ? Math.round(mSrv/mRed) : 0;
+    let veredicto, color;
+    if(mSrv < 1200){
+      veredicto = '✅ El servidor está rápido. Si ves demora, es por los pasos del proceso, no la red.';
+      color = '#085041';
+    }else if(mRed < 600 && mSrv >= 1200){
+      veredicto = '⚠️ Tu conexión está bien; el lento es el servidor de Google Apps Script.';
+      color = '#633806';
+    }else{
+      veredicto = '⚠️ Tanto tu conexión como el servidor están lentos en este momento.';
+      color = '#791F1F';
+    }
+
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:20px;max-width:85vw;max-height:80vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.2);">
+        <div style="font-weight:700;font-size:16px;margin-bottom:12px;color:var(--navy-d);">📡 Diagnóstico de velocidad</div>
+        <div style="margin-bottom:12px;font-size:13px;color:var(--text2);line-height:1.5;">
+          <div><b>Tu conexión:</b> ${Math.round(mRed)} ms</div>
+          <div style="margin-top:6px;"><b>Servidor de Google:</b> ${Math.round(mSrv)} ms</div>
+          ${veces>1?'<div style="margin-top:6px;color:var(--text3);"><b>'+veces+' veces más lento</b> que tu conexión</div>':''}
+        </div>
+        <div style="margin-top:12px;padding:10px;border-radius:8px;background:#f0f0f0;color:${color};font-weight:600;font-size:12px;">
+          ${veredicto}
+        </div>
+        <div style="margin-top:10px;color:var(--text3);font-size:11px;">
+          Crear ticket es lo más lento porque espera al servidor para asignar TKT-XXXX. Editar es instantáneo.
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:var(--navy);color:#fff;font-weight:600;cursor:pointer;">Cerrar</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }catch(e){
+    showMobToast('❌ Error en la medición: '+(e&&e.message?e.message:'error'));
+  }
 }
 </script>
 </body>
