@@ -2034,8 +2034,8 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div class="f-row"><div class="f-lbl">Descripción</div><input class="f-inp" id="et-desc" placeholder="Detalle completo..."></div>
   <div class="f-row">
-    <div class="f-lbl">📎 Fotos del ticket (seguimiento)
-      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Hasta 5 fotos — quedan asociadas a la fecha y usuario que las subió</span>
+    <div class="f-lbl">📎 Fotos generales del ticket
+      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Hasta 5 fotos — evidencia general del caso (ej: el problema reportado). No quedan en el historial del activo — para eso usa la foto de "Confirmar recepción" o "Condición al devolver" más abajo, si aplica.</span>
     </div>
     <div id="et-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
     <button type="button" class="btn" id="et-fotos-add-btn" onclick="agregarFotoTicketAdmin()"
@@ -2075,7 +2075,9 @@ tbody tr.clickable{cursor:pointer;}
     <div style="font-size:10px;color:var(--text3);margin-bottom:10px">
       Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo entrega físicamente.
     </div>
-    <div class="f-lbl">📷 Foto del equipo al recibirlo (opcional)</div>
+    <div class="f-lbl">📷 Foto del equipo al recibirlo (opcional)
+      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Esta sí queda como comprobante en el historial del activo, junto al evento de entrada.</span>
+    </div>
     <div id="et-entrada-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin:6px 0;"></div>
     <button type="button" class="btn" id="et-entrada-fotos-add-btn" onclick="agregarFotoEntradaMant()" style="padding:8px 12px;font-size:12px;">📂 Agregar foto</button>
     <div id="et-entrada-fotos-limite-note" style="display:none;font-size:10px;color:var(--text3);margin-top:4px;">Máximo de 3 fotos.</div>
@@ -2086,7 +2088,15 @@ tbody tr.clickable{cursor:pointer;}
       <input type="checkbox" id="et-marcar-salida" checked style="width:16px;height:16px;cursor:pointer">
       ✅ Marcar el equipo vinculado como devuelto de mantenimiento
     </label>
-    <div class="f-lbl" style="margin-top:6px">Condición del equipo al devolver</div>
+    <div class="f-lbl" style="margin-top:6px">¿A quién se le entrega el equipo de vuelta?</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+      <input class="f-inp" id="et-devuelto-nombre" placeholder="Nombre de quien recibe" style="flex:1;min-width:160px">
+      <input class="f-inp" type="email" id="et-devuelto-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px">
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">
+      Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo recibe físicamente.
+    </div>
+    <div class="f-lbl">Condición del equipo al devolver</div>
     <select class="f-inp f-sel" id="et-condicion-devuelto">
       <option value="">— Selecciona —</option>
       <option>Reparado — funciona correctamente</option>
@@ -2095,7 +2105,9 @@ tbody tr.clickable{cursor:pointer;}
       <option>No se pudo reparar</option>
       <option>Reemplazado por equipo nuevo</option>
     </select>
-    <div class="f-lbl" style="margin-top:8px">📷 Foto del equipo al devolver (opcional)</div>
+    <div class="f-lbl" style="margin-top:8px">📷 Foto del equipo al devolver (opcional)
+      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Esta sí queda como comprobante en el historial del activo, junto al evento de salida.</span>
+    </div>
     <div id="et-salida-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin:6px 0;"></div>
     <button type="button" class="btn" id="et-salida-fotos-add-btn" onclick="agregarFotoSalidaMant()" style="padding:8px 12px;font-size:12px;">📂 Agregar foto</button>
     <div id="et-salida-fotos-limite-note" style="display:none;font-size:10px;color:var(--text3);margin-top:4px;">Máximo de 3 fotos.</div>
@@ -3502,13 +3514,15 @@ function marcarEntradaMantenimiento(activo, opts={}){
 function marcarSalidaMantenimiento(activo, opts={}){
   const {motivo, tecnico, estadoNuevo, condicion, origen, extra} = opts;
   const entradaEvt = (activo.historial||[]).slice().reverse().find(h=>h.tipo==='Entrada a Mantenimiento');
+  const devueltoANombre = extra?.devueltoANombre || '';
   const emailResp = (opts.emailResp || entradaEvt?.emailResp || '');
   activo.estado = estadoNuevo || 'activo';
   activo.historial = activo.historial || [];
   activo.historial.push(Object.assign({
     tipo:      'Salida de Mantenimiento',
     desc:      `Equipo devuelto de mantenimiento. Nuevo estado: ${activo.estado}. Técnico: ${tecnico||session.nombre}. Motivo: ${motivo||'Mantenimiento completado'}.`
-               + (condicion ? ` Condición al devolver: ${condicion}.` : ''),
+               + (condicion ? ` Condición al devolver: ${condicion}.` : '')
+               + (devueltoANombre ? ` Recibido de vuelta por: ${devueltoANombre}.` : ''),
     tecnico:   tecnico || session.nombre,
     emailResp,
     asignadoA: activo.asignado || '—',
@@ -3902,6 +3916,10 @@ function openTicket(id,forceReadOnly){
       document.getElementById('et-entrega-nombre').value = actVinculado.asignado && actVinculado.asignado!=='—' ? actVinculado.asignado : '';
       document.getElementById('et-entrega-email').value  = actVinculado.asignadoEmail || '';
     }
+    if(_puedeSalida && actVinculado){
+      document.getElementById('et-devuelto-nombre').value = actVinculado.asignado && actVinculado.asignado!=='—' ? actVinculado.asignado : '';
+      document.getElementById('et-devuelto-email').value  = actVinculado.asignadoEmail || '';
+    }
     _etEntradaFotosActuales = []; _renderGaleriaFotosEntradaMant();
     _etSalidaFotosActuales  = []; _renderGaleriaFotosSalidaMant();
   }else{
@@ -4278,10 +4296,15 @@ async function saveTicket(){
       const act = activos.find(a=>a.codigo===t.activoId);
       if(act && act.estado==='mantenimiento'){
         const condicion = document.getElementById('et-condicion-devuelto')?.value.trim() || '';
+        const devueltoNombre = document.getElementById('et-devuelto-nombre')?.value.trim() || '';
+        const devueltoEmail  = document.getElementById('et-devuelto-email')?.value.trim() || '';
         marcarSalidaMantenimiento(act, {
           motivo: 'Ticket '+t.codigo+' cerrado: '+titulo,
           tecnico: session.nombre, estadoNuevo: 'activo', condicion,
+          emailResp: devueltoEmail || act.asignadoEmail || '',
           origen: 'ticket', extra: {ticketCodigo: t.codigo,
+            devueltoANombre: devueltoNombre || act.asignado || '',
+            devueltoAEmail:  devueltoEmail  || act.asignadoEmail || '',
             fotos: _etSalidaFotosActuales.length ? _etSalidaFotosActuales : undefined}
         });
         _actSalida = act;

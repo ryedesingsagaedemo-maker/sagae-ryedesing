@@ -498,7 +498,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Fotos del ticket (seguimiento)</label>
+      <label class="form-label">📎 Fotos generales del ticket</label>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Evidencia general del caso (ej: el problema reportado). No quedan en el historial del activo — para eso usa la foto de "Confirmar recepción" o "Condición al devolver" más abajo, si aplica.</div>
       <div id="mt-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
       <button type="button" class="btn-secondary" id="mt-fotos-add-btn" onclick="agregarFotoTicketMobile()">📷 Agregar foto</button>
       <div id="mt-fotos-limite-note" style="display:none;margin-top:6px;font-size:11px;color:#666;">Se alcanzó el máximo de 5 fotos.</div>
@@ -512,6 +513,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       </div>
       <div class="form-group">
         <label class="form-label">📷 Foto al recibir (opcional)</label>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Esta sí queda como comprobante en el historial del activo, junto al evento de entrada.</div>
         <div id="mte-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
         <button type="button" class="btn-secondary" id="mte-fotos-add-btn" onclick="agregarFotoEntradaMantMobile()">📷 Tomar / agregar foto</button>
         <div id="mte-fotos-limite-note" style="display:none;margin-top:6px;font-size:11px;color:#666;">Máximo de 3 fotos.</div>
@@ -523,7 +525,12 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
         <input type="checkbox" id="mt-marcar-salida" checked style="width:18px;height:18px;accent-color:var(--navy)">
         <span style="font-size:13px;font-weight:700;color:var(--navy)">✅ Marcar equipo como devuelto de mantenimiento</span>
       </label>
-      <div class="form-group" style="margin-top:8px"><label class="form-label">Condición al devolver</label>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">¿A quién se le entrega el equipo de vuelta?</label>
+        <input class="form-input" id="mt-devuelto-nombre" placeholder="Nombre de quien recibe" style="margin-bottom:8px">
+        <input class="form-input" type="email" id="mt-devuelto-email" placeholder="correo@dominio.com">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo recibe físicamente.</div>
+      </div>
+      <div class="form-group"><label class="form-label">Condición al devolver</label>
         <select class="form-select" id="mt-condicion-devuelto">
           <option value="">— Selecciona —</option>
           <option>Reparado — funciona correctamente</option>
@@ -535,6 +542,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       </div>
       <div class="form-group">
         <label class="form-label">📷 Foto al devolver (opcional)</label>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Esta sí queda como comprobante en el historial del activo, junto al evento de salida.</div>
         <div id="mts-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
         <button type="button" class="btn-secondary" id="mts-fotos-add-btn" onclick="agregarFotoSalidaMantMobile()">📷 Tomar / agregar foto</button>
         <div id="mts-fotos-limite-note" style="display:none;margin-top:6px;font-size:11px;color:#666;">Máximo de 3 fotos.</div>
@@ -2173,6 +2181,10 @@ function openEditTicket(codigo){
     document.getElementById('mt-entrega-nombre').value = actVinculadoM.asignado && actVinculadoM.asignado!=='—' ? actVinculadoM.asignado : '';
     document.getElementById('mt-entrega-email').value  = actVinculadoM.asignadoEmail || '';
   }
+  if(puedeSalidaM && actVinculadoM){
+    document.getElementById('mt-devuelto-nombre').value = actVinculadoM.asignado && actVinculadoM.asignado!=='—' ? actVinculadoM.asignado : '';
+    document.getElementById('mt-devuelto-email').value  = actVinculadoM.asignadoEmail || '';
+  }
   document.getElementById('mt-marcar-salida').checked = true;
   document.getElementById('mt-condicion-devuelto').value = '';
   _mteFotosActuales = []; _renderGaleriaFotosMobileGenerica(_mteFotosActuales,'mte-fotos-list','mte-fotos-add-btn','mte-fotos-limite-note');
@@ -2272,10 +2284,15 @@ async function saveTicket(){
       const actM = activos.find(a=>a.codigo===t.activoId);
       if(actM && actM.estado==='mantenimiento'){
         const condicionM = document.getElementById('mt-condicion-devuelto')?.value.trim() || '';
+        const devueltoNombreM = document.getElementById('mt-devuelto-nombre')?.value.trim() || '';
+        const devueltoEmailM  = document.getElementById('mt-devuelto-email')?.value.trim() || '';
         marcarSalidaMantenimientoMobile(actM, {
           motivo: 'Ticket '+t.codigo+' cerrado: '+titulo,
           tecnico: session.nombre, estadoNuevo: 'activo', condicion: condicionM,
+          emailResp: devueltoEmailM || actM.asignadoEmail || '',
           origen: 'ticket', extra: {ticketCodigo: t.codigo,
+            devueltoANombre: devueltoNombreM || actM.asignado || '',
+            devueltoAEmail:  devueltoEmailM  || actM.asignadoEmail || '',
             fotos: _mtsFotosActuales.length ? _mtsFotosActuales : undefined}
         });
         _actSalidaM = actM;
@@ -2478,13 +2495,15 @@ function marcarEntradaMantenimientoMobile(activo, opts={}){
 function marcarSalidaMantenimientoMobile(activo, opts={}){
   const {motivo, tecnico, estadoNuevo, condicion, origen, extra} = opts;
   const entradaEvt = (activo.historial||[]).slice().reverse().find(h=>h.tipo==='Entrada a Mantenimiento');
+  const devueltoANombre = extra?.devueltoANombre || '';
   const emailResp = (opts.emailResp || entradaEvt?.emailResp || '');
   activo.estado = estadoNuevo || 'activo';
   activo.historial = activo.historial || [];
   activo.historial.push(Object.assign({
     tipo:      'Salida de Mantenimiento',
     desc:      `Equipo devuelto de mantenimiento. Nuevo estado: ${activo.estado}. Técnico: ${tecnico||session.nombre}. Motivo: ${motivo||'Mantenimiento completado'}.`
-               + (condicion ? ` Condición al devolver: ${condicion}.` : ''),
+               + (condicion ? ` Condición al devolver: ${condicion}.` : '')
+               + (devueltoANombre ? ` Recibido de vuelta por: ${devueltoANombre}.` : ''),
     tecnico:   tecnico || session.nombre,
     emailResp,
     asignadoA: activo.asignado || '—',
