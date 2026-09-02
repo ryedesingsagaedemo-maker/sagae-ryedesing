@@ -2105,6 +2105,9 @@ tbody tr.clickable{cursor:pointer;}
       <option>No se pudo reparar</option>
       <option>Reemplazado por equipo nuevo</option>
     </select>
+    <div style="font-size:10px;color:var(--text3);margin:2px 0 4px">
+      "No se pudo reparar" y "Reemplazado por equipo nuevo" envían el activo a <strong>Descarte</strong> automáticamente — las demás opciones lo regresan a "Activo".
+    </div>
     <div class="f-lbl" style="margin-top:8px">📷 Foto del equipo al devolver (opcional)
       <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Esta sí queda como comprobante en el historial del activo, junto al evento de salida.</span>
     </div>
@@ -3516,7 +3519,12 @@ function marcarSalidaMantenimiento(activo, opts={}){
   const entradaEvt = (activo.historial||[]).slice().reverse().find(h=>h.tipo==='Entrada a Mantenimiento');
   const devueltoANombre = extra?.devueltoANombre || '';
   const emailResp = (opts.emailResp || entradaEvt?.emailResp || '');
-  activo.estado = estadoNuevo || 'activo';
+  // El estado final depende de la condición: si no se pudo reparar o el
+  // equipo fue reemplazado, el original ya no vuelve a servicio — se manda
+  // a Descarte en vez de reactivarlo como si estuviera disponible.
+  // estadoNuevo (si se pasa explícito) siempre gana sobre esta deducción.
+  const _estadoAutoPorCondicion = (condicion==='No se pudo reparar' || condicion==='Reemplazado por equipo nuevo') ? 'descarte' : 'activo';
+  activo.estado = estadoNuevo || _estadoAutoPorCondicion;
   activo.historial = activo.historial || [];
   activo.historial.push(Object.assign({
     tipo:      'Salida de Mantenimiento',
@@ -4300,7 +4308,7 @@ async function saveTicket(){
         const devueltoEmail  = document.getElementById('et-devuelto-email')?.value.trim() || '';
         marcarSalidaMantenimiento(act, {
           motivo: 'Ticket '+t.codigo+' cerrado: '+titulo,
-          tecnico: session.nombre, estadoNuevo: 'activo', condicion,
+          tecnico: session.nombre, condicion,
           emailResp: devueltoEmail || act.asignadoEmail || '',
           origen: 'ticket', extra: {ticketCodigo: t.codigo,
             devueltoANombre: devueltoNombre || act.asignado || '',

@@ -224,18 +224,41 @@ para el usuario cuál usar. El diseño final deja **un solo camino real**:
     con el momento real en que el equipo llega a manos de IT).
   - **"📥 Confirmar recepción del equipo"** — botón aparte dentro del
     ticket ya creado (`confirmarRecepcionMantenimiento()` en
-    `index.html`), visible solo si el ticket es de mantenimiento, está
-    vinculado a un activo, y ese activo **no** está ya en
-    mantenimiento. El técnico lo pulsa cuando tiene el equipo
+    `index.html`; `confirmarRecepcionMantenimientoMobile()` en
+    `SAGAE_index_mobile.html`), visible solo si el ticket es de
+    mantenimiento, está vinculado a un activo, y ese activo **no** está
+    ya en mantenimiento. El técnico lo pulsa cuando tiene el equipo
     físicamente en sus manos — ese clic es el verdadero momento de
     entrada, y es el único disparador de `marcarEntradaMantenimiento()`.
+    Junto al botón hay un campo **"¿Quién entrega el equipo?"** (nombre
+    + correo), sugerido por defecto con el asignado registrado del
+    activo pero editable — cubre el caso de que otra persona sea quien
+    físicamente lo lleve a IT, para que el correo de aviso le llegue a
+    quien corresponde y no siempre al dueño registrado. También se
+    puede adjuntar una foto opcional del estado del equipo en ese
+    momento, que queda ligada al evento `Entrada a Mantenimiento` en el
+    historial del activo (visible ahí, no se envía por correo).
   - **Cerrar el ticket** (`estado` → `cerrado`) con el checkbox "✅
     Marcar el equipo vinculado como devuelto de mantenimiento"
-    (marcado por defecto) y el campo **"Condición del equipo al
-    devolver"** — dispara `marcarSalidaMantenimiento()`, que regresa
-    el activo a `estado:'activo'`.
+    (marcado por defecto), el campo simétrico **"¿A quién se le
+    entrega el equipo de vuelta?"** (mismo patrón que el de entrada), el
+    campo **"Condición del equipo al devolver"**, y una foto opcional
+    (misma lógica: queda en el historial del activo, no en el correo) —
+    dispara `marcarSalidaMantenimiento()`.
+    **El estado final del activo depende de la condición elegida, no
+    siempre es `'activo'`:** si la condición es "No se pudo reparar" o
+    "Reemplazado por equipo nuevo", el activo pasa a `estado:'descarte'`
+    en vez de reactivarse — la lógica entiende que ese equipo ya no
+    vuelve a servicio. Cualquier otra condición ("Reparado — funciona
+    correctamente", "Reparado con observaciones", "Sin reparación —
+    pieza pendiente") lo regresa a `estado:'activo'`. Esta regla vive
+    dentro de `marcarSalidaMantenimiento()` (y su espejo
+    `marcarSalidaMantenimientoMobile()`), no en la pantalla que la
+    llama, así que aplica siempre sin importar desde dónde se cierre el
+    ticket.
 - **"Editar activo" ya NO permite tocar el campo Estado hacia/desde
-  `mantenimiento` a mano** — `saveActivo()` bloquea esa transición
+  `mantenimiento` a mano** — `saveActivo()` (web) y el guardado de
+  activo en `SAGAE_index_mobile.html` bloquean esa transición
   específica con un mensaje que remite al ticket vinculado. El resto de
   transiciones de estado (activo↔disponible↔descarte) se sigue editando
   libremente ahí.
@@ -243,16 +266,30 @@ para el usuario cuál usar. El diseño final deja **un solo camino real**:
   Cualquier tipo elegido ahí (incluido "Entrega de equipo") se agrega
   al historial como una nota de trabajo, pero **ya no cambia el estado
   del activo ni dispara entrada/salida** — eso solo pasa por el ticket.
+  Esa pantalla tiene su propia galería de fotos ("Fotos del ticket" /
+  "Fotos generales del ticket" en el ticket, y las del evento de
+  bitácora en el modal de mantenimiento) que es **distinta** de las
+  fotos de entrada/salida: las generales documentan el caso pero no
+  quedan ligadas a ningún evento del historial del activo; las de
+  entrada/salida sí. La UI lo aclara con una nota corta en cada campo
+  de foto, precisamente para que no se confundan.
 
 `marcarEntradaMantenimiento()` / `marcarSalidaMantenimiento()` (en
-`index.html`, arriba de `openActivo()`) siguen siendo las únicas
-funciones que escriben `Entrada a Mantenimiento` / `Salida de
-Mantenimiento` en el historial del activo y que cambian su `estado` —
-solo que ahora tienen un único llamador cada una (el botón de confirmar
-recepción, y el cierre del ticket, respectivamente) en vez de tres. El
-backend sigue disparando el correo mirando el **último** evento del
-historial del activo (`despacharNotificacion_` en `Code.gs`), sin
-cambios ahí.
+`index.html`, arriba de `openActivo()`) y sus espejos
+`marcarEntradaMantenimientoMobile()` / `marcarSalidaMantenimientoMobile()`
+(en `SAGAE_index_mobile.html`) siguen siendo las únicas funciones que
+escriben `Entrada a Mantenimiento` / `Salida de Mantenimiento` en el
+historial del activo y que cambian su `estado` — cada una tiene un
+único llamador por plataforma (el botón de confirmar recepción, y el
+cierre del ticket, respectivamente). Los nombres de campo son
+idénticos entre la versión web y la móvil a propósito, para que un
+evento creado desde el celular se lea igual de bien si el mismo activo
+se abre después en la web, y viceversa. El backend sigue disparando el
+correo mirando el **último** evento del historial del activo
+(`despacharNotificacion_` en `Code.gs`); las fotos nunca viajan por
+correo (`compactarEventoHistorial_` las descarta a propósito antes de
+encolar la notificación), solo quedan guardadas en el historial del
+activo.
 
 **Trazabilidad:** cada paso queda registrado dos veces — una vez en el
 historial del **activo** (vía las funciones centrales, que es lo que

@@ -539,6 +539,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
           <option>No se pudo reparar</option>
           <option>Reemplazado por equipo nuevo</option>
         </select>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">"No se pudo reparar" y "Reemplazado por equipo nuevo" envían el activo a <strong>Descarte</strong> automáticamente — las demás opciones lo regresan a "Activo".</div>
       </div>
       <div class="form-group">
         <label class="form-label">📷 Foto al devolver (opcional)</label>
@@ -2288,7 +2289,7 @@ async function saveTicket(){
         const devueltoEmailM  = document.getElementById('mt-devuelto-email')?.value.trim() || '';
         marcarSalidaMantenimientoMobile(actM, {
           motivo: 'Ticket '+t.codigo+' cerrado: '+titulo,
-          tecnico: session.nombre, estadoNuevo: 'activo', condicion: condicionM,
+          tecnico: session.nombre, condicion: condicionM,
           emailResp: devueltoEmailM || actM.asignadoEmail || '',
           origen: 'ticket', extra: {ticketCodigo: t.codigo,
             devueltoANombre: devueltoNombreM || actM.asignado || '',
@@ -2497,7 +2498,11 @@ function marcarSalidaMantenimientoMobile(activo, opts={}){
   const entradaEvt = (activo.historial||[]).slice().reverse().find(h=>h.tipo==='Entrada a Mantenimiento');
   const devueltoANombre = extra?.devueltoANombre || '';
   const emailResp = (opts.emailResp || entradaEvt?.emailResp || '');
-  activo.estado = estadoNuevo || 'activo';
+  // Espejo de la misma regla en index.html: si no se pudo reparar o el
+  // equipo fue reemplazado, el original ya no vuelve a servicio — se
+  // manda a Descarte en vez de reactivarlo como si estuviera disponible.
+  const _estadoAutoPorCondicion = (condicion==='No se pudo reparar' || condicion==='Reemplazado por equipo nuevo') ? 'descarte' : 'activo';
+  activo.estado = estadoNuevo || _estadoAutoPorCondicion;
   activo.historial = activo.historial || [];
   activo.historial.push(Object.assign({
     tipo:      'Salida de Mantenimiento',
