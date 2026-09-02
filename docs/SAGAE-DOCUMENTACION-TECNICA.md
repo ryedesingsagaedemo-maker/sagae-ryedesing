@@ -206,46 +206,67 @@ la operación), pero el aviso falla en silencio hasta la medianoche.
 Si hace falta más margen, la cuenta de Google Workspace sube esa cuota
 a 1,500/día sin tocar código.
 
-### 7.1 Entrada/salida de mantenimiento — un solo mecanismo, tres puntos de entrada
+### 7.1 Entrada/salida de mantenimiento — un solo camino, gestionado por el ticket
 
-Un activo puede entrar en estado "mantenimiento" desde tres pantallas
-distintas (editar activo, el modal "Registrar mantenimiento", o crear/
-cerrar un ticket con Tipo = Mantenimiento vinculado a un activo). Hasta
-que se corrigió esto (2026-09), cada pantalla tenía su propia lógica
-suelta y solo una de las tres avisaba realmente al responsable por
-correo — las otras dos cambiaban el dato en silencio, sin comprobante
-ni notificación.
+**Versión final (2026-09).** Antes de esto hubo una versión intermedia
+donde editar el activo, el modal "Registrar mantenimiento" y los
+tickets podían los tres marcar "entrada a mantenimiento" — se descartó
+esa versión porque, aunque las tres avisaban correctamente por correo,
+seguía habiendo tres puertas distintas para lo mismo y no era obvio
+para el usuario cuál usar. El diseño final deja **un solo camino real**:
 
-Ahora las tres llaman a dos funciones centrales en `index.html`
-(`marcarEntradaMantenimiento()` / `marcarSalidaMantenimiento()`), que
-son el único lugar que cambia `estado` a/desde `'mantenimiento'` y que
-escribe los eventos de historial `Entrada a Mantenimiento` / `Salida de
-Mantenimiento`. El backend decide si manda el correo mirando el
-**último** evento del historial (`despacharNotificacion_` en
-`Code.gs`), así que con que las tres rutas terminen empujando ese mismo
-evento canónico como último, el aviso se dispara siempre, sin importar
-por dónde se originó:
+- **El ticket (Tipo = Mantenimiento) es el único lugar que cambia
+  `activo.estado` a/desde `'mantenimiento'`.** Dos acciones separadas,
+  cada una un momento real distinto:
+  - **Crear el ticket** vinculado a un activo — solo significa "se
+    reportó/solicitó". NO marca el activo en mantenimiento todavía
+    (a propósito: el momento de crear el ticket casi nunca coincide
+    con el momento real en que el equipo llega a manos de IT).
+  - **"📥 Confirmar recepción del equipo"** — botón aparte dentro del
+    ticket ya creado (`confirmarRecepcionMantenimiento()` en
+    `index.html`), visible solo si el ticket es de mantenimiento, está
+    vinculado a un activo, y ese activo **no** está ya en
+    mantenimiento. El técnico lo pulsa cuando tiene el equipo
+    físicamente en sus manos — ese clic es el verdadero momento de
+    entrada, y es el único disparador de `marcarEntradaMantenimiento()`.
+  - **Cerrar el ticket** (`estado` → `cerrado`) con el checkbox "✅
+    Marcar el equipo vinculado como devuelto de mantenimiento"
+    (marcado por defecto) y el campo **"Condición del equipo al
+    devolver"** — dispara `marcarSalidaMantenimiento()`, que regresa
+    el activo a `estado:'activo'`.
+- **"Editar activo" ya NO permite tocar el campo Estado hacia/desde
+  `mantenimiento` a mano** — `saveActivo()` bloquea esa transición
+  específica con un mensaje que remite al ticket vinculado. El resto de
+  transiciones de estado (activo↔disponible↔descarte) se sigue editando
+  libremente ahí.
+- **El modal "Registrar mantenimiento" (`saveMant()`) es solo bitácora.**
+  Cualquier tipo elegido ahí (incluido "Entrega de equipo") se agrega
+  al historial como una nota de trabajo, pero **ya no cambia el estado
+  del activo ni dispara entrada/salida** — eso solo pasa por el ticket.
 
-- **Editar activo** — cambiar el campo Estado a/desde `mantenimiento`
-  (comportamiento de referencia, sin cambios de fondo).
-- **Modal "Registrar mantenimiento"** — elegir tipo "Entrega de
-  equipo" ahora también marca la entrada a mantenimiento (antes solo
-  quedaba como texto en el historial, sin avisar a nadie). "Daño
-  reportado" se agregó a la lista `tiposMant` del backend, que antes
-  la excluía silenciosamente de las notificaciones.
-- **Ticket tipo Mantenimiento** — crear un ticket vinculado a un
-  activo dispara la entrada (antes cambiaba `estado` directo sin pasar
-  por la detección, sin avisar a nadie). Cerrar un ticket de
-  mantenimiento vinculado a un activo que sigue en `mantenimiento`
-  ofrece un checkbox ("✅ Marcar el equipo vinculado como devuelto de
-  mantenimiento", marcado por defecto) que dispara la salida — esto no
-  existía antes en absoluto.
+`marcarEntradaMantenimiento()` / `marcarSalidaMantenimiento()` (en
+`index.html`, arriba de `openActivo()`) siguen siendo las únicas
+funciones que escriben `Entrada a Mantenimiento` / `Salida de
+Mantenimiento` en el historial del activo y que cambian su `estado` —
+solo que ahora tienen un único llamador cada una (el botón de confirmar
+recepción, y el cierre del ticket, respectivamente) en vez de tres. El
+backend sigue disparando el correo mirando el **último** evento del
+historial del activo (`despacharNotificacion_` en `Code.gs`), sin
+cambios ahí.
 
-Se agregó también un campo **"Condición del equipo al devolver"** (en
-el formulario de editar activo y al cerrar un ticket de mantenimiento)
-que viaja hasta el correo de salida (`notificarSalidaMantenimiento`),
-para que el aviso de devolución no dependa solo de un texto libre
-genérico.
+**Trazabilidad:** cada paso queda registrado dos veces — una vez en el
+historial del **activo** (vía las funciones centrales, que es lo que
+alimenta el Expediente del activo y el reporte de mantenimientos) y
+otra vez en el historial del **ticket** (evento `'📥 Equipo recibido
+por IT'` al confirmar recepción, más el evento normal de cierre). Nada
+de lo que le pasa a un activo por esta vía queda sin anotar en su
+propio historial.
+
+Se corrigió de paso un bug preexistente en `openTicket()`: el campo
+Tipo del ticket nunca se rellenaba al abrir un ticket para editar
+(quedó accidentalmente dentro de un comentario de JS), así que guardar
+cualquier cambio en un ticket de mantenimiento sin tocar el dropdown
+Tipo lo reescribía en silencio a "Incidencia". Ya corregido.
 
 ## 8. Base de datos — 9 hojas
 

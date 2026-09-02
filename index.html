@@ -2008,17 +2008,6 @@ tbody tr.clickable{cursor:pointer;}
     <div class="f-lbl">Motivo de la edición *</div>
     <input class="f-inp" id="ea-motivo" placeholder="Ej: Corrección de nombre...">
   </div>
-  <div class="f-row" id="ea-condicion-wrap" style="display:none;">
-    <div class="f-lbl">Condición del equipo al devolver</div>
-    <select class="f-inp f-sel" id="ea-condicion-devuelto">
-      <option value="">— Selecciona —</option>
-      <option>Reparado — funciona correctamente</option>
-      <option>Reparado con observaciones</option>
-      <option>Sin reparación — pieza pendiente</option>
-      <option>No se pudo reparar</option>
-      <option>Reemplazado por equipo nuevo</option>
-    </select>
-  </div>
   <div class="modal-actions"><button class="btn" onclick="closeModals()">Cancelar</button><button class="btn btn-p" id="ea-save-btn" onclick="saveActivo()">Guardar activo</button></div>
 </div></div>
 
@@ -2069,6 +2058,16 @@ tbody tr.clickable{cursor:pointer;}
     <div class="req-note">Motivo obligatorio — queda registrado en auditoría.</div>
     <div class="f-lbl">Motivo de la edición *</div>
     <input class="f-inp" id="et-motivo" placeholder="Ej: Corrección de responsable...">
+  </div>
+  <div class="f-row" id="et-entrada-mant-wrap" style="display:none;background:#FDF8E1;border-radius:6px;padding:8px;">
+    <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">
+      📥 Este ticket es de mantenimiento y el equipo vinculado aún NO está marcado como recibido por IT.
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">
+      Haz clic cuando el técnico tenga el equipo físicamente en sus manos — así queda el comprobante de
+      entrada y se le avisa al responsable.
+    </div>
+    <button type="button" class="btn btn-p" onclick="confirmarRecepcionMantenimiento()">📥 Confirmar recepción del equipo</button>
   </div>
   <div class="f-row" id="et-salida-mant-wrap" style="display:none;background:#EAF7EF;border-radius:6px;padding:8px;">
     <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer">
@@ -3529,10 +3528,8 @@ function openActivo(id){
   document.getElementById('ea-save-btn').textContent=isEdit?'Guardar cambios':'Guardar activo';
   document.getElementById('ea-motivo-wrap').style.display=isEdit?'block':'none';
   document.getElementById('ea-motivo').value='';document.getElementById('ea-id').value=id||'';
-  document.getElementById('ea-condicion-devuelto').value='';
   if(isEdit){
     const a=activos.find(x=>x.codigo===id);if(!a)return;
-    document.getElementById('ea-condicion-wrap').style.display = (a.estado==='mantenimiento') ? 'block':'none';
     // Migración silenciosa de datos legados: "asignado" ya no es un valor
     // válido de estado (era redundante con el campo "Asignado a" — ver
     // auditoría). Si un activo antiguo quedó guardado con estado="asignado",
@@ -3566,7 +3563,6 @@ function openActivo(id){
     document.getElementById('ea-compra').value='';document.getElementById('ea-garantia').value='';document.getElementById('ea-estado').value='activo';
     document.getElementById('ea-tipo').selectedIndex=0;
     onChangeTipoActivo(document.getElementById('ea-tipo').value);
-    document.getElementById('ea-condicion-wrap').style.display='none';
   }
   document.getElementById('mod-activo').classList.add('open');
 }
@@ -3618,11 +3614,24 @@ async function saveActivo(){
   if(isEdit){
     const motivo=document.getElementById('ea-motivo').value.trim();if(!motivo){alert('El motivo es obligatorio.');return;}
     const a=activos.find(x=>x.codigo===editId);if(!a)return;
+    // ── El estado "Mantenimiento" NO se activa/quita a mano aquí ─────
+    // Único camino: el ticket vinculado (tipo Mantenimiento). Así el
+    // comprobante de entrada/salida siempre pasa por el mismo lugar y
+    // no hay dos formas distintas de hacer lo mismo.
+    const _estadoActual = a.estado||'activo';
+    const _estadoSolicitado = document.getElementById('ea-estado').value||'activo';
+    if(_estadoActual!=='mantenimiento' && _estadoSolicitado==='mantenimiento'){
+      showToast('⚠ "Mantenimiento" solo se activa desde un ticket vinculado (Tipo = Mantenimiento → Confirmar recepción). Crea o abre ese ticket en vez de cambiar el estado aquí.','error');
+      return;
+    }
+    if(_estadoActual==='mantenimiento' && _estadoSolicitado!=='mantenimiento'){
+      showToast('⚠ Este equipo está en mantenimiento por un ticket vinculado. Ciérralo desde ese ticket para que salga de mantenimiento — así el comprobante queda completo.','error');
+      return;
+    }
     const cambios=[];
     // Guardar asignado y depto ANTES de aplicar cambios para detectar reasignación
     const _asignadoAntes = a.asignado||'—';
     const _deptoAntes = a.depto||'—';
-    const _estadoAntes = a.estado||'activo';  // ← capturar estado ANTES de cambios
     const fs={nombre:'ea-nombre',tipo:'ea-tipo',estado:'ea-estado',marca:'ea-marca',modelo:'ea-modelo',serial:'ea-serial',ubicacion:'ea-ubicacion',asignado:'ea-asignado',depto:'ea-depto',obs:'ea-obs',foto:'ea-foto',asignadoEmail:'ea-asignado-email',asignadoCargo:'ea-asignado-cargo'};
     Object.entries(fs).forEach(([k,fid])=>{const nv=document.getElementById(fid).value.trim();
     // Actualizar email del responsable del espacio
@@ -3647,22 +3656,6 @@ async function saveActivo(){
       });
     }
     a.historial.push({tipo:'Edición',desc:det,fecha:ts(),usuario:session.nombre,color:'amber'});
-
-    // ── DETECTAR ENTRADA / SALIDA DE MANTENIMIENTO ──────────────
-    // (delegado a las funciones centrales — ver marcarEntradaMantenimiento/
-    // marcarSalidaMantenimiento, arriba de openActivo)
-    const _estadoNuevo = a.estado||'activo';
-    if(_estadoAntes !== 'mantenimiento' && _estadoNuevo === 'mantenimiento'){
-      const emailRespManual = document.getElementById('mm-email-resp')?.value.trim() || '';
-      const emailResp = emailRespManual || activoActual?.asignadoEmail || '';
-      marcarEntradaMantenimiento(a, {motivo, tecnico:session.nombre, emailResp, origen:'edicion'});
-      showToast('🔧 Equipo marcado en mantenimiento' + (emailResp?' — se notificará a '+emailResp:''),'');
-    }
-    if(_estadoAntes === 'mantenimiento' && _estadoNuevo !== 'mantenimiento'){
-      const condicion = document.getElementById('ea-condicion-devuelto')?.value.trim() || '';
-      marcarSalidaMantenimiento(a, {motivo, tecnico:session.nombre, estadoNuevo:_estadoNuevo, condicion, origen:'edicion'});
-      showToast('✅ Equipo devuelto de mantenimiento','success');
-    }
 
     await apiPost('activos','update',a);audit('EDITAR','Activo',a.codigo,det);
   }else{
@@ -3872,14 +3865,17 @@ function openTicket(id,forceReadOnly){
   if(isEdit){
     const t=tickets.find(x=>x.codigo===id);if(!t)return;
     document.getElementById('et-titulo').value=t.titulo||'';document.getElementById('et-activo').value=t.activoId||'';
-    document.getElementById('et-resp').value=t.resp||''; // selectdocument.getElementById('et-tipo').value=t.tipo||'incidencia';
+    document.getElementById('et-resp').value=t.resp||''; // select
+    document.getElementById('et-tipo').value=t.tipo||'incidencia';
     document.getElementById('et-prior').value=t.prior||'importante';document.getElementById('et-estado').value=t.estado||'abierto';
     document.getElementById('et-avance').value=t.avance||0;document.getElementById('et-dead').value=t.dead!=='—'?t.dead:'';
     document.getElementById('et-proy').value=t.proy!=='—'?t.proy:'';document.getElementById('et-desc').value=t.desc||'';
     _renderGaleriaFotosAdmin(t.fotos);
     renderTicketHistorial(t);
     const actVinculado = t.activoId ? activos.find(a=>a.codigo===t.activoId) : null;
+    const _puedeEntrada = t.tipo==='mantenimiento' && actVinculado && actVinculado.estado!=='mantenimiento' && !readOnly;
     const _puedeSalida = t.tipo==='mantenimiento' && actVinculado && actVinculado.estado==='mantenimiento' && !readOnly;
+    document.getElementById('et-entrada-mant-wrap').style.display = _puedeEntrada ? 'block':'none';
     document.getElementById('et-salida-mant-wrap').style.display = _puedeSalida ? 'block':'none';
     document.getElementById('et-marcar-salida').checked = true;
     document.getElementById('et-condicion-devuelto').value = '';
@@ -3888,6 +3884,7 @@ function openTicket(id,forceReadOnly){
     document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';
     _renderGaleriaFotosAdmin([]);
     document.getElementById('et-hist-wrap').style.display='none';
+    document.getElementById('et-entrada-mant-wrap').style.display='none';
     document.getElementById('et-salida-mant-wrap').style.display='none';
   }
   // Bloquear/desbloquear los campos del formulario según el modo
@@ -4221,16 +4218,13 @@ async function saveTicket(){
       const act=activos.find(a=>a.codigo===aId);
       if(act){
         act.historial=act.historial||[];
+        // La entrada a mantenimiento NO se marca aquí — crear el ticket
+        // solo significa "se reportó/solicitó". El paso de "IT ya tiene el
+        // equipo en sus manos" es una acción aparte y explícita (botón
+        // "Confirmar recepción" al abrir el ticket ya creado), porque el
+        // momento de crear el ticket casi nunca coincide con el momento
+        // real en que el equipo llega a manos del técnico.
         act.historial.push({tipo:'Ticket vinculado',desc:codigoReal+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});
-        if(t.tipo==='mantenimiento' && act.estado!=='mantenimiento'){
-          marcarEntradaMantenimiento(act, {
-            motivo: 'Ticket '+codigoReal+': '+titulo,
-            tecnico: session.nombre,
-            emailResp: act.asignadoEmail || '',
-            origen: 'ticket',
-            extra: {ticketCodigo: codigoReal}
-          });
-        }
         await apiPost('activos','update',act);
       }
     }
@@ -4244,6 +4238,49 @@ async function saveTicket(){
     // activado para siempre y el botón Guardar quedaba muerto hasta
     // recargar la página.
     window._savingTicket = false;
+    ocultarGuardando();
+  }
+}
+
+// Acción explícita y separada de "Guardar cambios": el técnico la usa en
+// el momento real en que tiene el equipo físicamente en sus manos — no
+// al crear el ticket (que solo significa "se reportó/solicitó"). Es el
+// único punto de entrada a mantenimiento del sistema.
+async function confirmarRecepcionMantenimiento(){
+  const editId=document.getElementById('et-id').value;
+  if(!editId) return;
+  const t=tickets.find(x=>x.codigo===editId);if(!t)return;
+  if(t.tipo!=='mantenimiento' || !t.activoId){
+    showToast('Este ticket no es de mantenimiento o no tiene activo vinculado.','error');
+    return;
+  }
+  const act=activos.find(a=>a.codigo===t.activoId);
+  if(!act){ showToast('No se encontró el activo vinculado.','error'); return; }
+  if(act.estado==='mantenimiento'){
+    showToast('Este equipo ya está marcado en mantenimiento.','');
+    return;
+  }
+  if(window._confirmandoRecepcion) return;
+  window._confirmandoRecepcion = true;
+  mostrarGuardando('Confirmando recepción...','No cierres esta ventana.');
+  try{
+    marcarEntradaMantenimiento(act, {
+      motivo: 'Ticket '+t.codigo+': '+t.titulo,
+      tecnico: session.nombre,
+      emailResp: act.asignadoEmail || '',
+      origen: 'ticket',
+      extra: {ticketCodigo: t.codigo}
+    });
+    await apiPost('activos','update',act);
+    t.historial = t.historial || [];
+    t.historial.push({tipo:'📥 Equipo recibido por IT',desc:'Recepción confirmada por '+session.nombre+' — equipo marcado en mantenimiento.',fecha:ts(),usuario:session.nombre,color:'amber'});
+    await apiPost('tickets','update',t);
+    audit('EDITAR','Ticket',t.codigo,'Recepción de equipo confirmada — activo '+act.codigo+' marcado en mantenimiento');
+    showToast('📥 Recepción confirmada — equipo marcado en mantenimiento','success');
+    renderTicketHistorial(t);
+    document.getElementById('et-entrada-mant-wrap').style.display='none';
+  } finally {
+    window._confirmandoRecepcion = false;
     ocultarGuardando();
   }
 }
@@ -4387,17 +4424,11 @@ async function saveMant(){
     activoActual.historial.push(e);
   }
 
-  // ── "Entrega de equipo" = toma de custodia para mantenimiento ──────
-  // Empuja el evento canónico DESPUÉS del evento mm-tipo para que quede
-  // como último del historial y el backend dispare el correo de aviso.
-  let _entroAMant = false;
-  if(e.tipo === 'Entrega de equipo' && activoActual.estado !== 'mantenimiento'){
-    marcarEntradaMantenimiento(activoActual, {
-      motivo: desc, tecnico: e.tec, emailResp, origen: 'modal-mant'
-    });
-    _entroAMant = true;
-  }
-
+  // NOTA: este modal es solo bitácora — anota que algo pasó con el
+  // equipo, pero NO cambia su estado. La entrada/salida real de
+  // mantenimiento se gestiona únicamente desde el ticket vinculado
+  // (Tipo = Mantenimiento), para que haya un solo camino y no dos
+  // formas distintas de marcar lo mismo.
   await apiPost('activos','update',activoActual);
   audit('CREAR','Mantenimiento',activoActual.codigo,`${e.tipo}: ${e.desc} | Técnico: ${e.tec}`);
 
@@ -4415,9 +4446,7 @@ async function saveMant(){
 
   closeModals();
   showDetalle(activoActual.codigo);
-  showToast('✅ Mantenimiento registrado'
-    + (necesitaPiezas?' — Solicitud de compra enviada':'')
-    + (_entroAMant?' — equipo marcado en mantenimiento':''), 'success');
+  showToast('✅ Mantenimiento registrado' + (necesitaPiezas?' — Solicitud de compra enviada':''),'success');
 }
 
 function closeModals(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('open'));}
