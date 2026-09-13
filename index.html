@@ -3333,14 +3333,14 @@ async function renderMiPerfil(){
   cont.innerHTML=`<div style="max-width:500px">
     <div class="det-header">
       <div class="sb-avatar" style="width:56px;height:56px;font-size:20px;border-radius:50%">${initials(u.nombre)}</div>
-      <div><div class="det-title">${u.nombre||'—'}</div><div class="det-code">${u.username} · ${u.cargo||'Sin cargo'}</div>
+      <div><div class="det-title">${sanitizeHTML(u.nombre||'—')}</div><div class="det-code">${sanitizeHTML(u.username||'')} · ${sanitizeHTML(u.cargo||'Sin cargo')}</div>
       <div style="margin-top:5px"><span class="badge ${ROL_CLASS[u.rol]||''}">${ROL_LABELS[u.rol]||u.rol}</span></div></div>
     </div>
     <div class="det-grid">
-      <div class="det-field"><div class="det-fl">Correo</div><div class="det-fv">${u.email||'—'}</div></div>
-      <div class="det-field"><div class="det-fl">Teléfono</div><div class="det-fv">${u.tel||'—'}</div></div>
-      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${u.depto||'—'}</div></div>
-      <div class="det-field"><div class="det-fl">Último acceso</div><div class="det-fv">${u.ultimoAcceso||'—'}</div></div>
+      <div class="det-field"><div class="det-fl">Correo</div><div class="det-fv">${sanitizeHTML(u.email||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Teléfono</div><div class="det-fv">${sanitizeHTML(u.tel||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${sanitizeHTML(u.depto||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Último acceso</div><div class="det-fv">${sanitizeHTML(u.ultimoAcceso||'—')}</div></div>
     </div>
     <div><div class="sec-title">Cambiar mi contraseña</div>
       <div class="f-row"><div class="f-lbl">Nueva contraseña</div>
