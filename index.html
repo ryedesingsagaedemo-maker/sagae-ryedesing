@@ -3144,51 +3144,53 @@ function go(panel,el){
 }
 
 function renderTopbarBtns(p){
-  const c=document.getElementById('tb-buttons'),per=PERMS[session.rol]||{};c.innerHTML='';
+  const c=document.getElementById('tb-buttons'),per=PERMS[session.rol]||{};
+  let btnsHTML='';
   if(p==='activos'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openActivo(null)">+ Nuevo activo</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openActivo(null)">+ Nuevo activo</button>';
     if(['admin','inventario'].includes(session.rol)){
-      c.innerHTML+='<button class="btn" onclick="abrirModalImportarActivos()" style="margin-left:6px" title="Importar activos desde CSV o Excel">⬆ Importar Excel</button>';
-      c.innerHTML+='<button class="btn" onclick="descargarPlantillaActivos()" style="margin-left:4px" title="Descargar plantilla de carga masiva">⬇ Plantilla</button>';
+      btnsHTML+='<button class="btn" onclick="abrirModalImportarActivos()" style="margin-left:6px" title="Importar activos desde CSV o Excel">⬆ Importar Excel</button>';
+      btnsHTML+='<button class="btn" onclick="descargarPlantillaActivos()" style="margin-left:4px" title="Descargar plantilla de carga masiva">⬇ Plantilla</button>';
     }
     if(['admin','tecnico','inventario'].includes(session.rol)){
-      c.innerHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'activo\')" style="margin-left:6px">🏷️ Etiquetas</button>';
+      btnsHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'activo\')" style="margin-left:6px">🏷️ Etiquetas</button>';
     }
   }
   if(p==='departamentos'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openDepartamento(null)">+ Nuevo departamento</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openDepartamento(null)">+ Nuevo departamento</button>';
   }
   if(p==='personas'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openPersona(null)">+ Nueva persona</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openPersona(null)">+ Nueva persona</button>';
   }
   if(p==='espacios'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openEspacio(null)">+ Nuevo espacio</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openEspacio(null)">+ Nuevo espacio</button>';
   }
   if(p==='mobiliario'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openMob(null)">+ Nuevo elemento</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openMob(null)">+ Nuevo elemento</button>';
     if(['admin','inventario'].includes(session.rol))
-      c.innerHTML+='<button class="btn" onclick="exportarMobiliarioCSV()" style="margin-left:6px">⬇ Exportar CSV</button>';
+      btnsHTML+='<button class="btn" onclick="exportarMobiliarioCSV()" style="margin-left:6px">⬇ Exportar CSV</button>';
     if(['admin','tecnico','inventario'].includes(session.rol)){
-      c.innerHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'mobiliario\')" style="margin-left:6px">🏷️ Etiquetas</button>';
+      btnsHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'mobiliario\')" style="margin-left:6px">🏷️ Etiquetas</button>';
     }
   }
   if(p==='licencias'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openLicencia(null)">+ Nuevo paquete de licencia</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openLicencia(null)">+ Nuevo paquete de licencia</button>';
   }
-  if(p==='tickets'&&per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openTicket(null)">+ Nuevo ticket</button>';
+  if(p==='tickets'&&per.edit)btnsHTML+='<button class="btn btn-p" onclick="openTicket(null)">+ Nuevo ticket</button>';
   if(p==='usuarios'&&per.usuarios){
-    c.innerHTML+='<button class="btn btn-p" onclick="openUsuario(null)">+ Nuevo usuario</button>';
-    if(session.rol==='admin') c.innerHTML+='<button class="btn" onclick="abrirModalImportarUsuarios()" style="margin-left:6px" title="Importar usuarios desde CSV o Excel">⬆ Importar Excel</button>';
+    btnsHTML+='<button class="btn btn-p" onclick="openUsuario(null)">+ Nuevo usuario</button>';
+    if(session.rol==='admin') btnsHTML+='<button class="btn" onclick="abrirModalImportarUsuarios()" style="margin-left:6px" title="Importar usuarios desde CSV o Excel">⬆ Importar Excel</button>';
   }
   if(p==='detalle'&&activoActual){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openActivo(activoActual.codigo)" style="margin-right:6px">✎ Editar</button><button class="btn" onclick="openMant()" style="margin-right:6px">+ Mantenimiento</button>';
-    c.innerHTML+='<button class="btn" onclick="imprimirExpedienteActivo(activoActual.codigo)" style="margin-right:6px" title="Historial completo con fotos, listo para imprimir o guardar como PDF"><span class="nav-ico" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span> Expediente</button>';
-    if(per.delete&&activoActual.estado!=='eliminado')c.innerHTML+='<button class="btn btn-warn" onclick="openDelete(\'activo\',activoActual.codigo)">Eliminar</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openActivo(activoActual.codigo)" style="margin-right:6px">✎ Editar</button><button class="btn" onclick="openMant()" style="margin-right:6px">+ Mantenimiento</button>';
+    btnsHTML+='<button class="btn" onclick="imprimirExpedienteActivo(activoActual.codigo)" style="margin-right:6px" title="Historial completo con fotos, listo para imprimir o guardar como PDF"><span class="nav-ico" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span> Expediente</button>';
+    if(per.delete&&activoActual.estado!=='eliminado')btnsHTML+='<button class="btn btn-warn" onclick="openDelete(\'activo\',activoActual.codigo)">Eliminar</button>';
   }
   if(p==='detalle-mob'&&mobiliarioActual){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openMob(mobiliarioActual.codigo)" style="margin-right:6px">✎ Editar</button>';
-    if(per.delete)c.innerHTML+='<button class="btn btn-warn" onclick="eliminarMob(mobiliarioActual.codigo)">Eliminar</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openMob(mobiliarioActual.codigo)" style="margin-right:6px">✎ Editar</button>';
+    if(per.delete)btnsHTML+='<button class="btn btn-warn" onclick="eliminarMob(mobiliarioActual.codigo)">Eliminar</button>';
   }
+  c.innerHTML=sanitizeHTML(btnsHTML);
 }
 
 function openUsuario(id){
