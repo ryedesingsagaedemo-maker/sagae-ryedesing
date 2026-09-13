@@ -233,6 +233,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 @keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<!-- Seguridad: XSS prevention via HTML sanitization -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 </head>
 <body>
 <div id="update-banner">🔄 Nueva versión disponible<button onclick="aplicarActualizacion()">Actualizar ahora</button></div>
