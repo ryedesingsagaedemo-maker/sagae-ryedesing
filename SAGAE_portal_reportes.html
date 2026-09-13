@@ -368,7 +368,7 @@ let _fotosPortalActuales = [];
 
 function _renderGaleriaFotosPortal(){
   const list = document.getElementById('fotos-list');
-  list.innerHTML = _fotosPortalActuales.length ? _fotosPortalActuales.map((f,i)=>`
+  const fotosHTML = _fotosPortalActuales.length ? _fotosPortalActuales.map((f,i)=>`
     <div style="display:flex;align-items:center;gap:10px;background:var(--navy-l);border-left:3px solid var(--navy);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--navy-d);">
       <div style="flex:1;min-width:0">
         📷 <a href="${f.url}" target="_blank" style="color:var(--navy-d);font-weight:700">Ver foto ↗</a>
@@ -376,6 +376,7 @@ function _renderGaleriaFotosPortal(){
       </div>
       <button type="button" onclick="quitarFotoPortal(${i})" style="background:none;border:none;color:var(--navy-d);cursor:pointer;font-size:14px;">🗑</button>
     </div>`).join('') : '';
+  list.innerHTML = sanitizeHTML(fotosHTML);
   document.getElementById('fotos-limite-note').style.display = _fotosPortalActuales.length>=5 ? 'block' : 'none';
   document.getElementById('btn-foto').style.display = _fotosPortalActuales.length>=5 ? 'none' : '';
 }
