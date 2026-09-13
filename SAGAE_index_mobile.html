@@ -1802,17 +1802,18 @@ function _renderGaleriaFotosMobile(fotosRaw, readOnly){
   if(!Array.isArray(fotos)) fotos = [];
   _mtFotosActuales = fotos;
   const list = document.getElementById('mt-fotos-list');
-  list.innerHTML = fotos.length ? fotos.map((f,i)=>{
+  let fotosHTML = fotos.length ? fotos.map((f,i)=>{
     const bloqueada = _fotoEstaBloqueadaMobile(f);
     return `<div style="display:flex;align-items:center;gap:8px;background:#EFF6FF;border-left:3px solid #1B3A6B;border-radius:8px;padding:8px 10px;font-size:12px;color:#1B3A6B;">
       <div style="flex:1;min-width:0">
         ${bloqueada?'🔒 ':'📷 '}<a href="${f.url}" target="_blank" style="color:#1B3A6B;font-weight:600">Ver foto ↗</a>
-        ${f.nota?' — '+f.nota:''}
-        <div style="font-size:10px;color:#666;margin-top:2px">${f.fecha||''}${f.usuario?' · '+f.usuario:''}</div>
+        ${f.nota?' — '+sanitizeHTML(f.nota):''}
+        <div style="font-size:10px;color:#666;margin-top:2px">${sanitizeHTML(f.fecha||'')}${f.usuario?' · '+sanitizeHTML(f.usuario):''}</div>
       </div>
       ${(!readOnly && !bloqueada)?`<button type="button" class="btn-secondary" onclick="quitarFotoTicketMobile(${i})" style="padding:4px 8px;font-size:12px;">🗑</button>`:''}
     </div>`;
   }).join('') : '<div style="font-size:11px;color:#666;">Sin fotos todavía.</div>';
+  list.innerHTML = sanitizeHTML(fotosHTML);
   document.getElementById('mt-fotos-limite-note').style.display = fotos.length>=5 ? 'block' : 'none';
   const addBtn = document.getElementById('mt-fotos-add-btn');
   if(addBtn) addBtn.style.display = (fotos.length>=5 || readOnly) ? 'none' : '';
@@ -1826,14 +1827,15 @@ let _mmFotosActuales = [];
 function _renderGaleriaFotosMant(){
   const list = document.getElementById('mm-fotos-list');
   if(!list) return;
-  list.innerHTML = _mmFotosActuales.length ? _mmFotosActuales.map((f,i)=>`
+  let fotosHTML = _mmFotosActuales.length ? _mmFotosActuales.map((f,i)=>`
     <div style="display:flex;align-items:center;gap:8px;background:#FFF3D6;border-left:3px solid #B8960C;border-radius:8px;padding:8px 10px;font-size:12px;color:#7A5C0A;">
       <div style="flex:1;min-width:0">
         📷 <a href="${f.url}" target="_blank" style="color:#7A5C0A;font-weight:600">Ver foto ↗</a>
-        ${f.nota?' — '+f.nota:''}
+        ${f.nota?' — '+sanitizeHTML(f.nota):''}
       </div>
       <button type="button" class="btn-secondary" onclick="quitarFotoMantenimientoMobile(${i})" style="padding:4px 8px;font-size:12px;">🗑</button>
     </div>`).join('') : '<div style="font-size:11px;color:#666;">Sin fotos todavía.</div>';
+  list.innerHTML = sanitizeHTML(fotosHTML);
   document.getElementById('mm-fotos-limite-note').style.display = _mmFotosActuales.length>=3 ? 'block' : 'none';
   const addBtn = document.getElementById('mm-fotos-add-btn');
   if(addBtn) addBtn.style.display = _mmFotosActuales.length>=3 ? 'none' : '';
