@@ -2,10 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; connect-src *; font-src * data:;">
-  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'self';">
+  <meta http-equiv="X-Frame-Options" content="DENY">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
   <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=()">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAGAE — Sistema de Activos y Gestión Administrativa Educativa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -786,6 +788,8 @@ tbody tr.clickable{cursor:pointer;}
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
   <!-- QR — solo para mostrar el código de activación de la verificación en dos pasos -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Seguridad: XSS prevention via HTML sanitization -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 </head>
 <body>
 <div class="screen" id="screen">
@@ -1207,24 +1211,22 @@ tbody tr.clickable{cursor:pointer;}
           <input class="f-inp" id="per-nombre" placeholder="Ej: María González Herrera">
         </div>
         <div class="f-row">
-          <div class="f-lbl">Cargo / Función</div>
+          <div class="f-lbl">Cargo / Función *</div>
           <input class="f-inp" id="per-cargo" placeholder="Ej: Docente de Informática">
         </div>
         <div class="f-row">
-          <div class="f-lbl">Departamento</div>
+          <div class="f-lbl">Departamento *</div>
           <select class="f-inp f-sel" id="per-depto">
             <option value="">— Seleccionar departamento —</option>
           </select>
         </div>
         <div class="f-row">
-          <div class="f-lbl">📧 Correo electrónico</div>
+          <div class="f-lbl">📧 Correo electrónico *</div>
           <input class="f-inp" type="email" id="per-email" placeholder="correo@institucion.edu.pa" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
-          <div class="f-err" id="err-per-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
         </div>
         <div class="f-row">
           <div class="f-lbl">Teléfono</div>
-          <input class="f-inp" id="per-tel" placeholder="Ej: 6123-4567" oninput="validateField(this,'phone','Ej: 6000-0000')" onblur="validateField(this,'phone','Ej: 6000-0000')">
-          <div class="f-err" id="err-per-tel">⚠ Solo números, guiones y paréntesis. Ej: 6000-0000</div>
+          <input class="f-inp" id="per-tel" placeholder="Ej: 6123-4567">
         </div>
         <div class="f-row" style="grid-column:1/-1;">
           <div class="f-lbl">🏫 Responsable del espacio
@@ -1312,7 +1314,7 @@ tbody tr.clickable{cursor:pointer;}
           </select>
         </div>
         <div class="f-row">
-          <div class="f-lbl">🏷️ Departamento
+          <div class="f-lbl">🏷️ Departamento *
             <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Al que pertenece este espacio</span>
           </div>
           <select class="f-inp f-sel" id="esp-depto">
@@ -1368,7 +1370,6 @@ tbody tr.clickable{cursor:pointer;}
         <option value="regular">Regular</option>
         <option value="deteriorado">Deteriorado</option>
         <option value="baja">Dado de baja</option>
-        <option value="eliminado">Eliminados</option>
       </select>
       <select class="f-sel" id="fil-mob-tipo" onchange="renderMobiliario()" style="min-width:140px;">
         <option value="todos">Todos los tipos</option>
@@ -1433,9 +1434,7 @@ tbody tr.clickable{cursor:pointer;}
           </select>
         </div>
         <div class="f-row">
-          <div class="f-lbl">Cantidad
-            <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Si lo dejas vacío se registra como 1 unidad</span>
-          </div>
+          <div class="f-lbl">Cantidad *</div>
           <input class="f-inp" id="mob-cantidad" type="number" min="1" placeholder="1">
         </div>
         <div class="f-row">
@@ -1623,7 +1622,6 @@ tbody tr.clickable{cursor:pointer;}
         <option value="activo">Activa</option>
         <option value="vencida">Vencida</option>
         <option value="cancelada">Cancelada</option>
-        <option value="eliminado">Eliminadas</option>
       </select>
       <input class="f-inp" id="fil-lic-q" placeholder="Buscar licencia, proveedor..." oninput="renderLicencias()" style="min-width:180px;flex:1;">
     </div>
@@ -1683,7 +1681,6 @@ tbody tr.clickable{cursor:pointer;}
         <div class="f-row">
           <div class="f-lbl">Vence / debe renovarse *</div>
           <input class="f-inp" type="date" id="lic-venc" min="1990-01-01" max="2046-12-31" onchange="validateDateField(this)">
-          <div class="f-err" id="err-lic-venc">⚠ La fecha de vencimiento debe ser posterior al inicio de vigencia</div>
           <div class="f-hint">💡 Aquí llegan las alertas automáticas de renovación</div>
         </div>
         <div class="f-row">
@@ -1722,7 +1719,7 @@ tbody tr.clickable{cursor:pointer;}
         <button class="modal-close" onclick="closeModals()">✕</button>
       </div>
       <div id="lic-det-info" style="font-size:12px;color:var(--text3);margin-bottom:12px;"></div>
-      <div id="lic-asignar-wrap" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap;">
         <div class="f-row" style="flex:1;min-width:220px;margin-bottom:0">
           <div class="f-lbl">Asignar / instalar en equipo</div>
           <select class="f-inp f-sel" id="lic-asignar-activo"><option value="">— Seleccionar activo —</option></select>
@@ -1817,16 +1814,6 @@ tbody tr.clickable{cursor:pointer;}
         </button>
         <span id="backup-status" style="font-size:11px;color:var(--text3);"></span>
       </div>
-      <!-- Diagnóstico de velocidad — responde con números si la lentitud al
-           guardar viene de la conexión del equipo o del servidor de Google. -->
-      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#F0F4F8;border:1px solid #CBD5E1;border-radius:6px;">
-        <span style="font-size:11px;font-weight:700;color:var(--navy);">🩺 ¿La lentitud es mi internet o el servidor?</span>
-        <button class="btn btn-p" onclick="medirVelocidadSAGAE()" id="btn-diag-vel"
-          style="font-size:11px;padding:4px 10px;" title="Compara cuánto tarda tu conexión contra cuánto tarda el servidor de Google Apps Script">
-          Medir ahora
-        </button>
-        <div id="diag-vel-status" style="font-size:11.5px;color:var(--text2);width:100%;"></div>
-      </div>
       <!-- Alertas de garantías/licencias y deadlines - solo visible para admin -->
       <div id="alertas-admin-bar" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;">
         <span style="font-size:11px;font-weight:700;color:#92400E;">⏰ Alertas de vencimiento (garantías, licencias y deadlines):</span>
@@ -1919,13 +1906,7 @@ tbody tr.clickable{cursor:pointer;}
     <option>Vehículo</option>
     <option>Otro</option>
   </optgroup>
-</select>
-<div class="f-hint" id="note-ea-licencia" style="display:none;background:#FDF8E1;border-radius:6px;padding:8px 10px;margin-top:6px;">
-  💡 Si esta licencia se va a instalar en <strong>varios equipos</strong> y quieres controlar cupos
-  (cuántas instalaciones permite), usa mejor el módulo dedicado <strong>Licencias</strong> del menú —
-  este registro de Activo queda como una ficha individual, sin control de cupos ni instalaciones.
-</div>
-</div>
+</select></div>
     <div class="f-row"><div class="f-lbl">Estado *</div><select class="f-inp f-sel" id="ea-estado"><option value="activo">Activo</option><option value="disponible">Disponible</option><option value="mantenimiento">Mantenimiento</option><option value="descarte">Descarte</option></select></div>
   </div>
   <div class="f-2">
@@ -1970,7 +1951,6 @@ tbody tr.clickable{cursor:pointer;}
         <span style="font-size:10px;font-weight:400;color:var(--text3);display:block;margin-top:1px">Para notificarle cuando su equipo entre o salga de mantenimiento</span>
       </div>
       <input class="f-inp" type="email" id="ea-asignado-email" placeholder="correo@institucion.edu.pa" autocomplete="off" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
-      <div class="f-err" id="err-ea-asignado-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
     </div>
     <div class="f-row">
       <div class="f-lbl">Cargo / Rol</div>
@@ -2039,16 +2019,13 @@ tbody tr.clickable{cursor:pointer;}
 <div class="modal-bg" id="mod-ticket"><div class="modal">
   <div class="modal-title"><span id="mod-ticket-title">Nuevo ticket</span><button id="et-expediente-btn" class="btn" style="display:none;font-size:11px;padding:4px 10px;margin-left:8px;" onclick="imprimirExpedienteTicket(document.getElementById('et-id').value)"><span class="nav-ico" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span> Expediente</button><button class="modal-close" onclick="closeModals()">✕</button></div>
   <input type="hidden" id="et-id">
-  <!-- Distingue de un vistazo si se está creando o editando: antes las dos
-       pantallas se veían prácticamente iguales y era fácil confundirlas. -->
-  <div id="et-modo-banner" style="display:none;font-size:11.5px;font-weight:600;border-radius:6px;padding:7px 10px;margin-bottom:10px;"></div>
   <div class="f-row"><div class="f-lbl">Título *</div><input class="f-inp" id="et-titulo" placeholder="Describe el problema o tarea..."></div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Activo vinculado</div><select class="f-inp f-sel" id="et-activo" onchange="_etActualizarBloqueRecepcionNueva()"><option value="">— Sin activo —</option></select></div>
+    <div class="f-row"><div class="f-lbl">Activo vinculado</div><select class="f-inp f-sel" id="et-activo"><option value="">— Sin activo —</option></select></div>
     <div class="f-row"><div class="f-lbl">Responsable</div><select class="f-inp f-sel" id="et-resp"><option value="">— Selecciona responsable —</option></select></div>
   </div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Tipo</div><select class="f-inp f-sel" id="et-tipo" onchange="_etActualizarBloqueRecepcionNueva()"><option value="incidencia">Incidencia</option><option value="mantenimiento">Mantenimiento</option><option value="solicitud">Solicitud</option><option value="tarea">Tarea</option></select></div>
+    <div class="f-row"><div class="f-lbl">Tipo</div><select class="f-inp f-sel" id="et-tipo"><option value="incidencia">Incidencia</option><option value="mantenimiento">Mantenimiento</option><option value="solicitud">Solicitud</option><option value="tarea">Tarea</option></select></div>
     <div class="f-row"><div class="f-lbl">Prioridad</div><select class="f-inp f-sel" id="et-prior"><option value="urgente">Urgente</option><option value="importante" selected>Importante</option><option value="normal">Normal</option></select></div>
   </div>
   <div class="f-2">
@@ -2061,8 +2038,8 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div class="f-row"><div class="f-lbl">Descripción</div><input class="f-inp" id="et-desc" placeholder="Detalle completo..."></div>
   <div class="f-row">
-    <div class="f-lbl">📎 Fotos generales del ticket
-      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Hasta 5 fotos — evidencia general del caso (ej: el problema reportado). No quedan en el historial del activo — para eso usa la foto de "Confirmar recepción" o "Condición al devolver" más abajo, si aplica.</span>
+    <div class="f-lbl">📎 Fotos del ticket (seguimiento)
+      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Hasta 5 fotos — quedan asociadas a la fecha y usuario que las subió</span>
     </div>
     <div id="et-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
     <button type="button" class="btn" id="et-fotos-add-btn" onclick="agregarFotoTicketAdmin()"
@@ -2086,105 +2063,6 @@ tbody tr.clickable{cursor:pointer;}
     <div class="f-lbl">Motivo de la edición *</div>
     <input class="f-inp" id="et-motivo" placeholder="Ej: Corrección de responsable...">
   </div>
-  <!-- SOLO EN CREACIÓN: el técnico que ya tiene el equipo en la mano no debería
-       tener que guardar el ticket, reabrirlo y recién ahí confirmar recepción.
-       Si marca esto, la entrada a mantenimiento se registra sola apenas el
-       servidor devuelve el código real del ticket. -->
-  <div class="f-row" id="et-recibir-ya-wrap" style="display:none;background:#FDF8E1;border-radius:6px;padding:8px;">
-    <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer">
-      <input type="checkbox" id="et-recibir-ya-chk" style="width:16px;height:16px;cursor:pointer"
-        onchange="document.getElementById('et-recibir-ya-campos').style.display=this.checked?'block':'none'">
-      📥 El equipo ya está en mis manos — confirmar recepción al crear el ticket
-    </label>
-    <div style="font-size:11px;color:var(--text3);margin-top:4px">
-      Márcalo solo si IT ya tiene el equipo físicamente. Si el equipo llega después,
-      deja esto sin marcar y usa "Confirmar recepción" al abrir el ticket ya creado.
-    </div>
-    <div id="et-recibir-ya-nota" style="display:none;font-size:11.5px;color:var(--blue);background:var(--blue-l,#E6F1FB);border:1px solid var(--blue-m,#B5D4F4);border-radius:6px;padding:8px;margin-top:8px;"></div>
-    <div id="et-recibir-ya-campos" style="display:none;margin-top:10px">
-      <!-- Equipo que NO está en el inventario: personal del usuario, prestado o
-           de un proveedor. Se describe a mano porque no hay activo que lo represente. -->
-      <div id="et-recibir-ya-externo" style="display:none;margin-bottom:10px;padding:8px;background:#fff;border:1px dashed var(--border2);border-radius:6px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">
-          Este ticket no tiene un activo del inventario vinculado, así que el equipo se describe aquí
-          y el comprobante queda en el historial de este ticket.
-        </div>
-        <div class="f-lbl">Equipo recibido (marca, modelo, serie o señas)</div>
-        <input class="f-inp" id="et-recibir-ya-equipo" placeholder="Ej: Laptop HP Pavilion, serie 5CD123, del docente Juan Pérez">
-        <div class="f-lbl" style="margin-top:8px">Condición al recibirlo</div>
-        <input class="f-inp" id="et-recibir-ya-cond" placeholder="Ej: pantalla rota, sin cargador, con golpe en la tapa">
-      </div>
-      <div class="f-lbl">¿Quién entrega el equipo?</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-        <input class="f-inp" id="et-recibir-ya-nombre" placeholder="Nombre de quien entrega" style="flex:1;min-width:160px">
-        <input class="f-inp" type="email" id="et-recibir-ya-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px"
-          oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
-      </div>
-      <div class="f-err" id="err-et-recibir-ya-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
-      <div style="font-size:10px;color:var(--text3)">
-        Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo entrega físicamente.
-        La foto del equipo al recibirlo se agrega después, desde el ticket ya creado.
-      </div>
-    </div>
-  </div>
-  <div class="f-row" id="et-entrada-mant-wrap" style="display:none;background:#FDF8E1;border-radius:6px;padding:8px;">
-    <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">
-      📥 Este ticket es de mantenimiento y el equipo vinculado aún NO está marcado como recibido por IT.
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">
-      Haz clic cuando el técnico tenga el equipo físicamente en sus manos — así queda el comprobante de
-      entrada y se le avisa al responsable.
-    </div>
-    <div class="f-lbl">¿Quién entrega el equipo?</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-      <input class="f-inp" id="et-entrega-nombre" placeholder="Nombre de quien entrega" style="flex:1;min-width:160px">
-      <input class="f-inp" type="email" id="et-entrega-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
-    </div>
-    <div class="f-err" id="err-et-entrega-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">
-      Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo entrega físicamente.
-    </div>
-    <div class="f-lbl">📷 Foto del equipo al recibirlo (opcional)
-      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Esta sí queda como comprobante en el historial del activo, junto al evento de entrada.</span>
-    </div>
-    <div id="et-entrada-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin:6px 0;"></div>
-    <button type="button" class="btn" id="et-entrada-fotos-add-btn" onclick="agregarFotoEntradaMant()" style="padding:8px 12px;font-size:12px;">📂 Agregar foto</button>
-    <div id="et-entrada-fotos-limite-note" style="display:none;font-size:10px;color:var(--text3);margin-top:4px;">Máximo de 3 fotos.</div>
-    <div style="margin-top:12px"><button type="button" class="btn btn-p" onclick="confirmarRecepcionMantenimiento()">📥 Confirmar recepción del equipo</button></div>
-  </div>
-  <div class="f-row" id="et-salida-mant-wrap" style="display:none;background:#EAF7EF;border-radius:6px;padding:8px;">
-    <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer">
-      <input type="checkbox" id="et-marcar-salida" checked style="width:16px;height:16px;cursor:pointer">
-      ✅ Marcar el equipo vinculado como devuelto de mantenimiento
-    </label>
-    <div class="f-lbl" style="margin-top:6px">¿A quién se le entrega el equipo de vuelta?</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-      <input class="f-inp" id="et-devuelto-nombre" placeholder="Nombre de quien recibe" style="flex:1;min-width:160px">
-      <input class="f-inp" type="email" id="et-devuelto-email" placeholder="correo@dominio.com" style="flex:1;min-width:160px" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
-    </div>
-    <div class="f-err" id="err-et-devuelto-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">
-      Por defecto se sugiere el asignado del equipo — cámbialo si otra persona lo recibe físicamente.
-    </div>
-    <div class="f-lbl">Condición del equipo al devolver</div>
-    <select class="f-inp f-sel" id="et-condicion-devuelto">
-      <option value="">— Selecciona —</option>
-      <option>Reparado — funciona correctamente</option>
-      <option>Reparado con observaciones</option>
-      <option>Sin reparación — pieza pendiente</option>
-      <option>No se pudo reparar</option>
-      <option>Reemplazado por equipo nuevo</option>
-    </select>
-    <div style="font-size:10px;color:var(--text3);margin:2px 0 4px">
-      "No se pudo reparar" y "Reemplazado por equipo nuevo" envían el activo a <strong>Descarte</strong> automáticamente — las demás opciones lo regresan a "Activo".
-    </div>
-    <div class="f-lbl" style="margin-top:8px">📷 Foto del equipo al devolver (opcional)
-      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Esta sí queda como comprobante en el historial del activo, junto al evento de salida.</span>
-    </div>
-    <div id="et-salida-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin:6px 0;"></div>
-    <button type="button" class="btn" id="et-salida-fotos-add-btn" onclick="agregarFotoSalidaMant()" style="padding:8px 12px;font-size:12px;">📂 Agregar foto</button>
-    <div id="et-salida-fotos-limite-note" style="display:none;font-size:10px;color:var(--text3);margin-top:4px;">Máximo de 3 fotos.</div>
-  </div>
   <div class="modal-actions"><button class="btn" onclick="closeModals()">Cancelar</button><button class="btn btn-p" id="et-save-btn" onclick="saveTicket()">Guardar ticket</button></div>
 </div></div>
 
@@ -2203,10 +2081,10 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div class="f-2">
     <div class="f-row"><div class="f-lbl">Nombre completo *</div><input class="f-inp" id="eu-nombre" placeholder="Juan Pérez"></div>
-    <div class="f-row"><div class="f-lbl">Correo electrónico</div><input class="f-inp" type="email" id="eu-email" type="email" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')" placeholder="juan@empresa.com"><div class="f-err" id="err-eu-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div></div>
+    <div class="f-row"><div class="f-lbl">Correo electrónico</div><input class="f-inp" type="email" id="eu-email" type="email" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')" placeholder="juan@empresa.com"></div>
   </div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Teléfono</div><input class="f-inp" id="eu-tel" oninput="validateField(this,'phone','Ej: 6000-0000')" onblur="validateField(this,'phone','Ej: 6000-0000')" placeholder="+507 6000-0000"><div class="f-err" id="err-eu-tel">⚠ Solo números, guiones y paréntesis. Ej: 6000-0000</div></div>
+    <div class="f-row"><div class="f-lbl">Teléfono</div><input class="f-inp" id="eu-tel" oninput="validateField(this,'phone','Ej: 6000-0000')" onblur="validateField(this,'phone','Ej: 6000-0000')" placeholder="+507 6000-0000"></div>
     <div class="f-row"><div class="f-lbl">Departamento</div>
 <select class="f-inp f-sel" id="eu-depto">
   <option value="">— Seleccionar departamento —</option>
@@ -2251,8 +2129,7 @@ tbody tr.clickable{cursor:pointer;}
       <span style="font-size:10px;font-weight:400;color:#666;display:block;margin-top:2px">Opcional — para notificarle que su equipo está en IT</span>
     </div>
     <input class="f-inp" type="email" id="mm-email-resp"
-      placeholder="correo@dominio.com" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')" onblur="validateField(this,'email','Ej: nombre@pca.edu.pa')">
-    <div class="f-err" id="err-mm-email-resp">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
+      placeholder="correo@dominio.com" oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')">
     <div id="mm-email-resp-info" style="font-size:11px;color:var(--navy);margin-top:4px;display:none;padding:4px 8px;background:var(--blue-l,#EFF6FF);border-radius:4px;border-left:3px solid var(--navy)"></div>
   </div>
   <div class="f-2">
@@ -2284,7 +2161,6 @@ tbody tr.clickable{cursor:pointer;}
         </div>
         <div class="f-row"><div class="f-lbl">Correo del encargado de compras *</div>
           <input class="f-inp" type="email" id="mm-piezas-email" placeholder="compras@colegio.edu" oninput="validateField(this,'email','Ej: correo@pca.edu.pa')">
-          <div class="f-err" id="err-mm-piezas-email">⚠ Ingresa un correo válido. Ej: nombre@dominio.com</div>
         </div>
       </div>
       <div class="f-row"><div class="f-lbl">Presupuesto estimado ($)</div>
@@ -2331,6 +2207,23 @@ let departamentos=[];
 let personas=[];
 let espacios=[];
 let pendingDelete={type:null,id:null};
+
+// =====================================================
+// SEGURIDAD: Sanitización HTML — Prevención de XSS
+// =====================================================
+function sanitizeHTML(htmlString) {
+  if (typeof htmlString !== 'string') return '';
+  try {
+    return DOMPurify.sanitize(htmlString, {
+      ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'br', 'p', 'span', 'div', 'button', 'img', 'ul', 'li', 'small'],
+      ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class', 'id', 'onclick', 'style', 'data-*'],
+      KEEP_CONTENT: true
+    });
+  } catch (e) {
+    console.warn('[sanitizeHTML] Error:', e);
+    return '';
+  }
+}
 
 function ts(){return new Date().toLocaleString('es-PA',{dateStyle:'short',timeStyle:'short'});}
 
@@ -2429,20 +2322,6 @@ window.addEventListener('beforeunload', e=>{
 function _generarOpId(){
   return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12);
 }
-
-// ── IDENTIDAD ESTABLE DEL TICKET QUE SE ESTÁ CREANDO ────────────────
-// El servidor descarta una operación repetida si llega con el mismo _opId
-// (la recuerda 10 minutos). Pero hasta ahora cada clic en "Guardar ticket"
-// generaba un _opId NUEVO, así que para el servidor eran operaciones
-// distintas y creaba un ticket por cada clic. Ese era el origen real de los
-// duplicados cuando alguien, cansado de esperar, volvía a hacer clic.
-//
-// Ahora el _opId se genera UNA vez por cada "Nuevo ticket" que se abre y se
-// mantiene mientras la creación no se haya confirmado: si el usuario insiste,
-// todos los intentos viajan con la misma identidad y el servidor devuelve el
-// ticket que ya creó en vez de crear otro. Solo se descarta al confirmarse
-// la creación (o al abrir un ticket nuevo distinto).
-let _opIdTicketNuevo = null;
 
 async function apiPost(sheet,action,payload){
   // uploadFoto no necesita sheet
@@ -2621,11 +2500,7 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
   await new Promise(r=>setTimeout(r, 800));
 
   const inicio = Date.now();
-  // Cada sondeo es una ejecución nueva de Apps Script que compite con el POST
-  // que todavía está escribiendo. Sondear cada 500ms generaba una ráfaga que
-  // retrasaba justo la operación que se estaba esperando; con un intervalo
-  // más espaciado se hacen menos de la mitad de llamadas en el mismo tiempo.
-  let intervalo = 1200;
+  let intervalo = 500;
   while(Date.now()-inicio < timeoutMs){
     try{
       const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(), {mode:'cors'});
@@ -2635,7 +2510,7 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
       }
     }catch(e){ /* seguir intentando hasta agotar el tiempo */ }
     await new Promise(r=>setTimeout(r, intervalo));
-    if(intervalo < 3000) intervalo = Math.min(intervalo * 1.4, 3000);
+    if(intervalo < 2000) intervalo = Math.min(intervalo * 1.4, 2000);
   }
   return {ok:false, error:'TIMEOUT', message:'El servidor tardó demasiado en responder. Intenta de nuevo.'};
 }
@@ -3028,12 +2903,6 @@ async function _cargarDatosSecundarios(){
     // Re-renderizar ahora que hay datos completos (auditoría, kanban, etc.)
     // Proteger contra sesión expirada durante la carga en background
     if(session) renderAll();
-    // renderAll() no toca el detalle de un activo/mobiliario que ya esté
-    // abierto — si alguien entró a esa pantalla ANTES de que licencias
-    // (Fase 2) terminara de cargar, se quedaba viendo "0 licencias" para
-    // siempre, aunque sí existieran. Se refresca aquí si sigue abierto.
-    if(session && _pollingPanel==='detalle' && activoActual) showDetalle(activoActual.codigo);
-    if(session && _pollingPanel==='detalle-mob' && mobiliarioActual) showDetalleMob(mobiliarioActual.codigo);
   }catch(e){
     console.warn('[SAGAE] Carga secundaria parcial:',e.message);
     // No bloquear nada: el dashboard ya está visible y funcional
@@ -3277,51 +3146,53 @@ function go(panel,el){
 }
 
 function renderTopbarBtns(p){
-  const c=document.getElementById('tb-buttons'),per=PERMS[session.rol]||{};c.innerHTML='';
+  const c=document.getElementById('tb-buttons'),per=PERMS[session.rol]||{};
+  let btnsHTML='';
   if(p==='activos'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openActivo(null)">+ Nuevo activo</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openActivo(null)">+ Nuevo activo</button>';
     if(['admin','inventario'].includes(session.rol)){
-      c.innerHTML+='<button class="btn" onclick="abrirModalImportarActivos()" style="margin-left:6px" title="Importar activos desde CSV o Excel">⬆ Importar Excel</button>';
-      c.innerHTML+='<button class="btn" onclick="descargarPlantillaActivos()" style="margin-left:4px" title="Descargar plantilla de carga masiva">⬇ Plantilla</button>';
+      btnsHTML+='<button class="btn" onclick="abrirModalImportarActivos()" style="margin-left:6px" title="Importar activos desde CSV o Excel">⬆ Importar Excel</button>';
+      btnsHTML+='<button class="btn" onclick="descargarPlantillaActivos()" style="margin-left:4px" title="Descargar plantilla de carga masiva">⬇ Plantilla</button>';
     }
     if(['admin','tecnico','inventario'].includes(session.rol)){
-      c.innerHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'activo\')" style="margin-left:6px">🏷️ Etiquetas</button>';
+      btnsHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'activo\')" style="margin-left:6px">🏷️ Etiquetas</button>';
     }
   }
   if(p==='departamentos'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openDepartamento(null)">+ Nuevo departamento</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openDepartamento(null)">+ Nuevo departamento</button>';
   }
   if(p==='personas'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openPersona(null)">+ Nueva persona</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openPersona(null)">+ Nueva persona</button>';
   }
   if(p==='espacios'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openEspacio(null)">+ Nuevo espacio</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openEspacio(null)">+ Nuevo espacio</button>';
   }
   if(p==='mobiliario'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openMob(null)">+ Nuevo elemento</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openMob(null)">+ Nuevo elemento</button>';
     if(['admin','inventario'].includes(session.rol))
-      c.innerHTML+='<button class="btn" onclick="exportarMobiliarioCSV()" style="margin-left:6px">⬇ Exportar CSV</button>';
+      btnsHTML+='<button class="btn" onclick="exportarMobiliarioCSV()" style="margin-left:6px">⬇ Exportar CSV</button>';
     if(['admin','tecnico','inventario'].includes(session.rol)){
-      c.innerHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'mobiliario\')" style="margin-left:6px">🏷️ Etiquetas</button>';
+      btnsHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'mobiliario\')" style="margin-left:6px">🏷️ Etiquetas</button>';
     }
   }
   if(p==='licencias'){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openLicencia(null)">+ Nuevo paquete de licencia</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openLicencia(null)">+ Nuevo paquete de licencia</button>';
   }
-  if(p==='tickets'&&per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openTicket(null)">+ Nuevo ticket</button>';
+  if(p==='tickets'&&per.edit)btnsHTML+='<button class="btn btn-p" onclick="openTicket(null)">+ Nuevo ticket</button>';
   if(p==='usuarios'&&per.usuarios){
-    c.innerHTML+='<button class="btn btn-p" onclick="openUsuario(null)">+ Nuevo usuario</button>';
-    if(session.rol==='admin') c.innerHTML+='<button class="btn" onclick="abrirModalImportarUsuarios()" style="margin-left:6px" title="Importar usuarios desde CSV o Excel">⬆ Importar Excel</button>';
+    btnsHTML+='<button class="btn btn-p" onclick="openUsuario(null)">+ Nuevo usuario</button>';
+    if(session.rol==='admin') btnsHTML+='<button class="btn" onclick="abrirModalImportarUsuarios()" style="margin-left:6px" title="Importar usuarios desde CSV o Excel">⬆ Importar Excel</button>';
   }
   if(p==='detalle'&&activoActual){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openActivo(activoActual.codigo)" style="margin-right:6px">✎ Editar</button><button class="btn" onclick="openMant()" style="margin-right:6px">+ Mantenimiento</button>';
-    c.innerHTML+='<button class="btn" onclick="imprimirExpedienteActivo(activoActual.codigo)" style="margin-right:6px" title="Historial completo con fotos, listo para imprimir o guardar como PDF"><span class="nav-ico" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span> Expediente</button>';
-    if(per.delete&&activoActual.estado!=='eliminado')c.innerHTML+='<button class="btn btn-warn" onclick="openDelete(\'activo\',activoActual.codigo)">Eliminar</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openActivo(activoActual.codigo)" style="margin-right:6px">✎ Editar</button><button class="btn" onclick="openMant()" style="margin-right:6px">+ Mantenimiento</button>';
+    btnsHTML+='<button class="btn" onclick="imprimirExpedienteActivo(activoActual.codigo)" style="margin-right:6px" title="Historial completo con fotos, listo para imprimir o guardar como PDF"><span class="nav-ico" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span> Expediente</button>';
+    if(per.delete&&activoActual.estado!=='eliminado')btnsHTML+='<button class="btn btn-warn" onclick="openDelete(\'activo\',activoActual.codigo)">Eliminar</button>';
   }
   if(p==='detalle-mob'&&mobiliarioActual){
-    if(per.edit)c.innerHTML+='<button class="btn btn-p" onclick="openMob(mobiliarioActual.codigo)" style="margin-right:6px">✎ Editar</button>';
-    if(per.delete)c.innerHTML+='<button class="btn btn-warn" onclick="eliminarMob(mobiliarioActual.codigo)">Eliminar</button>';
+    if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openMob(mobiliarioActual.codigo)" style="margin-right:6px">✎ Editar</button>';
+    if(per.delete)btnsHTML+='<button class="btn btn-warn" onclick="eliminarMob(mobiliarioActual.codigo)">Eliminar</button>';
   }
+  c.innerHTML=sanitizeHTML(btnsHTML);
 }
 
 function openUsuario(id){
@@ -3365,10 +3236,6 @@ async function adminResetear2FA(){
 }
 
 async function saveUsuario(){
-  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
-  // función también lo verifica — así ninguna ruta de escritura depende solo
-  // de que la interfaz haya escondido el control.
-  if(!(PERMS[session.rol]||{}).usuarios){ showToast('⛔ Sin permiso para administrar usuarios',''); return; }
   const isEdit=document.getElementById('eu-id').value!=='';
   const username=document.getElementById('eu-username').value.trim();
   const pass=document.getElementById('eu-pass').value;
@@ -3468,14 +3335,14 @@ async function renderMiPerfil(){
   cont.innerHTML=`<div style="max-width:500px">
     <div class="det-header">
       <div class="sb-avatar" style="width:56px;height:56px;font-size:20px;border-radius:50%">${initials(u.nombre)}</div>
-      <div><div class="det-title">${u.nombre||'—'}</div><div class="det-code">${u.username} · ${u.cargo||'Sin cargo'}</div>
+      <div><div class="det-title">${sanitizeHTML(u.nombre||'—')}</div><div class="det-code">${sanitizeHTML(u.username||'')} · ${sanitizeHTML(u.cargo||'Sin cargo')}</div>
       <div style="margin-top:5px"><span class="badge ${ROL_CLASS[u.rol]||''}">${ROL_LABELS[u.rol]||u.rol}</span></div></div>
     </div>
     <div class="det-grid">
-      <div class="det-field"><div class="det-fl">Correo</div><div class="det-fv">${u.email||'—'}</div></div>
-      <div class="det-field"><div class="det-fl">Teléfono</div><div class="det-fv">${u.tel||'—'}</div></div>
-      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${u.depto||'—'}</div></div>
-      <div class="det-field"><div class="det-fl">Último acceso</div><div class="det-fv">${u.ultimoAcceso||'—'}</div></div>
+      <div class="det-field"><div class="det-fl">Correo</div><div class="det-fv">${sanitizeHTML(u.email||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Teléfono</div><div class="det-fv">${sanitizeHTML(u.tel||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${sanitizeHTML(u.depto||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Último acceso</div><div class="det-fv">${sanitizeHTML(u.ultimoAcceso||'—')}</div></div>
     </div>
     <div><div class="sec-title">Cambiar mi contraseña</div>
       <div class="f-row"><div class="f-lbl">Nueva contraseña</div>
@@ -3583,58 +3450,6 @@ async function cambiarMiPass(){
   alert('Contraseña actualizada.');document.getElementById('perfil-pass').value='';document.getElementById('perfil-pass2').value='';
 }
 
-// ══ MECANISMO CENTRAL DE ENTRADA/SALIDA DE MANTENIMIENTO ══
-// Único lugar autorizado para cambiar activo.estado a/desde 'mantenimiento'
-// y para escribir los eventos 'Entrada a Mantenimiento'/'Salida de
-// Mantenimiento' en el historial. Editar activo, el modal de mantenimiento
-// y los tickets tipo mantenimiento llaman aquí en vez de repetir la lógica,
-// así el correo de aviso (que el backend dispara según el ÚLTIMO evento del
-// historial) siempre se activa sin importar por dónde se entró.
-function marcarEntradaMantenimiento(activo, opts={}){
-  const {motivo, tecnico, emailResp, origen, extra} = opts;
-  const entregadoPorNombre = extra?.entregadoPorNombre || '';
-  activo.estado = 'mantenimiento';
-  activo.historial = activo.historial || [];
-  activo.historial.push(Object.assign({
-    tipo:      'Entrada a Mantenimiento',
-    desc:      `Equipo ingresado a IT para mantenimiento por ${tecnico||session.nombre}. Motivo: ${motivo||'Sin especificar'}.`
-               + (entregadoPorNombre ? ` Entregado por: ${entregadoPorNombre}.` : '')
-               + ` Equipo estará en el Departamento de Tecnología hasta ser devuelto.`,
-    tecnico:   tecnico || session.nombre,
-    emailResp: emailResp || '',
-    asignadoA: activo.asignado || '—',
-    origen:    origen || 'manual',
-    fecha:     ts(), usuario: session.nombre, color: 'amber'
-  }, extra||{}));
-  return activo;
-}
-function marcarSalidaMantenimiento(activo, opts={}){
-  const {motivo, tecnico, estadoNuevo, condicion, origen, extra} = opts;
-  const entradaEvt = (activo.historial||[]).slice().reverse().find(h=>h.tipo==='Entrada a Mantenimiento');
-  const devueltoANombre = extra?.devueltoANombre || '';
-  const emailResp = (opts.emailResp || entradaEvt?.emailResp || '');
-  // El estado final depende de la condición: si no se pudo reparar o el
-  // equipo fue reemplazado, el original ya no vuelve a servicio — se manda
-  // a Descarte en vez de reactivarlo como si estuviera disponible.
-  // estadoNuevo (si se pasa explícito) siempre gana sobre esta deducción.
-  const _estadoAutoPorCondicion = (condicion==='No se pudo reparar' || condicion==='Reemplazado por equipo nuevo') ? 'descarte' : 'activo';
-  activo.estado = estadoNuevo || _estadoAutoPorCondicion;
-  activo.historial = activo.historial || [];
-  activo.historial.push(Object.assign({
-    tipo:      'Salida de Mantenimiento',
-    desc:      `Equipo devuelto de mantenimiento. Nuevo estado: ${activo.estado}. Técnico: ${tecnico||session.nombre}. Motivo: ${motivo||'Mantenimiento completado'}.`
-               + (condicion ? ` Condición al devolver: ${condicion}.` : '')
-               + (devueltoANombre ? ` Recibido de vuelta por: ${devueltoANombre}.` : ''),
-    tecnico:   tecnico || session.nombre,
-    emailResp,
-    asignadoA: activo.asignado || '—',
-    condicion: condicion || '',
-    origen:    origen || 'manual',
-    fecha:     ts(), usuario: session.nombre, color: 'green'
-  }, extra||{}));
-  return activo;
-}
-
 function openActivo(id){
   const isEdit=id!=null;
   // Poblar todos los selects (depto, espacios, personas)
@@ -3703,10 +3518,6 @@ function openActivo(id){
 }
 
 async function saveActivo(){
-  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
-  // función también lo verifica — así ninguna ruta de escritura depende solo
-  // de que la interfaz haya escondido el control.
-  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar activos',''); return; }
   // ── VALIDACIÓN COMPLETA ANTES DE GUARDAR ──────────────────────
   let formOk = true;
   const nombre = document.getElementById('ea-nombre').value.trim();
@@ -3753,24 +3564,11 @@ async function saveActivo(){
   if(isEdit){
     const motivo=document.getElementById('ea-motivo').value.trim();if(!motivo){alert('El motivo es obligatorio.');return;}
     const a=activos.find(x=>x.codigo===editId);if(!a)return;
-    // ── El estado "Mantenimiento" NO se activa/quita a mano aquí ─────
-    // Único camino: el ticket vinculado (tipo Mantenimiento). Así el
-    // comprobante de entrada/salida siempre pasa por el mismo lugar y
-    // no hay dos formas distintas de hacer lo mismo.
-    const _estadoActual = a.estado||'activo';
-    const _estadoSolicitado = document.getElementById('ea-estado').value||'activo';
-    if(_estadoActual!=='mantenimiento' && _estadoSolicitado==='mantenimiento'){
-      showToast('⚠ "Mantenimiento" solo se activa desde un ticket vinculado (Tipo = Mantenimiento → Confirmar recepción). Crea o abre ese ticket en vez de cambiar el estado aquí.','error');
-      return;
-    }
-    if(_estadoActual==='mantenimiento' && _estadoSolicitado!=='mantenimiento'){
-      showToast('⚠ Este equipo está en mantenimiento por un ticket vinculado. Ciérralo desde ese ticket para que salga de mantenimiento — así el comprobante queda completo.','error');
-      return;
-    }
     const cambios=[];
     // Guardar asignado y depto ANTES de aplicar cambios para detectar reasignación
     const _asignadoAntes = a.asignado||'—';
     const _deptoAntes = a.depto||'—';
+    const _estadoAntes = a.estado||'activo';  // ← capturar estado ANTES de cambios
     const fs={nombre:'ea-nombre',tipo:'ea-tipo',estado:'ea-estado',marca:'ea-marca',modelo:'ea-modelo',serial:'ea-serial',ubicacion:'ea-ubicacion',asignado:'ea-asignado',depto:'ea-depto',obs:'ea-obs',foto:'ea-foto',asignadoEmail:'ea-asignado-email',asignadoCargo:'ea-asignado-cargo'};
     Object.entries(fs).forEach(([k,fid])=>{const nv=document.getElementById(fid).value.trim();
     // Actualizar email del responsable del espacio
@@ -3795,6 +3593,44 @@ async function saveActivo(){
       });
     }
     a.historial.push({tipo:'Edición',desc:det,fecha:ts(),usuario:session.nombre,color:'amber'});
+
+    // ── DETECTAR ENTRADA A MANTENIMIENTO ────────────────────────
+    const _estadoNuevo = a.estado||'activo';
+    if(_estadoAntes !== 'mantenimiento' && _estadoNuevo === 'mantenimiento'){
+      const motivoMant = motivo || 'Sin especificar';
+      // Capturar el correo del responsable desde el modal
+      // Email del responsable: primero el campo manual, si no el del activo
+    const emailRespManual = document.getElementById('mm-email-resp')?.value.trim() || '';
+    const emailResp = emailRespManual || activoActual?.asignadoEmail || '';
+      a.historial.push({
+        tipo:        'Entrada a Mantenimiento',
+        desc:        `Equipo ingresado a IT para mantenimiento por ${session.nombre}. Motivo: ${motivoMant}. Equipo estará en el Departamento de Tecnología hasta ser devuelto.`,
+        tecnico:     session.nombre,
+        emailResp:   emailResp,   // ← correo capturado al momento del retiro
+        asignadoA:   a.asignado||'—',
+        fecha:       ts(),
+        usuario:     session.nombre,
+        color:       'amber'
+      });
+      showToast('🔧 Equipo marcado en mantenimiento' + (emailResp?' — se notificará a '+emailResp:''),'');
+    }
+    // ── DETECTAR SALIDA DE MANTENIMIENTO ────────────────────────
+    if(_estadoAntes === 'mantenimiento' && _estadoNuevo !== 'mantenimiento'){
+      // Recuperar el correo del responsable del evento de entrada en historial
+      const entradaEvt = (a.historial||[]).slice().reverse().find(h=>h.tipo==='Entrada a Mantenimiento');
+      const emailRespSalida = entradaEvt?.emailResp || '';
+      a.historial.push({
+        tipo:        'Salida de Mantenimiento',
+        desc:        `Equipo devuelto de mantenimiento. Nuevo estado: ${_estadoNuevo}. Técnico: ${session.nombre}. Motivo: ${motivo||'Mantenimiento completado'}.`,
+        tecnico:     session.nombre,
+        emailResp:   emailRespSalida,
+        asignadoA:   a.asignado||'—',
+        fecha:       ts(),
+        usuario:     session.nombre,
+        color:       'green'
+      });
+      showToast('✅ Equipo devuelto de mantenimiento' + (emailRespSalida?' — se notificará a '+emailRespSalida:''),'success');
+    }
 
     await apiPost('activos','update',a);audit('EDITAR','Activo',a.codigo,det);
   }else{
@@ -3977,67 +3813,6 @@ function renderTicketHistorial(t){
   wrap.style.display='block';
 }
 
-// Muestra el bloque "el equipo ya está en mis manos" solo cuando tiene
-// sentido: creando un ticket, de tipo Mantenimiento, con un activo vinculado
-// que no esté ya en mantenimiento. Se llama al abrir el modal y cada vez que
-// cambia Tipo o Activo vinculado, porque en la creación esos dos se eligen
-// sobre la marcha.
-function _etActualizarBloqueRecepcionNueva(){
-  const wrap = document.getElementById('et-recibir-ya-wrap');
-  if(!wrap) return;
-  const esCreacion = !document.getElementById('et-id').value;
-  const tipo   = document.getElementById('et-tipo').value;
-  const actCod = document.getElementById('et-activo').value;
-  const act    = actCod ? activos.find(a=>a.codigo===actCod) : null;
-  const nota   = document.getElementById('et-recibir-ya-nota');
-  const camposExt = document.getElementById('et-recibir-ya-externo');
-
-  // Solo se oculta del todo cuando no es una creación de mantenimiento. En los
-  // demás casos SIEMPRE se muestra algo: o el bloque usable, o la explicación
-  // de por qué no aplica — desaparecer en silencio dejaba al técnico sin saber
-  // si el sistema estaba fallando.
-  if(!(esCreacion && tipo==='mantenimiento')){
-    wrap.style.display = 'none';
-    document.getElementById('et-recibir-ya-chk').checked = false;
-    document.getElementById('et-recibir-ya-campos').style.display = 'none';
-    return;
-  }
-  wrap.style.display = 'block';
-
-  // Caso 1: el activo del inventario YA está en mantenimiento — no hay nada
-  // que recibir. Se explica en vez de esconderse.
-  if(act && act.estado==='mantenimiento'){
-    document.getElementById('et-recibir-ya-chk').checked = false;
-    document.getElementById('et-recibir-ya-chk').disabled = true;
-    document.getElementById('et-recibir-ya-campos').style.display = 'none';
-    if(nota){
-      nota.style.display='block';
-      nota.textContent = 'ℹ '+act.codigo+' ya está marcado como recibido en mantenimiento, '
-        + 'así que no hay nada que confirmar aquí. Para devolverlo, abre el ticket vinculado y usa el bloque de devolución.';
-    }
-    if(camposExt) camposExt.style.display='none';
-    return;
-  }
-
-  document.getElementById('et-recibir-ya-chk').disabled = false;
-  if(nota) nota.style.display='none';
-
-  if(act){
-    // Caso 2: equipo del inventario, disponible para recibir.
-    if(camposExt) camposExt.style.display='none';
-    const nom = document.getElementById('et-recibir-ya-nombre');
-    const ema = document.getElementById('et-recibir-ya-email');
-    if(nom && !nom.value) nom.value = (act.asignado && act.asignado!=='—') ? act.asignado : '';
-    if(ema && !ema.value) ema.value = act.asignadoEmail || '';
-  }else{
-    // Caso 3: SIN activo vinculado — equipo que no pertenece al inventario
-    // (personal del usuario, prestado, de un proveedor). No hay ningún activo
-    // cuyo estado cambiar, así que el comprobante se guarda en el historial
-    // del propio ticket y se piden los datos del equipo a mano.
-    if(camposExt) camposExt.style.display='block';
-  }
-}
-
 function openTicket(id,forceReadOnly){
   const isEdit=id!=null;
   const per=PERMS[session.rol]||{};
@@ -4050,22 +3825,6 @@ function openTicket(id,forceReadOnly){
   document.getElementById('et-save-btn').style.display=readOnly?'none':'';
   document.getElementById('et-motivo-wrap').style.display=(isEdit&&!readOnly)?'block':'none';
   document.getElementById('et-readonly-note').style.display=readOnly?'block':'none';
-  // Banner de modo — crear y editar se veían casi idénticos
-  const _banner = document.getElementById('et-modo-banner');
-  if(_banner){
-    _banner.style.display='block';
-    if(!isEdit){
-      _banner.textContent='🆕 Estás creando un ticket nuevo';
-      _banner.style.background='var(--blue-l,#E6F1FB)';
-      _banner.style.color='var(--blue,#0C447C)';
-      _banner.style.border='1px solid var(--blue-m,#B5D4F4)';
-    }else{
-      _banner.textContent=(readOnly?'👁 Viendo ':'✏️ Editando ')+(id||'');
-      _banner.style.background='var(--amber-l,#FAEEDA)';
-      _banner.style.color='var(--amber,#633806)';
-      _banner.style.border='1px solid var(--amber-m,#FAC775)';
-    }
-  }
   if(readOnly){
     document.getElementById('et-readonly-msg').textContent = per.edit
       ? 'Estás viendo este ticket en modo solo lectura. Toca ✎ en la lista si quieres editarlo.'
@@ -4081,53 +3840,17 @@ function openTicket(id,forceReadOnly){
   if(isEdit){
     const t=tickets.find(x=>x.codigo===id);if(!t)return;
     document.getElementById('et-titulo').value=t.titulo||'';document.getElementById('et-activo').value=t.activoId||'';
-    document.getElementById('et-resp').value=t.resp||''; // select
-    document.getElementById('et-tipo').value=t.tipo||'incidencia';
+    document.getElementById('et-resp').value=t.resp||''; // selectdocument.getElementById('et-tipo').value=t.tipo||'incidencia';
     document.getElementById('et-prior').value=t.prior||'importante';document.getElementById('et-estado').value=t.estado||'abierto';
     document.getElementById('et-avance').value=t.avance||0;document.getElementById('et-dead').value=t.dead!=='—'?t.dead:'';
     document.getElementById('et-proy').value=t.proy!=='—'?t.proy:'';document.getElementById('et-desc').value=t.desc||'';
     _renderGaleriaFotosAdmin(t.fotos);
     renderTicketHistorial(t);
-    const actVinculado = t.activoId ? activos.find(a=>a.codigo===t.activoId) : null;
-    const _puedeEntrada = t.tipo==='mantenimiento' && actVinculado && actVinculado.estado!=='mantenimiento' && !readOnly;
-    const _puedeSalida = t.tipo==='mantenimiento' && actVinculado && actVinculado.estado==='mantenimiento' && !readOnly;
-    document.getElementById('et-entrada-mant-wrap').style.display = _puedeEntrada ? 'block':'none';
-    document.getElementById('et-salida-mant-wrap').style.display = _puedeSalida ? 'block':'none';
-    document.getElementById('et-marcar-salida').checked = true;
-    document.getElementById('et-condicion-devuelto').value = '';
-    if(_puedeEntrada && actVinculado){
-      document.getElementById('et-entrega-nombre').value = actVinculado.asignado && actVinculado.asignado!=='—' ? actVinculado.asignado : '';
-      document.getElementById('et-entrega-email').value  = actVinculado.asignadoEmail || '';
-    }
-    if(_puedeSalida && actVinculado){
-      document.getElementById('et-devuelto-nombre').value = actVinculado.asignado && actVinculado.asignado!=='—' ? actVinculado.asignado : '';
-      document.getElementById('et-devuelto-email').value  = actVinculado.asignadoEmail || '';
-    }
-    _etEntradaFotosActuales = []; _renderGaleriaFotosEntradaMant();
-    _etSalidaFotosActuales  = []; _renderGaleriaFotosSalidaMant();
-    // El bloque "el equipo ya está en mis manos" es exclusivo de la creación:
-    // al editar existe el botón real de "Confirmar recepción" de arriba.
-    document.getElementById('et-recibir-ya-wrap').style.display = 'none';
-    document.getElementById('et-recibir-ya-chk').checked = false;
   }else{
     ['et-titulo','et-proy','et-desc'].forEach(i=>document.getElementById(i).value=''); document.getElementById('et-resp').value='';
     document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';
     _renderGaleriaFotosAdmin([]);
     document.getElementById('et-hist-wrap').style.display='none';
-    document.getElementById('et-entrada-mant-wrap').style.display='none';
-    document.getElementById('et-salida-mant-wrap').style.display='none';
-    _etEntradaFotosActuales = []; _etSalidaFotosActuales = [];
-    // Identidad única de ESTA creación — ver _opIdTicketNuevo. Se renueva al
-    // abrir un ticket nuevo, no en cada clic de guardar.
-    _opIdTicketNuevo = _generarOpId();
-    // Bloque "el equipo ya está en mis manos" (solo en creación)
-    document.getElementById('et-recibir-ya-chk').checked = false;
-    document.getElementById('et-recibir-ya-campos').style.display = 'none';
-    document.getElementById('et-recibir-ya-nombre').value = '';
-    document.getElementById('et-recibir-ya-email').value  = '';
-    document.getElementById('et-recibir-ya-equipo').value = '';
-    document.getElementById('et-recibir-ya-cond').value   = '';
-    _etActualizarBloqueRecepcionNueva();
   }
   // Bloquear/desbloquear los campos del formulario según el modo
   ET_CAMPOS_FORM.forEach(fid=>{
@@ -4300,107 +4023,6 @@ function agregarFotoMantenimiento(){
   input.click();
 }
 
-// ── FOTOS OPCIONALES AL CONFIRMAR RECEPCIÓN / AL DEVOLVER (ticket) ──
-// Mismo mecanismo de subida que agregarFotoMantenimiento(), pero con su
-// propio arreglo — el modal de ticket y el de "Registrar mantenimiento"
-// pueden coexistir en la sesión y no deben compartir estado.
-let _etEntradaFotosActuales = [];
-let _etSalidaFotosActuales  = [];
-
-function _renderGaleriaFotosEntradaMant(){
-  const list = document.getElementById('et-entrada-fotos-list');
-  if(!list) return;
-  list.innerHTML = _etEntradaFotosActuales.length ? _etEntradaFotosActuales.map((f,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;background:#FFF9EC;border-left:3px solid #B8960C;border-radius:6px;padding:6px 10px;font-size:11px;color:#7A5C0A;">
-      <div style="flex:1;min-width:0">📷 <a href="${f.url}" target="_blank" style="color:#7A5C0A;font-weight:600">Ver foto ↗</a></div>
-      <button type="button" class="btn" onclick="quitarFotoEntradaMant(${i})" style="padding:4px 8px;font-size:11px;white-space:nowrap;">🗑</button>
-    </div>`).join('') : '<div style="font-size:11px;color:var(--text3);">Sin fotos todavía.</div>';
-  document.getElementById('et-entrada-fotos-limite-note').style.display = _etEntradaFotosActuales.length>=3 ? 'block' : 'none';
-  const addBtn = document.getElementById('et-entrada-fotos-add-btn');
-  if(addBtn) addBtn.style.display = _etEntradaFotosActuales.length>=3 ? 'none' : '';
-}
-function quitarFotoEntradaMant(index){ _etEntradaFotosActuales.splice(index,1); _renderGaleriaFotosEntradaMant(); }
-function agregarFotoEntradaMant(){
-  if(_etEntradaFotosActuales.length >= 3){ showToast('Ya hay 3 fotos, el máximo permitido.','error'); return; }
-  const codigoActivo = document.getElementById('et-activo')?.value || '';
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*'; input.style.display = 'none';
-  document.body.appendChild(input);
-  input.onchange = async () => {
-    const file = input.files[0];
-    document.body.removeChild(input);
-    if(!file) return;
-    if(file.size > 10*1024*1024){ showToast('El archivo no puede superar 10MB','error'); return; }
-    const btn = document.getElementById('et-entrada-fotos-add-btn');
-    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
-    try{
-      const base64full = await new Promise((res,rej)=>{
-        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(file);
-      });
-      const data = await apiPostAsync(null,'uploadFoto',{
-        base64:base64full.split(',')[1], mimeType:file.type, nombreArchivo:file.name,
-        modulo:'Activos', codigoRegistro: codigoActivo, _sessionToken: session?session.token:null
-      }, 25000);
-      if(data && data.url){
-        _etEntradaFotosActuales.push({ url:data.url, fecha:ts(), usuario:session.nombre });
-        _renderGaleriaFotosEntradaMant();
-        showToast('Foto agregada ✓','success');
-      }else{
-        showToast('No se pudo subir la foto: '+(data?.error||'sin respuesta'),'error');
-      }
-    }catch(e){ showToast('Error al subir la foto: '+e.message,'error'); }
-    finally{ if(btn){ btn.disabled=false; btn.textContent='📂 Agregar foto'; } }
-  };
-  input.click();
-}
-
-function _renderGaleriaFotosSalidaMant(){
-  const list = document.getElementById('et-salida-fotos-list');
-  if(!list) return;
-  list.innerHTML = _etSalidaFotosActuales.length ? _etSalidaFotosActuales.map((f,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;background:#EAF7EF;border-left:3px solid #059669;border-radius:6px;padding:6px 10px;font-size:11px;color:#065F46;">
-      <div style="flex:1;min-width:0">📷 <a href="${f.url}" target="_blank" style="color:#065F46;font-weight:600">Ver foto ↗</a></div>
-      <button type="button" class="btn" onclick="quitarFotoSalidaMant(${i})" style="padding:4px 8px;font-size:11px;white-space:nowrap;">🗑</button>
-    </div>`).join('') : '<div style="font-size:11px;color:var(--text3);">Sin fotos todavía.</div>';
-  document.getElementById('et-salida-fotos-limite-note').style.display = _etSalidaFotosActuales.length>=3 ? 'block' : 'none';
-  const addBtn = document.getElementById('et-salida-fotos-add-btn');
-  if(addBtn) addBtn.style.display = _etSalidaFotosActuales.length>=3 ? 'none' : '';
-}
-function quitarFotoSalidaMant(index){ _etSalidaFotosActuales.splice(index,1); _renderGaleriaFotosSalidaMant(); }
-function agregarFotoSalidaMant(){
-  if(_etSalidaFotosActuales.length >= 3){ showToast('Ya hay 3 fotos, el máximo permitido.','error'); return; }
-  const codigoActivo = document.getElementById('et-activo')?.value || '';
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*'; input.style.display = 'none';
-  document.body.appendChild(input);
-  input.onchange = async () => {
-    const file = input.files[0];
-    document.body.removeChild(input);
-    if(!file) return;
-    if(file.size > 10*1024*1024){ showToast('El archivo no puede superar 10MB','error'); return; }
-    const btn = document.getElementById('et-salida-fotos-add-btn');
-    if(btn){ btn.disabled=true; btn.textContent='⏳ Subiendo...'; }
-    try{
-      const base64full = await new Promise((res,rej)=>{
-        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Error leyendo archivo')); r.readAsDataURL(file);
-      });
-      const data = await apiPostAsync(null,'uploadFoto',{
-        base64:base64full.split(',')[1], mimeType:file.type, nombreArchivo:file.name,
-        modulo:'Activos', codigoRegistro: codigoActivo, _sessionToken: session?session.token:null
-      }, 25000);
-      if(data && data.url){
-        _etSalidaFotosActuales.push({ url:data.url, fecha:ts(), usuario:session.nombre });
-        _renderGaleriaFotosSalidaMant();
-        showToast('Foto agregada ✓','success');
-      }else{
-        showToast('No se pudo subir la foto: '+(data?.error||'sin respuesta'),'error');
-      }
-    }catch(e){ showToast('Error al subir la foto: '+e.message,'error'); }
-    finally{ if(btn){ btn.disabled=false; btn.textContent='📂 Agregar foto'; } }
-  };
-  input.click();
-}
-
 // ════════════════════════════════════════════════════════════════════
 // BLOQUEO VISUAL DE GUARDADO
 // ════════════════════════════════════════════════════════════════════
@@ -4454,17 +4076,6 @@ async function saveTicket(){
     motivo=document.getElementById('et-motivo').value.trim();
     if(!motivo){alert('El motivo es obligatorio.');return;}
     if(!tickets.find(x=>x.codigo===editId)){showToast('No se encontró el ticket a editar.','error');return;}
-  }else{
-    // De este correo sale el comprobante de entrada si se marcó "el equipo ya
-    // está en mis manos" — se valida antes de bloquear la pantalla.
-    const _chkYa = document.getElementById('et-recibir-ya-chk');
-    if(_chkYa && _chkYa.checked){
-      const _mailYa = document.getElementById('et-recibir-ya-email').value.trim();
-      if(_mailYa && !_emailValido(_mailYa)){
-        showToast('El correo de quien entrega el equipo no tiene un formato válido','');
-        return;
-      }
-    }
   }
 
   window._savingTicket = true;
@@ -4498,43 +4109,12 @@ async function saveTicket(){
       desc: det+(eventosDetalle.length?' | '+eventosDetalle.join(' · '):''),
       fecha:ts(),usuario:session.nombre,color:colorEvento
     });
-    // ── SALIDA DE MANTENIMIENTO AL CERRAR TICKET VINCULADO ──────────
-    let _actSalida = null;
-    if(t.tipo==='mantenimiento' && estadoAnteriorTicket!=='cerrado' && t.estado==='cerrado'
-       && t.activoId && document.getElementById('et-marcar-salida')?.checked){
-      const act = activos.find(a=>a.codigo===t.activoId);
-      if(act && act.estado==='mantenimiento'){
-        const condicion = document.getElementById('et-condicion-devuelto')?.value.trim() || '';
-        const devueltoNombre = document.getElementById('et-devuelto-nombre')?.value.trim() || '';
-        const devueltoEmail  = document.getElementById('et-devuelto-email')?.value.trim() || '';
-        // De este correo sale el aviso de devolución — si viene mal escrito la
-        // notificación se pierde en silencio, así que se bloquea el guardado.
-        // El `finally` de esta función libera el candado y el overlay.
-        if(devueltoEmail && !_emailValido(devueltoEmail)){
-          showToast('El correo de quien recibe el equipo no tiene un formato válido','');
-          return;
-        }
-        marcarSalidaMantenimiento(act, {
-          motivo: 'Ticket '+t.codigo+' cerrado: '+titulo,
-          tecnico: session.nombre, condicion,
-          emailResp: devueltoEmail || act.asignadoEmail || '',
-          origen: 'ticket', extra: {ticketCodigo: t.codigo,
-            devueltoANombre: devueltoNombre || act.asignado || '',
-            devueltoAEmail:  devueltoEmail  || act.asignadoEmail || '',
-            fotos: _etSalidaFotosActuales.length ? _etSalidaFotosActuales : undefined}
-        });
-        _actSalida = act;
-        _etSalidaFotosActuales = []; _renderGaleriaFotosSalidaMant();
-      }
-    }
-
     const rEdit = await apiPost('tickets','update',t);
-    if(_actSalida) await apiPost('activos','update',_actSalida);
     audit('EDITAR','Ticket',t.codigo,det);
     if(rEdit===false){
       showToast('⚠ Sin conexión: los cambios de '+t.codigo+' quedaron en cola y se enviarán solos.','error');
     }else{
-      showToast('✅ Cambios guardados en '+t.codigo + (_actSalida?' — equipo marcado como devuelto de mantenimiento':''),'success');
+      showToast('✅ Cambios guardados en '+t.codigo,'success');
     }
   }else{
     // ── CREACIÓN DE TICKET ────────────────────────────────────────
@@ -4554,33 +4134,44 @@ async function saveTicket(){
     const t={id:code,codigo:code,titulo,activoId:aId||'',activoNombre:aNom,resp:document.getElementById('et-resp').value||'—',tipo:document.getElementById('et-tipo').value,prior:document.getElementById('et-prior').value,estado:document.getElementById('et-estado').value,avance:Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0)),dead:document.getElementById('et-dead').value||'—',proy:document.getElementById('et-proy').value.trim()||'—',desc:document.getElementById('et-desc').value.trim(),fotos:JSON.stringify(_etFotosActuales),foto:_etFotosActuales.length?_etFotosActuales[0].url:'—',historial:[{tipo:'Creación',desc:'Creado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
     tickets.push(t);
 
-    // Los datos del formulario se leen AHORA, antes de cerrar el modal: la
-    // confirmación del servidor llega después y para entonces los campos ya
-    // están vacíos.
-    const _datosRecepcion = _etLeerDatosRecepcionNueva();
+    const res = await apiPostAsync('tickets','insert',t,30000);
 
-    // Identidad estable de ESTA creación: si el usuario vuelve a hacer clic
-    // porque el servidor tardó, el intento viaja con el mismo _opId y el
-    // servidor devuelve el ticket que ya creó en vez de crear otro.
-    if(!_opIdTicketNuevo) _opIdTicketNuevo = _generarOpId();
+    if(res && res.ok===false && res.error==='TIMEOUT'){
+      // No se pudo confirmar. NO se reintenta a ciegas: se recarga la lista
+      // desde el servidor para que el usuario vea si el ticket entró o no.
+      // Reintentar aquí sin confirmar es justamente lo que duplicaba filas.
+      tickets = tickets.filter(x=>x.codigo!==code);
+      showToast('⏱ El servidor tardó en confirmar. Actualizando la lista para verificar si el ticket se creó...','error');
+      await recargarTickets();
+      return;
+    }
+    if(res && res.ok===false){
+      tickets = tickets.filter(x=>x.codigo!==code);
+      showToast('⚠ No se pudo crear el ticket: '+(res.message||res.error||'error desconocido'),'error');
+      return;
+    }
 
-    // ── LA ESPERA YA NO BLOQUEA LA PANTALLA ──────────────────────────
-    // Crear un ticket obliga a esperar al servidor porque el código real
-    // (TKT-XXXX) lo asigna él. Pero esa espera no tiene por qué congelar la
-    // aplicación: el ticket se muestra de inmediato marcado como "creando…"
-    // y la confirmación se resuelve en segundo plano. El usuario sigue
-    // trabajando; cuando el servidor responde, la fila adopta su código real.
-    t._creando = true;
-    const _t0 = Date.now();
-    const _promesa = apiPostAsync('tickets','insert',{...t, _opId:_opIdTicketNuevo}, 45000);
-    _promesa
-      .then(res => _finalizarCreacionTicket(res, t, code, aId, titulo, _datosRecepcion, _t0))
-      .catch(err => {
-        tickets = tickets.filter(x=>x.codigo!==code);
-        renderAll();
-        showToast('⚠ Error al crear el ticket: '+(err&&err.message?err.message:'desconocido'),'error');
-      });
-    showToast('Creando ticket… puedes seguir trabajando, te aviso cuando el servidor confirme.','');
+    // Adoptar el código REAL asignado por el servidor
+    const codigoReal = (res && res.codigo) ? res.codigo : code;
+    t.codigo = codigoReal; t.id = codigoReal;
+    if(res && res.duplicadoEvitado){
+      showToast('ℹ Este ticket ya se había registrado como '+codigoReal+'. No se creó un duplicado.','');
+    }else{
+      showToast('✅ Ticket '+codigoReal+' creado correctamente','success');
+    }
+
+    // Vincular el activo DESPUÉS de conocer el código real, para que su
+    // hoja de vida no quede apuntando a un código provisional inexistente.
+    if(aId){
+      const act=activos.find(a=>a.codigo===aId);
+      if(act){
+        act.historial=act.historial||[];
+        act.historial.push({tipo:'Ticket vinculado',desc:codigoReal+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});
+        if(t.tipo==='mantenimiento')act.estado='mantenimiento';
+        await apiPost('activos','update',act);
+      }
+    }
+    audit('CREAR','Ticket',codigoReal,'Creado: '+titulo);
   }
   closeModals();renderAll();
   }catch(err){
@@ -4590,182 +4181,6 @@ async function saveTicket(){
     // activado para siempre y el botón Guardar quedaba muerto hasta
     // recargar la página.
     window._savingTicket = false;
-    ocultarGuardando();
-  }
-}
-
-// Lee los campos de recepción del formulario de creación ANTES de cerrarlo.
-// Devuelve null si no aplica (no es mantenimiento, o no se marcó la casilla).
-function _etLeerDatosRecepcionNueva(){
-  const chk = document.getElementById('et-recibir-ya-chk');
-  if(!chk || !chk.checked) return null;
-  if(document.getElementById('et-tipo').value!=='mantenimiento') return null;
-  return {
-    nombre: (document.getElementById('et-recibir-ya-nombre')?.value||'').trim(),
-    email:  (document.getElementById('et-recibir-ya-email')?.value||'').trim(),
-    // Datos del equipo cuando NO es un activo del inventario (equipo personal
-    // del usuario, prestado, de un proveedor). Ver _etActualizarBloqueRecepcionNueva.
-    equipoDesc: (document.getElementById('et-recibir-ya-equipo')?.value||'').trim(),
-    condicion:  (document.getElementById('et-recibir-ya-cond')?.value||'').trim()
-  };
-}
-
-// Cierra la creación de un ticket cuando el servidor por fin responde. Corre
-// en segundo plano: la pantalla ya se liberó y el usuario está en otra cosa,
-// así que todo lo que pase aquí tiene que avisarse por sí solo.
-async function _finalizarCreacionTicket(res, t, code, aId, titulo, datosRecepcion, t0){
-  const segs = t0 ? ((Date.now()-t0)/1000).toFixed(1)+'s' : '';
-  try{
-    if(res && res.ok===false && res.error==='TIMEOUT'){
-      // No se pudo confirmar. NO se reintenta a ciegas: se recarga la lista y
-      // se REVISA si el ticket entró, para decírselo al usuario en vez de
-      // dejarlo adivinando.
-      tickets = tickets.filter(x=>x.codigo!==code);
-      await recargarTickets();
-      const yaCreado = tickets.filter(x=>
-        (x.titulo||'')===titulo && x.estado!=='eliminado' &&
-        (parseHist(x.historial)||[]).some(h=>h.tipo==='Creación' && h.usuario===session.nombre)
-      ).pop();
-      if(yaCreado){
-        _opIdTicketNuevo = null;
-        showToast('✅ Sí se creó: '+yaCreado.codigo+'. El servidor solo tardó en confirmarlo ('+segs+').','success');
-      }else{
-        // Se CONSERVA el _opId: si el usuario reintenta, el servidor
-        // reconocerá el intento como el mismo y no creará dos tickets.
-        showToast('⚠ El ticket no aparece todavía. Puedes volver a crearlo sin miedo: si al final entró, no se duplicará.','error');
-      }
-      renderAll();
-      return;
-    }
-    if(res && res.ok===false){
-      tickets = tickets.filter(x=>x.codigo!==code);
-      renderAll();
-      showToast('⚠ No se pudo crear el ticket: '+(res.message||res.error||'error desconocido'),'error');
-      return;
-    }
-
-    // Adoptar el código REAL asignado por el servidor
-    const codigoReal = (res && res.codigo) ? res.codigo : code;
-    t.codigo = codigoReal; t.id = codigoReal; delete t._creando;
-    _opIdTicketNuevo = null;
-    renderAll();
-    if(res && res.duplicadoEvitado){
-      showToast('ℹ Este ticket ya se había registrado como '+codigoReal+'. No se creó un duplicado.','');
-    }else{
-      showToast('✅ Ticket '+codigoReal+' creado correctamente ('+segs+')','success');
-    }
-
-    // Vincular el activo DESPUÉS de conocer el código real, para que su
-    // hoja de vida no quede apuntando a un código provisional inexistente.
-    const act = aId ? activos.find(a=>a.codigo===aId) : null;
-    if(act){
-      act.historial=act.historial||[];
-      act.historial.push({tipo:'Ticket vinculado',desc:codigoReal+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});
-      await apiPost('activos','update',act);
-    }
-
-    if(datosRecepcion){
-      if(act && act.estado!=='mantenimiento'){
-        // Equipo del inventario: camino de siempre (marcarEntradaMantenimiento),
-        // solo que sin obligar a guardar, reabrir el ticket y confirmar aparte.
-        marcarEntradaMantenimiento(act, {
-          motivo: 'Ticket '+codigoReal+': '+titulo,
-          tecnico: session.nombre,
-          emailResp: datosRecepcion.email || act.asignadoEmail || '',
-          origen: 'ticket',
-          extra: {ticketCodigo: codigoReal,
-            entregadoPorNombre: datosRecepcion.nombre || act.asignado || '',
-            entregadoPorEmail:  datosRecepcion.email  || act.asignadoEmail || ''}
-        });
-        await apiPost('activos','update',act);
-        t.historial = t.historial || [];
-        t.historial.push({tipo:'📥 Equipo recibido por IT',
-          desc:'Recibido al crear el ticket'+(datosRecepcion.nombre?' — entregado por: '+datosRecepcion.nombre:''),
-          fecha:ts(), usuario:session.nombre, color:'amber'});
-        await apiPost('tickets','update',t);
-        showToast('📥 '+act.codigo+' quedó marcado como recibido en mantenimiento','success');
-      }else if(!act){
-        // ── EQUIPO QUE NO ES UN ACTIVO DE LA INSTITUCIÓN ──────────────
-        // Equipo personal del usuario, prestado o de un proveedor: no existe
-        // en el inventario, así que no hay ningún activo cuyo estado cambiar
-        // ni en cuyo historial escribir. El comprobante vive en el historial
-        // del PROPIO TICKET, que es lo único que representa a ese equipo.
-        t.historial = t.historial || [];
-        t.historial.push({tipo:'📥 Equipo recibido por IT',
-          desc:'Equipo externo (no pertenece al inventario) recibido al crear el ticket'
-            + (datosRecepcion.equipoDesc?' — Equipo: '+datosRecepcion.equipoDesc:'')
-            + (datosRecepcion.condicion?' — Condición al recibirlo: '+datosRecepcion.condicion:'')
-            + (datosRecepcion.nombre?' — Entregado por: '+datosRecepcion.nombre:'')
-            + (datosRecepcion.email?' ('+datosRecepcion.email+')':''),
-          fecha:ts(), usuario:session.nombre, color:'amber',
-          equipoExterno: true,
-          entregadoPorNombre: datosRecepcion.nombre||'',
-          entregadoPorEmail:  datosRecepcion.email||''});
-        await apiPost('tickets','update',t);
-        showToast('📥 Recepción registrada en el ticket '+codigoReal+' (equipo externo)','success');
-      }
-    }
-    audit('CREAR','Ticket',codigoReal,'Creado: '+titulo);
-    renderAll();
-  }catch(err){
-    showToast('⚠ El ticket se creó, pero falló un paso posterior: '+(err&&err.message?err.message:'desconocido'),'error');
-  }
-}
-
-// Acción explícita y separada de "Guardar cambios": el técnico la usa en
-// el momento real en que tiene el equipo físicamente en sus manos — no
-// al crear el ticket (que solo significa "se reportó/solicitó"). Es el
-// único punto de entrada a mantenimiento del sistema.
-async function confirmarRecepcionMantenimiento(){
-  const editId=document.getElementById('et-id').value;
-  if(!editId) return;
-  const t=tickets.find(x=>x.codigo===editId);if(!t)return;
-  if(t.tipo!=='mantenimiento' || !t.activoId){
-    showToast('Este ticket no es de mantenimiento o no tiene activo vinculado.','error');
-    return;
-  }
-  const act=activos.find(a=>a.codigo===t.activoId);
-  if(!act){ showToast('No se encontró el activo vinculado.','error'); return; }
-  if(act.estado==='mantenimiento'){
-    showToast('Este equipo ya está marcado en mantenimiento.','');
-    return;
-  }
-  // De este correo sale el comprobante de entrada para quien entregó el equipo —
-  // se valida ANTES de tomar el candado para no dejar la pantalla en "Confirmando...".
-  const _entregaEmailPrev = document.getElementById('et-entrega-email').value.trim();
-  if(_entregaEmailPrev && !_emailValido(_entregaEmailPrev)){
-    showToast('El correo de quien entrega el equipo no tiene un formato válido','');
-    return;
-  }
-  if(window._confirmandoRecepcion) return;
-  window._confirmandoRecepcion = true;
-  mostrarGuardando('Confirmando recepción...','No cierres esta ventana.');
-  try{
-    const entregaNombre = document.getElementById('et-entrega-nombre').value.trim();
-    const entregaEmail  = document.getElementById('et-entrega-email').value.trim();
-    marcarEntradaMantenimiento(act, {
-      motivo: 'Ticket '+t.codigo+': '+t.titulo,
-      tecnico: session.nombre,
-      emailResp: entregaEmail || act.asignadoEmail || '',
-      origen: 'ticket',
-      extra: {
-        ticketCodigo: t.codigo,
-        entregadoPorNombre: entregaNombre || act.asignado || '',
-        entregadoPorEmail:  entregaEmail  || act.asignadoEmail || '',
-        fotos: _etEntradaFotosActuales.length ? _etEntradaFotosActuales : undefined
-      }
-    });
-    await apiPost('activos','update',act);
-    t.historial = t.historial || [];
-    t.historial.push({tipo:'📥 Equipo recibido por IT',desc:'Recepción confirmada por '+session.nombre+' — equipo marcado en mantenimiento.'+(entregaNombre?' Entregado por: '+entregaNombre+'.':''),fecha:ts(),usuario:session.nombre,color:'amber'});
-    await apiPost('tickets','update',t);
-    audit('EDITAR','Ticket',t.codigo,'Recepción de equipo confirmada — activo '+act.codigo+' marcado en mantenimiento');
-    showToast('📥 Recepción confirmada — equipo marcado en mantenimiento','success');
-    renderTicketHistorial(t);
-    document.getElementById('et-entrada-mant-wrap').style.display='none';
-    _etEntradaFotosActuales = []; _renderGaleriaFotosEntradaMant();
-  } finally {
-    window._confirmandoRecepcion = false;
     ocultarGuardando();
   }
 }
@@ -4790,10 +4205,6 @@ function openDelete(type,id){
 }
 
 async function confirmDelete(){
-  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
-  // función también lo verifica — así ninguna ruta de escritura depende solo
-  // de que la interfaz haya escondido el control.
-  if(!(PERMS[session.rol]||{}).delete){ showToast('⛔ Sin permiso para eliminar registros',''); return; }
   const motivo=document.getElementById('del-motivo').value.trim();if(!motivo){alert('El motivo es obligatorio.');return;}
   const{type,id}=pendingDelete;
   if(type==='activo'){
@@ -4864,9 +4275,6 @@ async function saveMant(){
   if(!desc){ showToast('La descripción es obligatoria','error'); return; }
 
   const emailRespManual = document.getElementById('mm-email-resp')?.value.trim() || '';
-  if(emailRespManual && !_emailValido(emailRespManual)){
-    showToast('El correo del responsable no tiene un formato válido','error'); return;
-  }
   const emailResp = emailRespManual || activoActual?.asignadoEmail || activoActual?.responsableEspacioEmail || '';
   const e = {
     tipo:     document.getElementById('mm-tipo').value,
@@ -4890,7 +4298,6 @@ async function saveMant(){
 
     if(!piezasDesc){ showToast('Describe las piezas necesarias','error'); return; }
     if(!emailCompras){ showToast('El correo del encargado de compras es obligatorio','error'); return; }
-    if(!_emailValido(emailCompras)){ showToast('El correo del encargado de compras no tiene un formato válido','error'); return; }
 
     // Registro de la solicitud en el historial del activo
     const solicitud = {
@@ -4917,11 +4324,6 @@ async function saveMant(){
     activoActual.historial.push(e);
   }
 
-  // NOTA: este modal es solo bitácora — anota que algo pasó con el
-  // equipo, pero NO cambia su estado. La entrada/salida real de
-  // mantenimiento se gestiona únicamente desde el ticket vinculado
-  // (Tipo = Mantenimiento), para que haya un solo camino y no dos
-  // formas distintas de marcar lo mismo.
   await apiPost('activos','update',activoActual);
   audit('CREAR','Mantenimiento',activoActual.codigo,`${e.tipo}: ${e.desc} | Técnico: ${e.tec}`);
 
@@ -5094,15 +4496,6 @@ function validateDateField(input){
   return isValid;
 }
 
-// Mismo criterio de formato que usa validateField('email') más abajo, expuesto
-// aparte para poder BLOQUEAR el guardado en los flujos que disparan correos
-// automáticos (solicitud de piezas, entrega/devolución de equipo): antes solo
-// se verificaba que el campo no estuviera vacío, así que una dirección mal
-// escrita se aceptaba y la notificación se perdía en silencio.
-function _emailValido(v){
-  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v||'').trim());
-}
-
 function validateField(input, tipo, hint){
   const errId = 'err-' + input.id;
   const errEl = document.getElementById(errId);
@@ -5173,9 +4566,6 @@ function onChangeTipoActivo(tipo){
   const esLicencia = tipo === 'Software';
   const set = (id, texto) => { const el = document.getElementById(id); if(el) el.textContent = texto; };
   const placeholder = (id, texto) => { const el = document.getElementById(id); if(el) el.placeholder = texto; };
-
-  const noteLic = document.getElementById('note-ea-licencia');
-  if(noteLic) noteLic.style.display = esLicencia ? 'block' : 'none';
 
   if(esLicencia){
     set('lbl-ea-marca', 'Proveedor');
@@ -5360,23 +4750,6 @@ function showDetalle(id){
         <span style="flex:1;font-size:12px;font-weight:500">${sanitizeHTML(t.titulo)}</span><span style="font-size:11px;color:var(--text3)">${sanitizeHTML(t.resp)} · ${renderDead(t.dead)}</span>
       </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin tickets vinculados.</div>'}
     </div>
-    <div style="margin-bottom:14px">
-      <div class="sec-title">🔑 Licencias de software instaladas (${(typeof licenciasDeActivo==='function'?licenciasDeActivo(activoActual.codigo):[]).length})</div>
-      ${(()=>{
-        const lics = typeof licenciasDeActivo==='function' ? licenciasDeActivo(activoActual.codigo) : [];
-        if(!lics.length) return '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin licencias registradas para este equipo. Se registran desde el módulo 🔑 Licencias.</div>';
-        return lics.map(l=>{
-          const vc = l.estado==='cancelada'?'cancelada':_licVencComputado(l);
-          const vcLabel = {activo:'Vigente',vencida:'⛔ Vencida',sin_fecha:'Sin fecha',cancelada:'Cancelada'}[vc];
-          return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:5px">
-            <span class="code-cell">${l.codigo}</span>
-            <span style="flex:1;font-size:12px;font-weight:500">${sanitizeHTML(l.nombre||'')}</span>
-            <span style="font-size:11px;color:var(--text3)">${sanitizeHTML(l.proveedor||'—')} · Vence: ${l.fechaVencimiento||'—'}</span>
-            <span class="badge">${vcLabel}</span>
-          </div>`;
-        }).join('');
-      })()}
-    </div>
     <div><div class="sec-title">Historial completo (${(activoActual.historial||[]).length} eventos)</div>
       ${(activoActual.historial||[]).map(h=>{
         if(h.tipo==='Reasignación'){
@@ -5398,9 +4771,8 @@ function showDetalle(id){
         }
         return '<div class="hist-item"><div class="hist-dot '+(h.color||'')+'"></div>' +
           '<div><div style="font-size:12px;color:var(--text)"><strong>'+h.tipo+'</strong> — '+h.desc+'</div>' +
-          '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(h.fecha||'')+' · '+(h.usuario||'—')+(h.tec&&h.tec!==h.usuario?' · Técnico: '+h.tec:'')+(h.costo?' · $'+h.costo:'')+'</div>' +
-          (Array.isArray(h.fotos)&&h.fotos.length?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">'+h.fotos.map(f=>'<a href="'+f.url+'" target="_blank" style="font-size:10px;color:#B8960C;font-weight:600">📷 Ver foto ↗</a>').join('')+'</div>':'') +
-          '</div></div>';
+          '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(h.fecha||'')+' · '+(h.usuario||'—')+(h.tec&&h.tec!==h.usuario?' · Técnico: '+h.tec:'')+(h.costo?' · $'+h.costo:'')+'</div></div>' +
+          '</div>';
       }).join('')}
     </div>
     ${['admin','tecnico','inventario'].includes(session.rol)?`
@@ -5535,9 +4907,7 @@ function renderTickets(){
     : tickets.filter(t=>t.estado===filtroT);
   if(!list.length){tb.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text3);font-size:12px">Sin tickets.</td></tr>`;return;}
   tb.innerHTML=list.map(t=>`<tr class="${t.estado==='eliminado'?'del-row':''}">
-    <td class="code-cell">${t._creando
-      ? '<span style="color:var(--text3)">creando…</span><div style="font-size:9px;color:var(--text3)">esperando código</div>'
-      : sanitizeHTML(t.codigo)}</td>
+    <td class="code-cell">${sanitizeHTML(t.codigo)}</td>
     <td><div style="font-weight:600;font-size:12px">${sanitizeHTML(t.titulo)}</div><div style="font-size:10px;color:var(--text3)">${sanitizeHTML(t.tipo||'')} · ${sanitizeHTML(t.proy||'—')}</div></td>
     <td style="font-size:11px">${sanitizeHTML(t.activoNombre||'—')}</td>
     <td>
@@ -6614,11 +5984,6 @@ function repTrazabilidad(el, ts){
   ).filter(a=>(a.asignado||'Sin asignar')!==persona); // excluir los que ya están en actuales
 
   const totalActivos = activosActuales.length + activosHistoricos.length;
-  // Antes repDatosActuales se quedaba en [] para siempre en este reporte — el
-  // CSV/exportación salía vacío sin importar qué se agregara a exportCSV(),
-  // porque nunca había datos reales para exportar.
-  repDatosActuales = [...activosActuales, ...activosHistoricos].map(a=>({...a, _personaTrazada: persona,
-    _esActual: activosActuales.includes(a)}));
 
   // Para cada activo — buscar tickets vinculados
   const getTicketsActivo = (cod) => tickets.filter(t=>t.activoId===cod && t.estado!=='eliminado');
@@ -6835,21 +6200,6 @@ function exportCSV(){
   } else if(tipo==='mantenimientos'){
     headers=['Fecha','Activo código','Activo nombre','Tipo activo','Depto','Tipo mantenimiento','Descripción','Técnico','Costo'];
     rows=repDatosActuales.map(m=>[m.fecha||'',m.activoCodigo,m.activoNombre,m.activoTipo,m.activoDepto,m.tipo,m.desc,m.tec||'',m.costo||0]);
-  } else if(tipo==='trazabilidad'){
-    headers=['Código','Nombre','Tipo','Departamento','Estado','¿Actualmente asignado?','Tickets vinculados','Tickets cerrados'];
-    rows=repDatosActuales.map(a=>{
-      const tks=tickets.filter(t=>t.activoId===a.codigo && t.estado!=='eliminado');
-      return [a.codigo,a.nombre,a.tipo,a.depto||'',a.estado,a._esActual?'Sí':'No (histórico)',tks.length,tks.filter(t=>t.estado==='cerrado').length];
-    });
-  } else if(tipo==='mobiliario_inv'){
-    headers=['Código','Descripción','Tipo','Cantidad','Condición','Ubicación','Departamento','Material','Color','Fecha adquisición','Valor unitario','Valor total'];
-    rows=repDatosActuales.map(m=>[m.codigo,m.nombre,m.tipo,m.cantidad||1,m.condicion||'',m.ubicacion||'',m.depto||'',m.material||'',m.color||'',m.fecha||'',m.valor||0,(m.valor||0)*(m.cantidad||1)]);
-  } else if(tipo==='activos_espacio'){
-    headers=['Código','Nombre','Tipo','Espacio/Ubicación','Asignado a','Estado','Valor depreciado'];
-    rows=repDatosActuales.map(a=>[a.codigo,a.nombre,a.tipo,a.ubicacion||'Sin espacio definido',a.asignado||'',a.estado,calcDepre(a)]);
-  } else if(tipo==='activos_persona'){
-    headers=['Código','Nombre','Tipo','Asignado a','Ubicación','Estado','Garantía hasta'];
-    rows=repDatosActuales.map(a=>[a.codigo,a.nombre,a.tipo,a.asignado||'',a.ubicacion||'',a.estado,a.garantia||'']);
   }
 
   const csv=[headers,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
@@ -7029,22 +6379,6 @@ async function imprimirExpedienteActivo(codigo){
       </div>
     </div>`).join('') : '<div style="padding:6mm 0;color:#888;font-size:9pt">Sin eventos registrados.</div>';
 
-  const licsExp = typeof licenciasDeActivo==='function' ? licenciasDeActivo(a.codigo) : [];
-  const licsHTML = licsExp.length ? `<div class="tbl-wrap"><table>
-      <thead><tr><th>Código</th><th>Licencia</th><th>Proveedor</th><th>Vence</th><th>Estado</th></tr></thead>
-      <tbody>${licsExp.map(l=>{
-        const vc = l.estado==='cancelada'?'cancelada':_licVencComputado(l);
-        const vcLabel = {activo:'Vigente',vencida:'⛔ Vencida',sin_fecha:'Sin fecha',cancelada:'Cancelada'}[vc];
-        return `<tr>
-          <td>${sanitizeHTML(l.codigo)}</td>
-          <td>${sanitizeHTML(l.nombre||'')}</td>
-          <td>${sanitizeHTML(l.proveedor||'—')}</td>
-          <td>${l.fechaVencimiento||'—'}</td>
-          <td>${vcLabel}</td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div>` : '<div style="font-size:9pt;color:#888">Sin licencias registradas para este equipo.</div>';
-
   document.getElementById('print-expediente-area').innerHTML = `
     <div class="exp-header">
       <div class="exp-title">Expediente de activo — ${sanitizeHTML(a.codigo)}</div>
@@ -7059,8 +6393,6 @@ async function imprimirExpedienteActivo(codigo){
         <div><b>Departamento:</b> ${sanitizeHTML(a.depto||'—')}</div>
       </div>
     </div>
-    <div class="exp-section-title" style="font-weight:700;font-size:10pt;margin:4mm 0 2mm">🔑 Licencias de software instaladas (${licsExp.length})</div>
-    ${licsHTML}
     <div class="exp-timeline">${itemsHTML}</div>
     <div class="exp-footer">Expediente generado el ${ts()} por ${sanitizeHTML(session.nombre)} desde SAGAE. Documento de uso interno.</div>
   `;
@@ -7530,14 +6862,11 @@ function descargarPlantillaActivos(){
       ['✅ Columna CÓDIGO', 'Dejarla VACÍA — el sistema la asigna automáticamente'],
       [''],
       ['VALORES VÁLIDOS PARA COLUMNA TIPO'],
-      ['Computadora', 'Laptop', 'Tablet', 'Móvil', 'Monitor', 'Impresora'],
-      ['Escáner', 'Lector de Código de Barras', 'Servidor', 'Router', 'Switch / Hub', 'Access Point'],
-      ['Antena WiFi', 'Firewall', 'Cableado / Patch Panel', 'Cámara', 'NVR', 'Proyector'],
-      ['Televisor', 'Bocina / Audio', 'UPS', 'Regulador', 'Teléfono IP', 'Licencia de Software'],
-      ['Red / Switch', 'Vehículo', 'Otro'],
+      ['Laptop', 'Computadora', 'Impresora', 'Monitor', 'Proyector', 'Tablet'],
+      ['Teléfono', 'Servidor', 'Switch', 'Router', 'Cámara', 'UPS', 'Escáner', 'Otro'],
       [''],
       ['VALORES VÁLIDOS PARA COLUMNA ESTADO'],
-      ['activo', 'mantenimiento', 'descarte'],
+      ['activo', 'mantenimiento', 'baja'],
       [''],
       ['¿Dudas? Contacta a RYE Design: corpas84@hotmail.com  ·  (507) 6225-1042'],
     ];
@@ -7581,14 +6910,12 @@ function descargarPlantillaActivos(){
 
     // Validaciones de datos (desplegables)
     if(!wsData['!dataValidation']) wsData['!dataValidation'] = [];
-    // TIPO — columna C (index 2), filas 5-204. Antes esta lista solo tenía 14
-    // de los 21+ tipos del formulario normal (faltaba, entre otros, "Licencia
-    // de Software") — un equipo de esos tipos no se podía importar por lote.
+    // TIPO — columna C (index 2), filas 5-204
     wsData['!dataValidation'].push({
       type:'list', sqref:'C5:C204', allowBlank:true,
-      formula1:'"Computadora,Laptop,Tablet,Móvil,Monitor,Impresora,Escáner,Lector de Código de Barras,Servidor,Router,Switch / Hub,Access Point,Antena WiFi,Firewall,Cableado / Patch Panel,Cámara,NVR,Proyector,Televisor,Bocina / Audio,UPS,Regulador,Teléfono IP,Licencia de Software,Red / Switch,Vehículo,Otro"',
+      formula1:'"Laptop,Computadora,Impresora,Monitor,Proyector,Tablet,Teléfono,Servidor,Switch,Router,Cámara,UPS,Escáner,Otro"',
       showDropDown:false, showErrorMessage:true,
-      errorTitle:'Tipo inválido', error:'Use el desplegable de la columna TIPO'
+      errorTitle:'Tipo inválido', error:'Use el desplegable: Laptop, Computadora, Impresora...'
     });
     // ESTADO — columna D (index 3), filas 5-204
     wsData['!dataValidation'].push({
@@ -7678,25 +7005,7 @@ function procesarCSVActivos(csvText){
     return;
   }
 
-  // Lista completa de tipos del formulario normal — antes solo cubría 14 de
-  // los 21+ tipos reales (faltaba, entre otros, "Licencia de Software"), así
-  // que un equipo de esos tipos no se podía importar por lote. Cada entrada
-  // mapea el texto tal como aparece en el desplegable al valor interno real
-  // que usa el sistema (para "Licencia de Software" ese valor es "Software").
-  const TIPOS_CANONICOS = {
-    'computadora':'Computadora', 'laptop':'Laptop', 'tablet':'Tablet', 'móvil':'Móvil', 'movil':'Móvil',
-    'monitor':'Monitor', 'impresora':'Impresora', 'escáner':'Escáner', 'escaner':'Escáner',
-    'lector de código de barras':'Lector de Código de Barras', 'lector de codigo de barras':'Lector de Código de Barras',
-    'servidor':'Servidor', 'router':'Router', 'switch / hub':'Switch / Hub', 'switch/hub':'Switch / Hub',
-    'red / switch':'Red / Switch', 'red/switch':'Red / Switch', 'switch':'Switch / Hub',
-    'access point':'Access Point', 'antena wifi':'Antena WiFi', 'firewall':'Firewall',
-    'cableado / patch panel':'Cableado / Patch Panel', 'cableado/patch panel':'Cableado / Patch Panel',
-    'cámara':'Cámara', 'camara':'Cámara', 'nvr':'NVR', 'proyector':'Proyector', 'televisor':'Televisor',
-    'bocina / audio':'Bocina / Audio', 'bocina/audio':'Bocina / Audio', 'ups':'UPS', 'regulador':'Regulador',
-    'teléfono ip':'Teléfono IP', 'telefono ip':'Teléfono IP', 'teléfono':'Teléfono IP', 'telefono':'Teléfono IP',
-    'licencia de software':'Software', 'software':'Software',
-    'vehículo':'Vehículo', 'vehiculo':'Vehículo', 'otro':'Otro'
-  };
+  const TIPOS_VALIDOS = ['laptop','computadora','impresora','monitor','proyector','tablet','teléfono','telefono','servidor','switch','router','cámara','camara','ups','escáner','escaner','otro'];
   const ESTADOS_VALIDOS = ['activo','mantenimiento','descarte'];
 
   let registros = [], errores = [], filaNum = 2;
@@ -7720,7 +7029,7 @@ function procesarCSVActivos(csvText){
     const errs = [];
     if(!obj.nombre) errs.push('nombre vacío');
     if(!obj.tipo)   errs.push('tipo vacío');
-    else if(!TIPOS_CANONICOS[obj.tipo.toLowerCase().trim()]) errs.push(`tipo inválido: "${obj.tipo}"`);
+    else if(!TIPOS_VALIDOS.includes(obj.tipo.toLowerCase())) errs.push(`tipo inválido: "${obj.tipo}"`);
     if(!obj.estado) errs.push('estado vacío');
     else if(!ESTADOS_VALIDOS.includes(obj.estado.toLowerCase())) errs.push(`estado inválido: "${obj.estado}"`);
     if(obj.valor && isNaN(parseFloat(obj.valor))) errs.push('valor no es número');
@@ -7729,11 +7038,8 @@ function procesarCSVActivos(csvText){
     if(errs.length){
       errores.push({fila:filaNum, nombre:obj.nombre||'(sin nombre)', errores:errs});
     } else {
-      // Normalizar — usar el valor interno real del tipo (ej. "Software"
-      // para "Licencia de Software"), no una capitalización a ciegas que
-      // rompía los tipos de dos palabras (ej. "Switch / hub" en vez de
-      // "Switch / Hub").
-      obj.tipo   = TIPOS_CANONICOS[obj.tipo.toLowerCase().trim()];
+      // Normalizar
+      obj.tipo   = obj.tipo.charAt(0).toUpperCase()+obj.tipo.slice(1).toLowerCase();
       obj.estado = obj.estado.toLowerCase();
       obj.valor  = obj.valor ? parseFloat(obj.valor)||0 : 0;
       obj.vida   = obj.vida  ? parseInt(obj.vida)||0    : 0;
@@ -8191,13 +7497,8 @@ function renderMobiliario(){
   const tipoFil = document.getElementById('fil-mob-tipo')?.value||'todos';
   const per = PERMS[session.rol]||{};
 
-  // Antes un mobiliario eliminado desaparecía por completo de la interfaz —
-  // sin pestaña "Eliminados" como sí tiene Activos, no había forma de
-  // volver a verlo desde la pantalla normal.
-  let list = estFil==='eliminado'
-    ? mobiliario.filter(m => m.estado === 'eliminado')
-    : mobiliario.filter(m => m.estado !== 'eliminado');
-  if(estFil  !== 'todos' && estFil!=='eliminado') list = list.filter(m=>m.condicion===estFil);
+  let list = mobiliario.filter(m => m.estado !== 'eliminado');
+  if(estFil  !== 'todos') list = list.filter(m=>m.condicion===estFil);
   if(tipoFil !== 'todos') list = list.filter(m=>m.tipo===tipoFil);
   if(qRaw) list = list.filter(m=>
     (m.nombre||'').toLowerCase().includes(qRaw)||
@@ -8248,9 +7549,8 @@ function renderMobiliario(){
         <div style="font-weight:700;color:#3B6D11">Total: $${((m.valor||0)*(m.cantidad||1)).toLocaleString()}</div>
       </td>
       <td onclick="event.stopPropagation()">
-        ${m.estado==='eliminado' ? '<span style="font-size:10px;color:var(--red)">Eliminado</span>' : `
         ${per.edit?`<button class="act-btn" onclick="openMob('${m.codigo}')">✎</button>`:''}
-        ${per.delete?`<button class="act-btn" onclick="eliminarMob('${m.codigo}')" style="color:var(--red)">×</button>`:''}`}
+        ${per.delete?`<button class="act-btn" onclick="eliminarMob('${m.codigo}')" style="color:var(--red)">×</button>`:''}
       </td>
     </tr>`).join('');
 }
@@ -8285,10 +7585,6 @@ function openMob(codigo){
 
 // ── GUARDAR ───────────────────────────────────────────────────────
 async function guardarMobiliario(){
-  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
-  // función también lo verifica — así ninguna ruta de escritura depende solo
-  // de que la interfaz haya escondido el control.
-  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar mobiliario',''); return; }
   const nombre    = document.getElementById('mob-nombre').value.trim();
   const tipo      = document.getElementById('mob-tipo').value;
   const condicion = document.getElementById('mob-condicion').value;
@@ -8297,10 +7593,6 @@ async function guardarMobiliario(){
 
   const editCodigo = document.getElementById('mod-mob')._editCodigo;
   const isEdit     = !!editCodigo;
-  // Antes esto REEMPLAZABA el historial completo con un solo evento nuevo en
-  // cada edición — se perdía todo lo anotado antes. Ahora se conserva y se
-  // agrega el evento nuevo al final, igual que en Activos.
-  const historialPrevio = isEdit ? parseHist(mobiliario.find(m=>m.codigo===editCodigo)?.historial) : [];
   const obj = {
     codigo:     isEdit ? editCodigo : '',
     nombre, tipo, condicion,
@@ -8314,7 +7606,7 @@ async function guardarMobiliario(){
     foto:       document.getElementById('mob-foto').value.trim(),
     obs:        document.getElementById('mob-obs').value.trim(),
     estado:     'activo',
-    historial:  JSON.stringify([...historialPrevio, {
+    historial:  JSON.stringify([{
       tipo: isEdit?'Edición':'Creación',
       desc: isEdit?`Editado por ${session.nombre}`:`Registrado por ${session.nombre}`,
       fecha: ts(), usuario: session.nombre, color:'blue'
@@ -8329,7 +7621,7 @@ async function guardarMobiliario(){
     await apiPost('mobiliario', isEdit?'update':'insert', obj);
     if(isEdit){
       const idx = mobiliario.findIndex(m=>m.codigo===editCodigo);
-      if(idx>=0) mobiliario[idx]={...obj, cantidad:parseInt(obj.cantidad)||1, valor:parseFloat(obj.valor)||0, historial:parseHist(obj.historial)};
+      if(idx>=0) mobiliario[idx]={...obj, cantidad:parseInt(obj.cantidad)||1, valor:parseFloat(obj.valor)||0};
     } else {
       // Código asignado por el servidor — recargar
       const raw = await apiGet('mobiliario');
@@ -8352,29 +7644,13 @@ async function guardarMobiliario(){
 
 // ── ELIMINAR ──────────────────────────────────────────────────────
 async function eliminarMob(codigo){
-  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
-  // función también lo verifica — así ninguna ruta de escritura depende solo
-  // de que la interfaz haya escondido el control.
-  if(!(PERMS[session.rol]||{}).delete){ showToast('⛔ Sin permiso para eliminar',''); return; }
+  if(!confirm('¿Eliminar este elemento del inventario de mobiliario?')) return;
   const m = mobiliario.find(x=>x.codigo===codigo);
   if(!m) return;
-  const motivo = prompt(`Eliminar "${m.nombre}" del inventario de mobiliario.\n\nMotivo (obligatorio, queda en el historial):`);
-  if(motivo===null) return; // canceló
-  if(!motivo.trim()){ showToast('El motivo es obligatorio',''); return; }
   try{
-    // Antes esto no dejaba ningún rastro en el propio historial del elemento
-    // (a diferencia de Activos, que sí exige motivo y anota "Eliminación
-    // lógica") — solo quedaba en la Auditoría general, invisible desde la
-    // ficha del mobiliario.
-    const historialPrevio = parseHist(m.historial);
-    const nuevoHistorial = [...historialPrevio, {
-      tipo:'Eliminación lógica', desc:`Eliminado por ${session.nombre}. Motivo: ${motivo.trim()}`,
-      fecha: ts(), usuario: session.nombre, color:'red'
-    }];
-    await apiPost('mobiliario','update',{...m, estado:'eliminado', historial:JSON.stringify(nuevoHistorial)});
+    await apiPost('mobiliario','update',{...m, estado:'eliminado'});
     m.estado='eliminado';
-    m.historial=nuevoHistorial;
-    audit('ELIMINAR','Mobiliario',codigo,`Eliminado: ${m.nombre}. Motivo: ${motivo.trim()}`);
+    audit('ELIMINAR','Mobiliario',codigo,`Eliminado: ${m.nombre}`);
     showToast('Elemento eliminado','success');
     go('mobiliario',document.getElementById('nav-mobiliario'));
   }catch(e){ showToast('Error: '+e.message,''); }
@@ -8401,13 +7677,8 @@ function renderLicencias(){
   const estFil = document.getElementById('fil-lic-estado')?.value||'todos';
   const per = PERMS[session.rol]||{};
 
-  // Antes una licencia eliminada desaparecía por completo de la interfaz, sin
-  // forma de volver a consultar qué equipos la tenían instalada — el mismo
-  // hueco que Mobiliario tenía y que ya se corrigió.
-  let list = estFil==='eliminado'
-    ? licencias.filter(l => l.estado === 'eliminado')
-    : licencias.filter(l => l.estado !== 'eliminado');
-  if(estFil !== 'todos' && estFil !== 'eliminado'){
+  let list = licencias.filter(l => l.estado !== 'eliminado');
+  if(estFil !== 'todos'){
     list = list.filter(l => estFil==='cancelada' ? l.estado==='cancelada' : (l.estado!=='cancelada' && _licVencComputado(l)===estFil));
   }
   if(qRaw) list = list.filter(l =>
@@ -8464,9 +7735,8 @@ function renderLicencias(){
       <td><span class="badge" style="background:${estColor[vc]||'#888'}22;color:${estColor[vc]||'#888'};border:1px solid ${estColor[vc]||'#888'}44">${vcLabel}</span></td>
       <td onclick="event.stopPropagation()">
         <button class="act-btn" onclick="abrirDetalleLicencia('${l.codigo}')" title="Ver equipos">👁</button>
-        ${l.estado==='eliminado' ? '<span style="font-size:10px;color:var(--red)">Eliminada</span>' : `
         ${per.edit?`<button class="act-btn" onclick="openLicencia('${l.codigo}')">✎</button>`:''}
-        ${per.delete?`<button class="act-btn" onclick="eliminarLicencia('${l.codigo}')" style="color:var(--red)">×</button>`:''}`}
+        ${per.delete?`<button class="act-btn" onclick="eliminarLicencia('${l.codigo}')" style="color:var(--red)">×</button>`:''}
       </td>
     </tr>`;
   }).join('');
@@ -8499,25 +7769,12 @@ function openLicencia(codigo){
 
 // ── GUARDAR ───────────────────────────────────────────────────────
 async function guardarLicencia(){
-  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar licencias',''); return; }
   const nombre    = document.getElementById('lic-nombre').value.trim();
   const proveedor = document.getElementById('lic-proveedor').value.trim();
-  const inicio    = document.getElementById('lic-inicio').value;
   const venc      = document.getElementById('lic-venc').value;
   if(!nombre)    { showToast('El nombre del paquete es obligatorio',''); return; }
   if(!proveedor) { showToast('El proveedor es obligatorio',''); return; }
   if(!venc)      { showToast('La fecha de vencimiento/renovación es obligatoria — de ahí salen las alertas',''); return; }
-  // Mismo criterio que Activos con Compra/Garantía: la fecha final no puede
-  // ser anterior a la inicial, o las alertas de renovación quedan sin sentido.
-  if(inicio && venc <= inicio){
-    const errV = document.getElementById('err-lic-venc');
-    if(errV){ errV.textContent='⚠ La fecha de vencimiento debe ser posterior al inicio de vigencia'; errV.classList.add('show'); }
-    showToast('La fecha de vencimiento debe ser posterior al inicio de vigencia','');
-    return;
-  } else {
-    const errV = document.getElementById('err-lic-venc');
-    if(errV) errV.classList.remove('show');
-  }
 
   const editCodigo = document.getElementById('mod-licencia')._editCodigo;
   const isEdit     = !!editCodigo;
@@ -8565,35 +7822,13 @@ async function guardarLicencia(){
 
 // ── ELIMINAR ──────────────────────────────────────────────────────
 async function eliminarLicencia(codigo){
-  if(!(PERMS[session.rol]||{}).delete){ showToast('⛔ Sin permiso para eliminar',''); return; }
+  if(!confirm('¿Eliminar este paquete de licencia? Esto no desinstala nada de los equipos, solo deja de rastrearse en SAGAE.')) return;
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
-  const instaladas = (l.instalaciones||[]).length;
-  const motivo = prompt(
-    `Eliminar el paquete "${l.nombre}".\n` +
-    (instaladas ? `Tiene ${instaladas} instalación(es) registrada(s); el registro de qué equipos la tenían se conserva en el historial.\n` : '') +
-    `Esto no desinstala nada de los equipos, solo deja de rastrearse en SAGAE.\n\n` +
-    `Motivo (obligatorio, queda en el historial):`
-  );
-  if(motivo===null) return; // canceló
-  if(!motivo.trim()){ showToast('El motivo es obligatorio',''); return; }
   try{
-    // Antes esto era un confirm() simple, sin motivo y sin dejar rastro en el
-    // historial propio del paquete — el único módulo tipo catálogo que no
-    // seguía el patrón de Activos/Mobiliario. Ahora sí queda registrado qué
-    // equipos la tenían instalada al momento de eliminarla.
-    const historialPrevio = parseHist(l.historial);
-    const equiposAlEliminar = (l.instalaciones||[]).map(i=>i.activoCodigo).filter(Boolean).join(', ');
-    const nuevoHistorial = [...historialPrevio, {
-      tipo:'Eliminación lógica',
-      desc:`Eliminado por ${session.nombre}. Motivo: ${motivo.trim()}`
-        + (equiposAlEliminar ? ` — Equipos con la licencia instalada al eliminar: ${equiposAlEliminar}` : ' — Sin instalaciones registradas'),
-      fecha: ts(), usuario: session.nombre, color:'red'
-    }];
-    await apiPost('licencias','update',{...l, estado:'eliminado', instalaciones:JSON.stringify(l.instalaciones||[]), historial:JSON.stringify(nuevoHistorial)});
+    await apiPost('licencias','update',{...l, estado:'eliminado', instalaciones:JSON.stringify(l.instalaciones||[]), historial:JSON.stringify(l.historial||[])});
     l.estado='eliminado';
-    l.historial=nuevoHistorial;
-    audit('ELIMINAR','Licencia',codigo,`Eliminado: ${l.nombre}. Motivo: ${motivo.trim()}`);
+    audit('ELIMINAR','Licencia',codigo,`Eliminado: ${l.nombre}`);
     renderLicencias();
     showToast('Licencia eliminada','success');
   }catch(e){ showToast('Error: '+e.message,''); }
@@ -8603,13 +7838,6 @@ async function eliminarLicencia(codigo){
 function abrirDetalleLicencia(codigo){
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
-  // Este submodal se saltaba el chequeo de permisos que sí hace renderLicencias():
-  // cualquier rol con acceso a Licencias (incluido consultor, que es de solo
-  // lectura) podía registrar o quitar instalaciones desde aquí.
-  const per = PERMS[session.rol]||{};
-  const puedeEditarLic = !!per.edit && l.estado!=='eliminado';
-  const wrapAsignar = document.getElementById('lic-asignar-wrap');
-  if(wrapAsignar) wrapAsignar.style.display = puedeEditarLic ? 'flex' : 'none';
   document.getElementById('mod-lic-det-title').textContent = `${l.nombre} — Equipos con licencia instalada`;
   const usadas = (l.instalaciones||[]).length;
   document.getElementById('lic-det-info').innerHTML =
@@ -8632,7 +7860,7 @@ function abrirDetalleLicencia(codigo){
       <td>${sanitizeHTML(i.activoNombre||'—')}</td>
       <td style="font-size:11px">${i.fecha||'—'}</td>
       <td style="font-size:11px">${sanitizeHTML(i.usuario||'—')}</td>
-      <td>${puedeEditarLic?`<button class="act-btn" onclick="quitarInstalacionLicencia('${l.codigo}',${idx})" style="color:var(--red)" title="Quitar de este equipo">×</button>`:''}</td>
+      <td><button class="act-btn" onclick="quitarInstalacionLicencia('${l.codigo}',${idx})" style="color:var(--red)" title="Quitar de este equipo">×</button></td>
     </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Aún no está instalada en ningún equipo registrado</td></tr>`;
 
   document.getElementById('mod-licencia-detalle')._codigo = codigo;
@@ -8640,8 +7868,6 @@ function abrirDetalleLicencia(codigo){
 }
 
 async function asignarLicenciaAEquipo(){
-  // Defensa en profundidad: no basta con ocultar el botón (ver abrirDetalleLicencia)
-  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar licencias',''); return; }
   const codigo = document.getElementById('mod-licencia-detalle')._codigo;
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
@@ -8656,30 +7882,12 @@ async function asignarLicenciaAEquipo(){
   }
 
   try{
-    // El historial propio del paquete existía en el modelo de datos pero nunca
-    // se escribía — quedaba vacío para siempre. Ahora cada instalación deja
-    // constancia en ambos lados (licencia y activo).
-    const histLic = [...parseHist(l.historial), {
-      tipo:'Instalación registrada',
-      desc:`Instalada en ${activoCodigo} — ${activo?.nombre||'—'} por ${session.nombre}`,
-      fecha: ts(), usuario: session.nombre, color:'blue'
-    }];
     await apiPost('licencias','update',{
-      ...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(histLic),
+      ...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[]),
       costoAnual:l.costoAnual, cantidadTotal:l.cantidadTotal
     });
     l.instalaciones = instalacionesNuevas;
-    l.historial = histLic;
     audit('EDITAR','Licencia',codigo,`Instalada en equipo ${activoCodigo} por ${session.nombre}`);
-    // Deja constancia en el propio historial del activo de cuándo se le
-    // instaló la licencia — antes solo quedaba registrado dentro de la
-    // licencia (instalaciones[].fecha), invisible desde la ficha del activo.
-    if(activo){
-      activo.historial = activo.historial || [];
-      activo.historial.push({tipo:'Licencia instalada', desc:`Licencia instalada: ${l.nombre} (${l.codigo})`, fecha:ts(), usuario:session.nombre, color:'blue'});
-      await apiPost('activos','update',activo);
-      if(activoActual && activoActual.codigo===activo.codigo) showDetalle(activo.codigo);
-    }
     abrirDetalleLicencia(codigo);
     renderLicencias();
     showToast('✅ Instalación registrada','success');
@@ -8687,37 +7895,14 @@ async function asignarLicenciaAEquipo(){
 }
 
 async function quitarInstalacionLicencia(codigo, idx){
-  // Defensa en profundidad: no basta con ocultar el botón (ver abrirDetalleLicencia)
-  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar licencias',''); return; }
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
   if(!confirm('¿Quitar este equipo de la lista de instalaciones de la licencia?')) return;
-  const instalacionRemovida = (l.instalaciones||[])[idx];
   const instalacionesNuevas = (l.instalaciones||[]).filter((_,i)=>i!==idx);
   try{
-    // Igual que al instalar: dejar constancia también en el historial propio
-    // del paquete, no solo en el del activo afectado.
-    const histLic = [...parseHist(l.historial), {
-      tipo:'Instalación removida',
-      desc:`Removida de ${instalacionRemovida?.activoCodigo||'—'} — ${instalacionRemovida?.activoNombre||'—'} por ${session.nombre}`,
-      fecha: ts(), usuario: session.nombre, color:'red'
-    }];
-    await apiPost('licencias','update',{...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(histLic)});
+    await apiPost('licencias','update',{...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[])});
     l.instalaciones = instalacionesNuevas;
-    l.historial = histLic;
     audit('EDITAR','Licencia',codigo,`Instalación removida por ${session.nombre}`);
-    // Misma lógica que al instalar: registrar la fecha de remoción en el
-    // historial del activo, para no perder ese dato al borrar la fila de
-    // instalaciones[] de la licencia.
-    if(instalacionRemovida && instalacionRemovida.activoCodigo){
-      const activo = activos.find(a=>a.codigo===instalacionRemovida.activoCodigo);
-      if(activo){
-        activo.historial = activo.historial || [];
-        activo.historial.push({tipo:'Licencia removida', desc:`Licencia removida: ${l.nombre} (${l.codigo})`, fecha:ts(), usuario:session.nombre, color:'red'});
-        await apiPost('activos','update',activo);
-        if(activoActual && activoActual.codigo===activo.codigo) showDetalle(activo.codigo);
-      }
-    }
     abrirDetalleLicencia(codigo);
     renderLicencias();
     showToast('Instalación removida','success');
@@ -9120,7 +8305,7 @@ function openPersona(codigo){
   // Poblar select de espacios
   const selEsp = document.getElementById('per-espacio');
   selEsp.innerHTML = '<option value="">— No es responsable de ningún espacio —</option>' +
-    espacios.filter(e=>e.estado!=='inactivo' && e.estado!=='eliminado').map(e=>
+    espacios.filter(e=>e.estado!=='inactivo').map(e=>
       `<option value="${e.nombre}">${e.nombre} (${e.tipo||'Espacio'})</option>`
     ).join('');
   selEsp.value = p.espacioResponsable||'';
@@ -9130,10 +8315,6 @@ function openPersona(codigo){
 
 // ── GUARDAR PERSONA ───────────────────────────────────────────────
 async function guardarPersona(){
-  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
-  // función también lo verifica — así ninguna ruta de escritura depende solo
-  // de que la interfaz haya escondido el control.
-  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar personas',''); return; }
   const nombre = document.getElementById('per-nombre').value.trim();
   const email  = document.getElementById('per-email').value.trim();
   if(!nombre){ showToast('El nombre es obligatorio',''); return; }
@@ -9172,26 +8353,10 @@ async function guardarPersona(){
       const raw = await apiGet('personas');
       personas = Array.isArray(raw) ? raw.map(r=>({...r})) : personas;
     }
-    // Si tiene espacio responsable, actualizar el espacio — en memoria Y en el servidor
-    // (antes solo se actualizaba en memoria: el cambio se perdía al recargar la página)
-    const espaciosAActualizar = [];
+    // Si tiene espacio responsable, actualizar el espacio
     if(obj.espacioResponsable){
       const esp = espacios.find(e=>e.nombre===obj.espacioResponsable);
-      if(esp && (esp.responsableNombre!==nombre || esp.responsableEmail!==email)){
-        esp.responsableNombre=nombre; esp.responsableEmail=email;
-        espaciosAActualizar.push(esp);
-      }
-    }
-    // Si esta persona dejó de ser responsable de un espacio (se quitó o se cambió a otro),
-    // limpiar ese espacio para que no siga mostrando a alguien que ya no es su responsable.
-    if(Array.isArray(espacios)){
-      espacios.filter(e=>e.responsableNombre===nombre && e.nombre!==obj.espacioResponsable).forEach(e=>{
-        e.responsableNombre=''; e.responsableEmail='';
-        espaciosAActualizar.push(e);
-      });
-    }
-    if(espaciosAActualizar.length){
-      await Promise.all(espaciosAActualizar.map(e=>apiPost('espacios','update',e)));
+      if(esp){ esp.responsableNombre=nombre; esp.responsableEmail=email; }
     }
     if(isEdit){
       audit('EDITAR','Personas',obj.codigo,`Editada por ${session.nombre}: ${nombre}`);
@@ -9208,41 +8373,13 @@ async function guardarPersona(){
 
 // ── ELIMINAR PERSONA ──────────────────────────────────────────────
 async function eliminarPersona(codigo){
-  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
-  // función también lo verifica — así ninguna ruta de escritura depende solo
-  // de que la interfaz haya escondido el control.
-  if(!(PERMS[session.rol]||{}).delete){ showToast('⛔ Sin permiso para eliminar',''); return; }
-  const p0 = personas.find(x=>x.codigo===codigo);
-  if(!p0) return;
-  const equiposAsignados = activos.filter(a=>a.asignado===p0.nombre && a.estado!=='eliminado');
-  const espacioAResp = Array.isArray(espacios) ? espacios.find(e=>e.responsableNombre===p0.nombre) : null;
-  const partes = [];
-  if(equiposAsignados.length) partes.push(`${equiposAsignados.length} equipo(s) quedarán sin asignado`);
-  if(espacioAResp) partes.push(`dejará de ser responsable del espacio "${espacioAResp.nombre}"`);
-  const msg = partes.length
-    ? `¿Eliminar a "${p0.nombre}"? ${partes.join(' y ')}.`
-    : `¿Eliminar a "${p0.nombre}"?`;
-  if(!confirm(msg)) return;
+  if(!confirm('¿Eliminar esta persona? Los equipos que tenga asignados quedarán sin asignado.')) return;
   const p = personas.find(x=>x.codigo===codigo);
   if(!p) return;
   try{
     await apiPost('personas','update',{...p,estado:'eliminado'});
     p.estado='eliminado';
-    // Cascada real: limpiar la referencia en los equipos que la tenían asignada,
-    // y en el espacio del que era responsable — antes el mensaje lo prometía
-    // pero el código no lo hacía, y los registros quedaban apuntando en silencio
-    // a una persona eliminada.
-    const promesas = [];
-    equiposAsignados.forEach(a=>{
-      a.asignado=''; a.asignadoEmail=''; a.asignadoCargo='';
-      promesas.push(apiPost('activos','update',a));
-    });
-    if(espacioAResp){
-      espacioAResp.responsableNombre=''; espacioAResp.responsableEmail='';
-      promesas.push(apiPost('espacios','update',espacioAResp));
-    }
-    if(promesas.length) await Promise.all(promesas);
-    audit('ELIMINAR','Personas',codigo,`Eliminada: ${p.nombre}. Cascada: ${equiposAsignados.length} equipo(s) desasignados${espacioAResp?`, espacio "${espacioAResp.nombre}" sin responsable`:''}`);
+    audit('ELIMINAR','Personas',codigo,`Eliminada: ${p.nombre}`);
     renderPersonas();
     showToast('Persona eliminada','success');
   }catch(e){ showToast('Error: '+e.message,''); }
@@ -9364,32 +8501,15 @@ function openEspacio(codigo){
 
 // ── GUARDAR ESPACIO ───────────────────────────────────────────────
 async function guardarEspacio(){
-  if(!(PERMS[session.rol]||{}).edit){ showToast('⛔ Sin permiso para modificar espacios',''); return; }
   const nombre = document.getElementById('esp-nombre').value.trim();
   if(!nombre){ showToast('El nombre del espacio es obligatorio',''); return; }
   const editCod = document.getElementById('mod-espacio')._editCodigo;
   const isEdit  = !!editCod;
-  // El nombre del espacio es la clave con la que se vincula todo el sistema
-  // (activos.ubicacion, mobiliario.ubicacion, personas.espacioResponsable),
-  // así que dos espacios con el mismo nombre son indistinguibles. Departamentos,
-  // Personas y Usuarios ya bloqueaban duplicados; Espacios era el único que no.
-  const espDuplicado = espacios.find(e=>
-    (e.nombre||'').toLowerCase()===nombre.toLowerCase() &&
-    e.codigo!==editCod && e.estado!=='eliminado'
-  );
-  if(espDuplicado){ showToast(`Ya existe un espacio llamado "${espDuplicado.nombre}"`,''); return; }
-  // Detectar renombrado para propagar en cascada (mismo patrón que Departamentos)
-  let nombreAnterior = null;
-  if(isEdit){
-    const espActual = espacios.find(e=>e.codigo===editCod);
-    if(espActual && espActual.nombre !== nombre) nombreAnterior = espActual.nombre;
-  }
   // Obtener email del responsable desde el select
   const selResp = document.getElementById('esp-responsable');
   const respNombre = selResp.value;
   const respOpt = selResp.options[selResp.selectedIndex];
   const respEmail = respOpt?.dataset?.email || '';
-  const respAnterior = isEdit ? (espacios.find(e=>e.codigo===editCod)?.responsableNombre||'') : '';
   const obj = {
     codigo:             isEdit ? editCod : '',
     nombre,
@@ -9410,52 +8530,26 @@ async function guardarEspacio(){
     if(isEdit){
       const idx = espacios.findIndex(e=>e.codigo===editCod);
       if(idx>=0) espacios[idx]={...obj};
-      // Los activos/mobiliario de este espacio se buscan por el nombre ANTERIOR
-      // (antes de este fix se buscaban por el nombre nuevo, que todavía ningún
-      // registro tiene — esa comparación siempre daba 0 resultados tras un
-      // renombrado real).
-      const buscarPorNombre = nombreAnterior || nombre;
-      const activosEspacio = activos.filter(a=>a.ubicacion===buscarPorNombre && a.estado!=='eliminado');
-      const promesas = [];
-      activosEspacio.forEach(a=>{
-        a.responsableEspacioEmail = respEmail;
-        if(nombreAnterior) a.ubicacion = nombre;
-        promesas.push(apiPost('activos','update',a));
-      });
-      // Cascada a Mobiliario si se renombró (Activos ya se cubría antes; Mobiliario no)
-      if(nombreAnterior && Array.isArray(mobiliario)){
-        mobiliario.filter(m=>m.ubicacion===nombreAnterior).forEach(m=>{
-          m.ubicacion=nombre;
-          promesas.push(apiPost('mobiliario','update',m));
-        });
-      }
-      if(promesas.length > 0) await Promise.all(promesas);
+      // Actualizar email en activos del espacio — memoria Y Sheets
+    const activosEspacio = activos.filter(a=>a.ubicacion===nombre && a.estado!=='eliminado');
+    activosEspacio.forEach(a=>{ a.responsableEspacioEmail = respEmail; });
+    if(activosEspacio.length > 0){
+      await Promise.all(activosEspacio.map(a=>apiPost('activos','update',a)));
+    }
     } else {
       const raw = await apiGet('espacios');
       espacios = Array.isArray(raw) ? raw.map(r=>({...r})) : espacios;
     }
-    // Actualizar la persona como responsable del espacio — en memoria Y en el
-    // servidor (antes solo quedaba en memoria y se perdía al recargar), y
-    // limpiar a quien dejó de serlo si el responsable cambió.
-    const personasAActualizar = [];
+    // Actualizar la persona como responsable del espacio
     if(respNombre){
       const per = personas.find(p=>p.nombre===respNombre);
-      if(per && per.espacioResponsable!==nombre){ per.espacioResponsable = nombre; personasAActualizar.push(per); }
+      if(per) per.espacioResponsable = nombre;
     }
-    if(respAnterior && respAnterior!==respNombre){
-      const pa = personas.find(p=>p.nombre===respAnterior);
-      if(pa && pa.espacioResponsable===(nombreAnterior||nombre)){ pa.espacioResponsable=''; personasAActualizar.push(pa); }
-    }
-    if(personasAActualizar.length) await Promise.all(personasAActualizar.map(p=>apiPost('personas','update',p)));
-    if(nombreAnterior){
-      audit('EDITAR','Espacios',obj.codigo,`Renombrado por ${session.nombre}: "${nombreAnterior}" → "${nombre}". Cascada aplicada a activos y mobiliario.`);
-    } else {
-      audit('CREAR','Espacios',obj.codigo||'NUEVO',isEdit?`Espacio editado: ${nombre}`:`Espacio registrado: ${nombre}`);
-    }
+    audit('CREAR','Espacios',obj.codigo||'NUEVO',isEdit?`Espacio editado: ${nombre}`:`Espacio registrado: ${nombre}`);
     closeModals();
     renderEspacios();
     buildDataLists();
-    showToast(isEdit?(nombreAnterior?'✅ Espacio renombrado. Referencias actualizadas.':'✅ Espacio actualizado'):'✅ Espacio registrado','success');
+    showToast(isEdit?'✅ Espacio actualizado':'✅ Espacio registrado','success');
   }catch(e){ showToast('Error: '+e.message,''); }
   finally{ btn.disabled=false; btn.textContent='Guardar espacio'; }
 }
@@ -9464,15 +8558,13 @@ async function guardarEspacio(){
 async function eliminarEspacio(codigo){
   const e0 = espacios.find(x=>x.codigo===codigo);
   if(!e0) return;
-  const equiposEnEspacio  = activos.filter(a=>a.ubicacion===e0.nombre && a.estado!=='eliminado');
-  const mobiliarioEspacio = Array.isArray(mobiliario) ? mobiliario.filter(m=>m.ubicacion===e0.nombre && m.estado!=='eliminado') : [];
-  const persResponsable   = Array.isArray(personas) ? personas.filter(p=>p.espacioResponsable===e0.nombre && p.estado!=='inactivo') : [];
-  if(equiposEnEspacio.length || mobiliarioEspacio.length || persResponsable.length){
+  const equiposEnEspacio = activos.filter(a=>a.ubicacion===e0.nombre && a.estado!=='eliminado').length;
+  const persResponsable  = Array.isArray(personas) ? personas.filter(p=>p.espacioResponsable===e0.nombre && p.estado!=='inactivo').length : 0;
+  if(equiposEnEspacio > 0 || persResponsable > 0){
     const msg = [];
-    if(equiposEnEspacio.length)  msg.push(`${equiposEnEspacio.length} equipo(s) tienen este espacio como ubicación`);
-    if(mobiliarioEspacio.length) msg.push(`${mobiliarioEspacio.length} elemento(s) de mobiliario tienen este espacio como ubicación`);
-    if(persResponsable.length)   msg.push(`${persResponsable.length} persona(s) son responsables de este espacio`);
-    if(!confirm('⚠️ Atención:\n' + msg.join('\n') + '\n\n¿Deseas eliminar el espacio de todas formas? Se les quitará esta ubicación/responsabilidad a esos registros.')) return;
+    if(equiposEnEspacio > 0) msg.push(`${equiposEnEspacio} equipo(s) tienen este espacio como ubicación`);
+    if(persResponsable  > 0) msg.push(`${persResponsable} persona(s) son responsables de este espacio`);
+    if(!confirm('⚠️ Atención:\n' + msg.join('\n') + '\n\n¿Deseas eliminar el espacio de todas formas? Los registros relacionados quedarán sin espacio asignado.')) return;
   } else {
     if(!confirm(`¿Eliminar el espacio "${e0.nombre}"?`)) return;
   }
@@ -9481,18 +8573,8 @@ async function eliminarEspacio(codigo){
   try{
     await apiPost('espacios','update',{...e,estado:'eliminado'});
     e.estado='eliminado';
-    // Cascada real: antes el mensaje decía que estos registros "quedarían sin
-    // espacio asignado" pero seguían apuntando en silencio a un espacio ya
-    // eliminado — ahora sí se limpia la referencia en cada uno.
-    const promesas = [];
-    equiposEnEspacio.forEach(a=>{ a.ubicacion=''; a.responsableEspacioEmail=''; promesas.push(apiPost('activos','update',a)); });
-    mobiliarioEspacio.forEach(m=>{ m.ubicacion=''; promesas.push(apiPost('mobiliario','update',m)); });
-    persResponsable.forEach(p=>{ p.espacioResponsable=''; promesas.push(apiPost('personas','update',p)); });
-    if(promesas.length) await Promise.all(promesas);
-    audit('ELIMINAR','Espacios',codigo,`Eliminado: ${e.nombre}. Cascada: ${equiposEnEspacio.length} activo(s), ${mobiliarioEspacio.length} mobiliario, ${persResponsable.length} persona(s) desvinculados.`);
+    audit('ELIMINAR','Espacios',codigo,`Eliminado: ${e.nombre}`);
     renderEspacios();
-    renderActivos();
-    if(typeof renderMobiliario==='function') renderMobiliario();
     showToast('Espacio eliminado','success');
   }catch(e2){ showToast('Error: '+e2.message,''); }
 }
@@ -9547,10 +8629,6 @@ function openDepartamento(codigo){
 }
 
 async function guardarDepartamento(){
-  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
-  // función también lo verifica — así ninguna ruta de escritura depende solo
-  // de que la interfaz haya escondido el control.
-  if(!(PERMS[session.rol]||{}).departamentos){ showToast('⛔ Sin permiso para modificar departamentos',''); return; }
   const nombre = document.getElementById('dep-nombre').value.trim();
   if(!nombre){ showToast('El nombre es obligatorio',''); return; }
   const editCod = document.getElementById('mod-departamento')._editCodigo;
@@ -9610,11 +8688,6 @@ async function guardarDepartamento(){
       if(Array.isArray(mobiliario)) mobiliario.filter(m=>m.depto===nombreAnterior).forEach(m=>{
         m.depto=nombre; promises.push(apiPost('mobiliario','update',m)); cascadeCount++;
       });
-      // Espacios — antes no se incluía en esta cascada; un espacio podía quedar
-      // apuntando al nombre viejo del departamento sin que nada lo actualizara.
-      if(Array.isArray(espacios)) espacios.filter(e=>e.depto===nombreAnterior).forEach(e=>{
-        e.depto=nombre; promises.push(apiPost('espacios','update',e)); cascadeCount++;
-      });
       if(promises.length>0){
         await Promise.all(promises);
         showToast(`✅ Departamento renombrado. ${cascadeCount} registro(s) actualizados en cascada.`,'success');
@@ -9633,17 +8706,10 @@ async function guardarDepartamento(){
 }
 
 async function eliminarDepartamento(codigo){
-  // Defensa en profundidad: el botón ya está oculto por permisos, pero la
-  // función también lo verifica — así ninguna ruta de escritura depende solo
-  // de que la interfaz haya escondido el control.
-  if(!(PERMS[session.rol]||{}).delete || !(PERMS[session.rol]||{}).departamentos){ showToast('⛔ Sin permiso para eliminar departamentos',''); return; }
   const d = departamentos.find(x=>x.codigo===codigo);
   if(!d) return;
   const enUso = activos.filter(a=>a.depto===d.nombre).length +
-    (Array.isArray(personas)?personas.filter(p=>p.depto===d.nombre).length:0) +
-    // Antes este chequeo no contaba Espacios — se podía eliminar un departamento
-    // que todavía tenía espacios asignados.
-    (Array.isArray(espacios)?espacios.filter(e=>e.depto===d.nombre && e.estado!=='eliminado').length:0);
+    (Array.isArray(personas)?personas.filter(p=>p.depto===d.nombre).length:0);
   if(enUso > 0){
     showToast(`No se puede eliminar: ${enUso} registro(s) usan este departamento`,'');
     return;
@@ -9828,60 +8894,6 @@ function repActivosPorPersona(el, tsStr){
   el.innerHTML = html;
 }
 
-
-// ── DIAGNÓSTICO: ¿ES MI INTERNET O ES EL SERVIDOR? ────────────────
-// Mide dos cosas por separado desde el equipo del usuario:
-//  1. Cuánto tarda en traer un archivo del mismo sitio donde vive SAGAE
-//     (GitHub Pages) → eso es la conexión del equipo, pura y dura.
-//  2. Cuánto tarda el backend de Apps Script en contestar la petición más
-//     barata que existe (action=config) → eso es el servidor.
-// Si (1) es rápido y (2) lento, la lentitud NO es del internet.
-async function medirVelocidadSAGAE(){
-  const st  = document.getElementById('diag-vel-status');
-  const btn = document.getElementById('btn-diag-vel');
-  if(btn){ btn.disabled=true; btn.textContent='Midiendo...'; }
-  const medir = async (url) => {
-    const t0 = performance.now();
-    try{ await fetch(url+(url.includes('?')?'&':'?')+'_t='+Date.now(), {cache:'no-store', mode:'cors'}); }
-    catch(e){ /* incluso si CORS bloquea la lectura, el tiempo de ida y vuelta es válido */ }
-    return performance.now()-t0;
-  };
-  const prom = a => a.reduce((s,x)=>s+x,0)/a.length;
-  try{
-    if(st) st.textContent = 'Midiendo la conexión del equipo...';
-    const red = [];
-    for(let i=0;i<3;i++) red.push(await medir(location.href));
-    if(st) st.textContent = 'Midiendo el servidor de Google...';
-    const srv = [];
-    for(let i=0;i<3;i++) srv.push(await medir(API+'?action=config'));
-
-    const mRed = prom(red), mSrv = prom(srv);
-    const veces = mRed>0 ? Math.round(mSrv/mRed) : 0;
-    let veredicto, color;
-    if(mSrv < 1200){
-      veredicto = 'El servidor está respondiendo rápido ahora mismo. Si al crear un ticket ves demora, es por los pasos que ese proceso hace, no por la red.';
-      color = '#1A7A4A';
-    }else if(mRed < 600 && mSrv >= 1200){
-      veredicto = 'Tu conexión está bien; el que tarda es el servidor de Google Apps Script. La lentitud al crear tickets NO es de tu internet.';
-      color = '#92400E';
-    }else{
-      veredicto = 'Tanto tu conexión como el servidor están lentos en este momento — puede ser la red del lugar.';
-      color = '#B91C1C';
-    }
-    if(st) st.innerHTML =
-      '<div style="margin-top:6px;line-height:1.6">'
-      + '<b>Tu conexión</b> (cargar esta misma página): <b>'+Math.round(mRed)+' ms</b><br>'
-      + '<b>Servidor de Google</b> (la petición más simple que existe): <b>'+Math.round(mSrv)+' ms</b>'
-      + (veces>1?' — <b>'+veces+' veces más lento</b> que tu conexión':'')
-      + '<div style="margin-top:6px;color:'+color+';font-weight:600">'+veredicto+'</div>'
-      + '<div style="margin-top:4px;color:var(--text3);font-size:11px">Crear un ticket es lo más lento del sistema porque es lo único que espera al servidor: necesita que él asigne el código TKT-XXXX. Editar no espera nada, por eso se siente instantáneo.</div>'
-      + '</div>';
-  }catch(e){
-    if(st) st.textContent = 'No se pudo completar la medición: '+(e&&e.message?e.message:'error');
-  }finally{
-    if(btn){ btn.disabled=false; btn.textContent='Medir ahora'; }
-  }
-}
 
 // ── BACKUP MANUAL ──────────────────────────────────────────────
 async function ejecutarBackupManual(){
