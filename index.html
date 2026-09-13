@@ -2206,6 +2206,23 @@ let personas=[];
 let espacios=[];
 let pendingDelete={type:null,id:null};
 
+// =====================================================
+// SEGURIDAD: Sanitización HTML — Prevención de XSS
+// =====================================================
+function sanitizeHTML(htmlString) {
+  if (typeof htmlString !== 'string') return '';
+  try {
+    return DOMPurify.sanitize(htmlString, {
+      ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'br', 'p', 'span', 'div', 'button', 'img', 'ul', 'li', 'small'],
+      ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class', 'id', 'onclick', 'style', 'data-*'],
+      KEEP_CONTENT: true
+    });
+  } catch (e) {
+    console.warn('[sanitizeHTML] Error:', e);
+    return '';
+  }
+}
+
 function ts(){return new Date().toLocaleString('es-PA',{dateStyle:'short',timeStyle:'short'});}
 
 // ── PARSEO ROBUSTO DE FECHAS DE REGISTRO (corrección filtro de reportes) ──

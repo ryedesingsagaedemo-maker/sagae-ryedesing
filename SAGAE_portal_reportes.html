@@ -209,6 +209,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 </div>
 
 <script>
+// =====================================================
+// SEGURIDAD: Sanitización HTML — Prevención de XSS
+// =====================================================
+function sanitizeHTML(htmlString) {
+  if (typeof htmlString !== 'string') return '';
+  try {
+    return DOMPurify.sanitize(htmlString, {
+      ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'br', 'p', 'span', 'div', 'button', 'img', 'ul', 'li', 'small'],
+      ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class', 'id', 'onclick', 'style', 'data-*'],
+      KEEP_CONTENT: true
+    });
+  } catch (e) {
+    console.warn('[sanitizeHTML] Error:', e);
+    return '';
+  }
+}
+
 // Rate limiter persistido en sessionStorage — sobrevive recarga de página
 const _reportLimiter = (()=>{
   try {

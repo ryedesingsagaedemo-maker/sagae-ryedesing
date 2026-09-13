@@ -567,6 +567,23 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </div>
 <div class="toast" id="toast"></div>
 <script>
+// =====================================================
+// SEGURIDAD: Sanitización HTML — Prevención de XSS
+// =====================================================
+function sanitizeHTML(htmlString) {
+  if (typeof htmlString !== 'string') return '';
+  try {
+    return DOMPurify.sanitize(htmlString, {
+      ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'br', 'p', 'span', 'div', 'button', 'img', 'ul', 'li', 'small'],
+      ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class', 'id', 'onclick', 'style', 'data-*'],
+      KEEP_CONTENT: true
+    });
+  } catch (e) {
+    console.warn('[sanitizeHTML] Error:', e);
+    return '';
+  }
+}
+
 function _snapshotFormularioModal_(modalEl){
   const campos = modalEl.querySelectorAll('input, textarea, select');
   const data = {};
