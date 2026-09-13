@@ -315,6 +315,34 @@ git push -f origin main
    - "Quiero pasos sumamente seguros"
    - Siempre confirmar cambios, nunca asumir
 
+### **⚠️ CRÍTICO - PROTOCOLO DE BACKUPS (Usuario Priority)**
+
+**NO depender solo de GitHub - Riesgo de seguridad**
+
+**PROTOCOLO MANDATORIO:**
+- ✅ Al final de CADA FASE → Crear ZIP con archivos completos
+- ✅ ZIP debe contener: HTML + Docs (CHANGELOG.md, CLAUDE.md)
+- ✅ Entregar ZIP al usuario para guardar OFFLINE
+- ✅ GitHub = Control de versiones (no es suficiente)
+- ✅ ZIP = Backup de desastre + Copia segura sin conexión
+
+**Fase 2 Backup:**
+- Archivo: `SAGAE-Hardening-Phase-2-Backup-2026-09-13.zip` (177 KB)
+- Contiene: Todos los HTML + docs + cambios de seguridad
+- Estado: Entregado al usuario para descarga segura
+
+**Para futuras fases:**
+```bash
+zip -r SAGAE-Hardening-Phase-X-Backup-YYYY-MM-DD.zip \
+  index.html \
+  SAGAE_index_mobile.html \
+  SAGAE_portal_reportes.html \
+  CHANGELOG.md \
+  CLAUDE.md \
+  manifest.json \
+  sw.js
+```
+
 ### **Comandos Útiles**
 
 ```bash
