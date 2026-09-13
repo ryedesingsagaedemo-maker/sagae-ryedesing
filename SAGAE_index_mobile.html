@@ -1527,15 +1527,16 @@ function renderDashboard(){
       : 'Mis tickets pendientes';
   }
   if(!pending.length){
-    listEl.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">${dashVistaTickets==='todos'?'¡No hay tickets abiertos!':'¡Sin tickets pendientes!'}</div></div>`;
+    listEl.innerHTML=sanitizeHTML(`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">${dashVistaTickets==='todos'?'¡No hay tickets abiertos!':'¡Sin tickets pendientes!'}</div></div>`);
   } else {
-    listEl.innerHTML=pending.map(t=>tktCardHTML(t)).join("")
+    const ticketsHTML = pending.map(t=>tktCardHTML(t)).join("")
       + (oculto>0
           ? `<div onclick="goScreen('tickets',document.getElementById('nav-tickets'))" style="text-align:center;padding:12px;margin-top:4px;
                font-size:12px;font-weight:700;color:#1B3A6B;background:#EEF2F7;border-radius:10px;cursor:pointer">
                Ver los ${oculto} restantes en la pestaña Tickets →
              </div>`
           : "");
+    listEl.innerHTML=sanitizeHTML(ticketsHTML);
   }
   const dl=document.getElementById("dash-deadlines");
   const proximos=tickets.filter(t=>{
@@ -1713,10 +1714,10 @@ function renderTickets(){
   let data = tickets.filter(t => t.estado !== "eliminado");
   if(filtroTkt !== "todos") data = data.filter(t => t.estado === filtroTkt);
   if(!data.length){
-    list.innerHTML = `<div class="empty"><div class="empty-icon">🎫</div><div class="empty-title">${filtroTkt==="todos"?"Sin tickets todavía":"Sin tickets en este estado"}</div></div>`;
+    list.innerHTML = sanitizeHTML(`<div class="empty"><div class="empty-icon">🎫</div><div class="empty-title">${filtroTkt==="todos"?"Sin tickets todavía":"Sin tickets en este estado"}</div></div>`);
     return;
   }
-  list.innerHTML = data.map(t => tktCardHTML(t)).join("");
+  list.innerHTML = sanitizeHTML(data.map(t => tktCardHTML(t)).join(""));
   updateBadge();
 }
 function filterTkt(f, el){
@@ -2221,8 +2222,8 @@ function renderActivos(){
   const list=document.getElementById("activos-list");
   let data=activos.filter(a=>a.estado!=="eliminado");
   if(filtroAct!=="todos") data=data.filter(a=>a.estado===filtroAct);
-  if(!data.length){list.innerHTML=`<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Sin activos</div></div>`;return;}
-  list.innerHTML=data.map(a=>`
+  if(!data.length){list.innerHTML=sanitizeHTML(`<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Sin activos</div></div>`);return;}
+  const activosHTML=data.map(a=>`
     <div class="activo-card" onclick="openActivoDetalle('${a.codigo}')">
       <div class="activo-card-head">
         <div class="activo-icon">${TIPO_ICON[a.tipo]||"📦"}</div>
@@ -2238,6 +2239,7 @@ function renderActivos(){
         ${a.garantia&&a.garantia!=="—"?`<span>🛡️ ${a.garantia}</span>`:""}
       </div>
     </div>`).join("");
+  list.innerHTML=sanitizeHTML(activosHTML);
 }
 function filterAct(f,el){
   filtroAct=f;
