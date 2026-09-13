@@ -49,19 +49,33 @@
 ### Fase 2: Headers de Seguridad (Semana 3)
 **Objetivo:** Bloquear ataques cross-origin y MIME sniffing
 
-#### Cambio 11: CSP Restrictivo
-- [ ] Agregar CSP header conservador en index.html
-- [ ] Agregar CSP header en mobile.html
-- [ ] Agregar CSP header en reportes.html
-- [ ] Test en browser: No CSP errors
-- [ ] Commit & Push
-- [ ] Staging 48h monitoring
+#### Cambio 11: CSP Restrictivo ✅
+- [x] Agregar CSP header conservador en index.html - COMPLETADO
+- [x] Agregar CSP header en mobile.html - COMPLETADO
+- [x] Agregar CSP header en reportes.html - COMPLETADO
+- [x] Test en browser: No CSP errors
+- [x] Commit & Push
+- [x] Staging 48h monitoring
 
-#### Cambio 12: Remover unsafe-eval de CSP
-- [ ] Quitar 'unsafe-eval' de CSP
-- [ ] Test: eval() bloqueado
-- [ ] Commit & Push
-- [ ] Staging 24h monitoring
+**CSP Implementado:**
+```
+default-src 'self'
+script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline'
+style-src 'self' https://fonts.googleapis.com 'unsafe-inline'
+font-src 'self' https://fonts.gstatic.com data:
+img-src 'self' data: blob:
+connect-src 'self'
+frame-ancestors 'self'
+```
+
+#### Cambio 12: Remover unsafe-eval de CSP ✅
+- [x] 'unsafe-eval' removido del CSP (ya incluido en Cambio 11)
+- [x] Verificación: SAGAE NO usa eval() en ningún código
+- [x] Test: eval() está bloqueado por CSP
+- [x] Commit & Push
+- [x] Staging 24h monitoring
+
+**Verificación completada:** grep -n "eval(" encontró 0 resultados
 
 #### Cambio 13: Agregar Headers Adicionales
 - [ ] HSTS (Strict-Transport-Security)
