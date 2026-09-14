@@ -1306,11 +1306,11 @@ async function doLogin(){
   const _avisoLargo=setTimeout(()=>{ if(btnLogin) btnLogin.textContent="Esto está tardando más de lo normal..."; },8000);
   let resp;
   try{
-    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'}, 25000);
+    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'}, 35000);
     if(resp && resp.error==='TIMEOUT'){
       if(btnLogin) btnLogin.textContent="Reintentando conexión...";
       await new Promise(res=>setTimeout(res, 1000 + Math.random()*1500));
-      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'}, 25000);
+      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'}, 35000);
     }
   }catch(e){
     clearTimeout(_avisoLargo);
@@ -1372,7 +1372,7 @@ async function verificarLoginTOTP(){
   if(btnV){ btnV.disabled=true; btnV.textContent='Verificando...'; }
   let resp;
   try{
-    resp = await apiPostAsync(null,'procesarLoginTOTP',{preAuthToken:_preAuthToken, codigo, plataforma:'mobile'}, 25000);
+    resp = await apiPostAsync(null,'procesarLoginTOTP',{preAuthToken:_preAuthToken, codigo, plataforma:'mobile'}, 35000);
   }catch(e){
     if(btnV){ btnV.disabled=false; btnV.textContent='Verificar'; }
     err.textContent='⚠ No se pudo contactar al servidor. Verifica tu conexión.'; err.style.display='block';
