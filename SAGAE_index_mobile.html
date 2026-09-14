@@ -650,10 +650,6 @@ function resetInactivityTimer(){
 ['click','touchstart','keypress'].forEach(e=>{
   document.addEventListener(e, resetInactivityTimer, {passive:true});
 });
-function sanitizeHTML(str){
-  if(!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-}
 let _html5QrCode = null;
 let _scannerActivo = false;
 let _activoEscaneado = null;
