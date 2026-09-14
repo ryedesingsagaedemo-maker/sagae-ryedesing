@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v2.5
+// SAGAE — Service Worker v2.6
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v2.5';
-const CACHE_STATIC = 'sagae-static-v2.5';
+const CACHE_NAME   = 'sagae-mobile-v2.6';
+const CACHE_STATIC = 'sagae-static-v2.6';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -53,6 +53,14 @@ const CACHE_STATIC = 'sagae-static-v2.5';
 //   prioridad, por fecha de creación descendente. El título del panel
 //   también indica cuántos se muestran cuando quedan ocultos, con un
 //   atajo a la pestaña Tickets para ver el resto.
+// v2.6: CONSTANCIA DE CUSTODIA EN EL MODULO MOVIL — al marcar un equipo
+//   en mantenimiento o al devolverlo, la app pide ahora quien entrega y
+//   quien retira el equipo, con la condicion en que se devuelve. Ademas se
+//   corrige que el historial se enviaba como texto y no como arreglo, por lo
+//   que el backend nunca reconocia el evento y el correo de mantenimiento no
+//   salia desde el celular. Se sube el numero de cache para que todos los
+//   dispositivos —incluidos los que ya tienen la PWA instalada— reciban la
+//   version nueva sin volver a instalar nada.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -63,7 +71,7 @@ const STATIC_ASSETS = [
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v2.5...');
+  console.log('[SAGAE SW] Instalando v2.6...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -78,7 +86,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v2.5...');
+  console.log('[SAGAE SW] Activando v2.6...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -196,4 +204,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v2.5 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v2.6 cargado correctamente');

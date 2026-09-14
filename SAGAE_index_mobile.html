@@ -418,7 +418,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     </div>
     <div class="form-group">
       <label class="form-label">Estado *</label>
-      <select class="form-select" id="mob-ea-estado">
+      <select class="form-select" id="mob-ea-estado" onchange="_mobEaActualizarBloquesMant()">
         <option value="activo" selected>Activo</option>
         <option value="disponible">Disponible</option>
         <option value="mantenimiento">Mantenimiento</option>
@@ -460,6 +460,29 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
         <button type="button" class="btn-secondary" id="mob-btn-foto" onclick="abrirSubidaFotoMobile()" style="white-space:nowrap;padding:10px 14px;font-size:13px;min-width:80px;">📷 Subir</button>
       </div>
       <div id="mob-ea-foto-preview" style="display:none;margin-top:8px;font-size:12px;color:#1B3A6B;background:#EFF6FF;padding:8px 12px;border-radius:8px;border-left:3px solid #1B3A6B;"></div>
+    </div>
+    <div class="form-group" id="mob-ea-entrada-mant-wrap" style="display:none;background:var(--amber-l);border:1px solid var(--amber-m);border-radius:var(--r-md);padding:12px;">
+      <label class="form-label" style="color:var(--amber)">🔧 Ingreso del equipo a IT
+        <span style="font-size:10px;font-weight:400;color:var(--text2);display:block">Queda como constancia en el historial y en el correo de aviso.</span>
+      </label>
+      <label class="form-label" style="margin-top:6px">¿Quién entrega el equipo?</label>
+      <input class="form-input" id="mob-ea-entrega-nombre" placeholder="Nombre de quien lo entrega" style="margin-bottom:8px">
+      <input class="form-input" type="email" id="mob-ea-entrega-email" placeholder="correo@dominio.com">
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">
+        Se sugiere la persona asignada — cámbielo si otra persona lo entrega físicamente.
+      </div>
+    </div>
+    <div class="form-group" id="mob-ea-salida-mant-wrap" style="display:none;background:var(--green-l);border:1px solid var(--green-m);border-radius:var(--r-md);padding:12px;">
+      <label class="form-label" style="color:var(--green)">✅ Devolución del equipo
+        <span style="font-size:10px;font-weight:400;color:var(--text2);display:block">Queda como constancia en el historial y en el correo de aviso.</span>
+      </label>
+      <label class="form-label" style="margin-top:6px">¿A quién se le entrega de vuelta?</label>
+      <input class="form-input" id="mob-ea-devuelve-nombre" placeholder="Nombre de quien lo retira" style="margin-bottom:8px">
+      <label class="form-label">Condición al devolverlo</label>
+      <input class="form-input" id="mob-ea-condicion-devuelta" placeholder="Ej: reparado y probado, sin cargador">
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">
+        Quien retira puede ser distinto de la persona asignada.
+      </div>
     </div>
     <button class="btn-primary" onclick="guardarNuevoActivoMobile()" id="mob-btn-guardar-activo">💾 Guardar activo</button>
     <button class="btn-secondary" onclick="cerrarNuevoActivoMobile()">Cancelar</button>
@@ -2276,6 +2299,36 @@ function openActivoDetalle(codigo){
   document.getElementById("sheet-overlay").classList.add("open");
   document.getElementById("ticket-sheet").classList.add("open");
 }
+// Estado que tenía el activo al abrir la ficha, para distinguir un cruce real
+// de custodia de un guardado cualquiera. Mismos nombres de campo que en la
+// versión web, para que un historial creado desde el celular se lea igual allá.
+let _mobEaEstadoOriginal = null;
+
+function _mobEaActualizarBloquesMant(){
+  const sel     = document.getElementById('mob-ea-estado');
+  const entrada = document.getElementById('mob-ea-entrada-mant-wrap');
+  const salida  = document.getElementById('mob-ea-salida-mant-wrap');
+  if(!sel || !entrada || !salida) return;
+  const actual = sel.value;
+  const entra = _mobEaEstadoOriginal !== null && _mobEaEstadoOriginal !== 'mantenimiento' && actual === 'mantenimiento';
+  const sale  = _mobEaEstadoOriginal === 'mantenimiento' && actual !== 'mantenimiento';
+  entrada.style.display = entra ? 'block' : 'none';
+  salida.style.display  = sale  ? 'block' : 'none';
+  if(entra){
+    const n = document.getElementById('mob-ea-entrega-nombre');
+    const e = document.getElementById('mob-ea-entrega-email');
+    const selAsig = document.getElementById('mob-ea-asignado');
+    const opt = selAsig?.options[selAsig?.selectedIndex];
+    if(n && !n.value) n.value = selAsig?.value || '';
+    if(e && !e.value) e.value = opt?.dataset?.email || '';
+  }
+}
+
+function _mobEaLimpiarBloquesMant(){
+  ['mob-ea-entrega-nombre','mob-ea-entrega-email','mob-ea-devuelve-nombre','mob-ea-condicion-devuelta']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+
 function openEditActivoSheet(codigo){
   const a = activos.find(x=>x.codigo===codigo);
   if(!a){ showToast('Activo no encontrado',''); return; }
@@ -2287,6 +2340,8 @@ function openEditActivoSheet(codigo){
   document.getElementById('mob-ea-nombre').value = a.nombre||'';
   document.getElementById('mob-ea-tipo').value   = a.tipo||'Laptop';
   document.getElementById('mob-ea-estado').value = (a.estado==='asignado' ? 'activo' : a.estado) || 'activo';
+  _mobEaEstadoOriginal = (a.estado==='asignado' ? 'activo' : a.estado) || 'activo';
+  _mobEaLimpiarBloquesMant();
   document.getElementById('mob-ea-marca').value  = a.marca||'';
   document.getElementById('mob-ea-modelo').value = a.modelo||'';
   document.getElementById('mob-ea-serial').value = a.serial||'';
@@ -2319,6 +2374,7 @@ function openEditActivoSheet(codigo){
       filteredPer.map(p=>`<option value="${p.nombre}" data-email="${p.email||''}" data-cargo="${p.cargo||''}">${p.nombre}${p.cargo?' — '+p.cargo:''}</option>`).join('');
     selAsig.value = a.asignado && a.asignado!=='—' ? a.asignado : '';
   }
+  _mobEaActualizarBloquesMant();
   document.getElementById('mob-activo-overlay').classList.add('open');
   modal.classList.add('open');
 }
@@ -2544,8 +2600,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=2.5").then(reg=>{
-    console.log("[SAGAE] SW registrado v2.5:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=2.6").then(reg=>{
+    console.log("[SAGAE] SW registrado v2.6:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;
@@ -2781,6 +2837,9 @@ function abrirNuevoActivoMobile(){
   document.getElementById('mob-ea-tipo').value='Laptop';
   document.getElementById('mob-ea-estado').value='activo';
   document.getElementById('mob-ea-marca').value='';
+  _mobEaEstadoOriginal = null;
+  _mobEaLimpiarBloquesMant();
+  _mobEaActualizarBloquesMant();
   const _selA=document.getElementById('mob-ea-asignado'); if(_selA) _selA.value='';
   const selDep = document.getElementById('mob-ea-depto');
   if(selDep){
@@ -2862,6 +2921,52 @@ async function guardarNuevoActivoMobile(){
         color:'blue'
       });
     }
+    // ── Cruce de custodia: el equipo entra a IT o se devuelve ──────────
+    // Mismos nombres de campo que en la versión web, para que el historial
+    // se lea igual en los dos lados. El backend toma el ÚLTIMO evento del
+    // historial, así que la constancia de custodia se agrega de última.
+    const estadoNuevoMob = document.getElementById('mob-ea-estado')?.value || 'activo';
+    const estadoAntesMob = existente
+      ? ((existente.estado === 'asignado' ? 'activo' : existente.estado) || 'activo')
+      : null;
+    if(estadoAntesMob !== null && estadoAntesMob !== 'mantenimiento' && estadoNuevoMob === 'mantenimiento'){
+      const entregaNombre = (document.getElementById('mob-ea-entrega-nombre')?.value||'').trim();
+      const entregaEmail  = (document.getElementById('mob-ea-entrega-email')?.value||'').trim();
+      const _selA = document.getElementById('mob-ea-asignado');
+      const _optA = _selA?.options[_selA?.selectedIndex];
+      eventosEdicion.push({
+        tipo: 'Entrada a Mantenimiento',
+        desc: `Equipo ingresado a IT para mantenimiento por ${session.nombre} desde la app móvil.`
+              + (entregaNombre ? ` Entregado por: ${entregaNombre}.` : '')
+              + ' Equipo estará en el Departamento de Tecnología hasta ser devuelto.',
+        tecnico: session.nombre,
+        emailResp: entregaEmail || _optA?.dataset?.email || existente?.asignadoEmail || '',
+        entregadoPorNombre: entregaNombre,
+        asignadoA: nuevoAsignado || '—',
+        fecha: new Date().toLocaleString('es-PA'),
+        usuario: session.nombre,
+        color: 'amber'
+      });
+    }
+    if(estadoAntesMob === 'mantenimiento' && estadoNuevoMob !== 'mantenimiento'){
+      const entradaEvt = [...historialPrevio].reverse().find(h=>h && h.tipo === 'Entrada a Mantenimiento');
+      const devuelveNombre = (document.getElementById('mob-ea-devuelve-nombre')?.value||'').trim();
+      const condicionDev   = (document.getElementById('mob-ea-condicion-devuelta')?.value||'').trim();
+      eventosEdicion.push({
+        tipo: 'Salida de Mantenimiento',
+        desc: `Equipo devuelto de mantenimiento. Nuevo estado: ${estadoNuevoMob}. Técnico: ${session.nombre} (app móvil).`
+              + (devuelveNombre ? ` Retirado por: ${devuelveNombre}.` : '')
+              + (condicionDev ? ` Condición al devolver: ${condicionDev}.` : ''),
+        tecnico: session.nombre,
+        emailResp: entradaEvt?.emailResp || '',
+        devueltoANombre: devuelveNombre,
+        condicion: condicionDev,
+        asignadoA: nuevoAsignado || '—',
+        fecha: new Date().toLocaleString('es-PA'),
+        usuario: session.nombre,
+        color: 'green'
+      });
+    }
     const payload = {
       codigo:    editCodigo || '',
       nombre,
@@ -2877,13 +2982,16 @@ async function guardarNuevoActivoMobile(){
       asignadoCargo: (()=>{ const sel=document.getElementById('mob-ea-asignado'); const opt=sel?.options[sel?.selectedIndex]; return opt?.dataset?.cargo||''; })(),
       obs:       (document.getElementById('mob-ea-obs')?.value||'').trim(),
       foto:      editCodigo ? (existente?.foto||'—') : (document.getElementById('mob-ea-foto')?.value.trim()||'—'),
-      historial: JSON.stringify(editCodigo ? [...historialPrevio, ...eventosEdicion] : [{
+      // Se envía como ARREGLO, no como texto. El backend lo convierte a JSON
+      // al escribir en la hoja, y solo reconoce el evento de custodia si le
+      // llega un arreglo — con texto, el correo de mantenimiento nunca salía.
+      historial: editCodigo ? [...historialPrevio, ...eventosEdicion] : [{
         tipo:'Creación',
         desc:'Registrado desde app mobile por '+session.nombre,
         fecha: new Date().toLocaleString('es-PA'),
         usuario: session.nombre,
         color:'green'
-      }]),
+      }],
       fechaCreacion: editCodigo ? (existente?.fechaCreacion || new Date().toLocaleString('es-PA')) : new Date().toLocaleString('es-PA')
     };
     await apiPost('activos', editCodigo ? 'update' : 'insert', payload);
