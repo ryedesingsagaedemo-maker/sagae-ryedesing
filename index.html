@@ -6,6 +6,7 @@
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="icons/icon-96.png">
 <title>SAGAE — Sistema de Activos y Gestión Administrativa Educativa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -7436,7 +7437,7 @@ function _notifNavegador(nuevos){
     try{
       new Notification('SAGAE — Nuevo ticket', {
         body: t.titulo + (t.prior==='urgente'?' 🔴 URGENTE':''),
-        icon: '/favicon.ico',
+        icon: 'icons/icon-192.png',
         tag:  t.codigo
       });
     }catch(e){}
