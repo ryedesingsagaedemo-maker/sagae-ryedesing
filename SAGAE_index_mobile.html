@@ -494,9 +494,9 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <div class="modal-body">
     <input type="hidden" id="mt-id">
     <div class="form-group"><label class="form-label">Título *</label><input class="form-input" id="mt-titulo" placeholder="Describe el problema o tarea..."></div>
-    <div class="form-group"><label class="form-label">Activo vinculado</label><select class="form-select" id="mt-activo"><option value="">— Sin activo —</option></select></div>
+    <div class="form-group"><label class="form-label">Activo vinculado</label><select class="form-select" id="mt-activo" onchange="_mtActualizarBloqueRecepcion()"><option value="">— Sin activo —</option></select></div>
     <div class="form-group"><label class="form-label">Responsable</label><select class="form-select" id="mt-resp"><option value="Sin asignar">— Sin asignar —</option></select></div>
-    <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="mt-tipo"><option value="incidencia">Incidencia</option><option value="mantenimiento">Mantenimiento</option><option value="solicitud">Solicitud</option><option value="tarea">Tarea</option></select></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="mt-tipo" onchange="_mtActualizarBloqueRecepcion()"><option value="incidencia">Incidencia</option><option value="mantenimiento">Mantenimiento</option><option value="solicitud">Solicitud</option><option value="tarea">Tarea</option></select></div>
     <div class="form-group"><label class="form-label">Prioridad</label><select class="form-select" id="mt-prior"><option value="urgente">Urgente</option><option value="importante" selected>Importante</option><option value="normal">Normal</option></select></div>
     <div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="mt-estado"><option value="abierto">Abierto</option><option value="progreso">En progreso</option><option value="revision">En revisión</option><option value="cerrado">Cerrado</option></select></div>
     <div class="form-group">
@@ -505,6 +505,23 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     </div>
     <div class="form-group"><label class="form-label">Deadline</label><input class="form-input" type="date" id="mt-dead"></div>
     <div class="form-group"><label class="form-label">Descripción</label><textarea class="form-textarea" id="mt-desc" placeholder="Detalle del problema..."></textarea></div>
+    <div class="form-group" id="mt-recep-wrap" style="display:none;background:var(--amber-l);border:1px solid var(--amber-m);border-radius:var(--r-md);padding:12px;">
+      <label class="form-label" style="color:var(--amber)">📥 Recepción del equipo
+        <span style="font-size:10px;font-weight:400;color:var(--text2);display:block" id="mt-recep-sub">Quede constancia de quién trajo el equipo a IT.</span>
+      </label>
+      <div id="mt-recep-datos" style="display:none">
+        <label class="form-label" style="margin-top:6px">Equipo recibido (marca, modelo, serie o señas)</label>
+        <input class="form-input" id="mt-recep-equipo" placeholder="Ej: Laptop HP, serie 5CD123, del docente Juan Pérez">
+        <label class="form-label" style="margin-top:6px">Condición al recibirlo</label>
+        <input class="form-input" id="mt-recep-cond" placeholder="Ej: pantalla rota, sin cargador">
+      </div>
+      <label class="form-label" style="margin-top:6px">¿Quién entrega el equipo?</label>
+      <input class="form-input" id="mt-recep-nombre" placeholder="Nombre de quien lo entrega" style="margin-bottom:8px">
+      <input class="form-input" type="email" id="mt-recep-email" placeholder="correo@dominio.com">
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">
+        Quien entrega no tiene que ser la persona asignada ni el dueño del equipo.
+      </div>
+    </div>
     <div class="form-group" style="background:var(--gold-l);border-radius:var(--r-md);padding:12px;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="mt-necesita-piezas" onchange="toggleMobPiezasTicket(this.checked)" style="width:18px;height:18px;accent-color:var(--navy)">
@@ -2002,6 +2019,7 @@ function quickEstado(codigo){
   document.getElementById("mt-desc").value=t.desc||"";
   _renderGaleriaFotosMobile(t.fotos, false);
   _resetMobPiezasTicket();
+  _mtLimpiarBloqueRecepcion();
   document.getElementById("mt-motivo-wrap").style.display="block";
   document.getElementById("mt-motivo").value="";
   document.getElementById("mt-save-btn").textContent="Guardar cambios";
@@ -2024,6 +2042,7 @@ function quickAvance(codigo){
   document.getElementById("mt-desc").value=t.desc||"";
   _renderGaleriaFotosMobile(t.fotos, false);
   _resetMobPiezasTicket();
+  _mtLimpiarBloqueRecepcion();
   document.getElementById("mt-motivo-wrap").style.display="block";
   document.getElementById("mt-motivo").value="";
   document.getElementById("mt-save-btn").textContent="Guardar cambios";
@@ -2056,11 +2075,13 @@ function openNuevoTicket(){
   document.getElementById("mt-desc").value="";
   _renderGaleriaFotosMobile([], false);
   _resetMobPiezasTicket();
+  _mtLimpiarBloqueRecepcion();
   document.getElementById("mt-piezas-nota-activo").textContent="";
   document.getElementById("mt-motivo-wrap").style.display="none";
   document.getElementById("mt-save-btn").textContent="Crear ticket";
   const sel=document.getElementById("mt-activo");
   sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=="eliminado").map(a=>`<option value="${a.codigo}">${a.codigo} — ${a.nombre}</option>`).join("");
+  _mtActualizarBloqueRecepcion();
   const respSel=document.getElementById("mt-resp");
   if(respSel){
     const usersActivos=responsablesLista.filter(u=>u.estado!=="inactivo");
@@ -2089,6 +2110,7 @@ function openEditTicket(codigo){
   document.getElementById("mt-desc").value=t.desc||"";
   _renderGaleriaFotosMobile(t.fotos, false);
   _resetMobPiezasTicket();
+  _mtLimpiarBloqueRecepcion();
   { const notaAct = document.getElementById("mt-piezas-nota-activo"); if(notaAct) notaAct.textContent = t.activoId ? ' y también en la hoja de vida del activo vinculado ('+t.activoId+')' : ''; }
   document.getElementById("mt-motivo-wrap").style.display="block";
   document.getElementById("mt-motivo").value="";
@@ -2096,9 +2118,54 @@ function openEditTicket(codigo){
   const sel=document.getElementById("mt-activo");
   sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=="eliminado").map(a=>`<option value="${a.codigo}">${a.codigo} — ${a.nombre}</option>`).join("");
   sel.value=t.activoId||"";
+  _mtActualizarBloqueRecepcion();
   document.getElementById("modal-overlay").classList.add("open");
   document.getElementById("modal-ticket").classList.add("open");
 }
+// Recepción del equipo en el ticket. Mismos nombres de campo que en la versión
+// web, para que un historial creado desde el celular se lea igual allá.
+function _mtActualizarBloqueRecepcion(){
+  const wrap = document.getElementById('mt-recep-wrap');
+  if(!wrap) return;
+  const esEdicion = !!document.getElementById('mt-id')?.value;
+  const esMant    = document.getElementById('mt-tipo')?.value === 'mantenimiento';
+  // Al CREAR solo aplica si el ticket es de mantenimiento. Al EDITAR, siempre.
+  const mostrar = esEdicion || esMant;
+  wrap.style.display = mostrar ? 'block' : 'none';
+  if(!mostrar) return;
+
+  const actCod = document.getElementById('mt-activo')?.value || '';
+  const datos  = document.getElementById('mt-recep-datos');
+  const sub    = document.getElementById('mt-recep-sub');
+  // Sin activo vinculado el equipo no pertenece al inventario: se describe a mano.
+  if(datos) datos.style.display = actCod ? 'none' : 'block';
+  if(sub) sub.textContent = actCod
+    ? 'Queda en el historial del equipo y en el correo de ingreso a IT.'
+    : 'Este ticket no tiene activo vinculado: describa el equipo aquí. La constancia queda en el historial del ticket.';
+  if(actCod){
+    const a = activos.find(x=>x.codigo===actCod);
+    const n = document.getElementById('mt-recep-nombre');
+    const e = document.getElementById('mt-recep-email');
+    if(a && n && !n.value) n.value = (a.asignado && a.asignado!=='—') ? a.asignado : '';
+    if(a && e && !e.value) e.value = a.asignadoEmail || '';
+  }
+}
+
+function _mtLimpiarBloqueRecepcion(){
+  ['mt-recep-equipo','mt-recep-cond','mt-recep-nombre','mt-recep-email']
+    .forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+}
+
+function _mtLeerRecepcion(){
+  if(document.getElementById('mt-recep-wrap')?.style.display !== 'block') return null;
+  const nombre = (document.getElementById('mt-recep-nombre')?.value||'').trim();
+  const email  = (document.getElementById('mt-recep-email')?.value||'').trim();
+  const equipo = (document.getElementById('mt-recep-equipo')?.value||'').trim();
+  const cond   = (document.getElementById('mt-recep-cond')?.value||'').trim();
+  if(!nombre && !equipo) return null;
+  return {nombre, email, equipo, cond};
+}
+
 function _leerSolicitudPiezasTicket(){
   const chk = document.getElementById("mt-necesita-piezas");
   if(!chk || !chk.checked) return null;
@@ -2183,6 +2250,21 @@ async function saveTicket(){
       desc: 'Motivo: '+motivo+'.'+(eventosM.length?' | '+eventosM.join(' · '):''),
       fecha:ts(), usuario:session.nombre, color:colorM
     });
+    const recepE = _mtLeerRecepcion();
+    if(recepE && !t.activoId){
+      t.historial.push({
+        tipo: 'Recepción de equipo externo',
+        desc: `Equipo recibido en IT que no pertenece al inventario: ${recepE.equipo||'sin descripción'}.`
+              + (recepE.cond   ? ` Condición al recibirlo: ${recepE.cond}.` : '')
+              + (recepE.nombre ? ` Entregado por: ${recepE.nombre}.` : '')
+              + (recepE.email  ? ` Correo: ${recepE.email}.` : ''),
+        equipoExterno:true, equipoDesc:recepE.equipo, condicion:recepE.cond,
+        entregadoPorNombre:recepE.nombre, emailResp:recepE.email, tecnico:session.nombre,
+        fecha:ts(), usuario:session.nombre, color:'amber'
+      });
+    }
+    // El pedido de piezas va de ULTIMO: el backend mira el último evento del
+    // historial para decidir si manda el correo al encargado de compras.
     if(solicitudPiezas) t.historial.push(solicitudPiezas);
     await apiPost("tickets","update",t);
     if(solicitudPiezas) await _propagarSolicitudPiezasAlActivo(t.activoId, solicitudPiezas);
@@ -2219,6 +2301,61 @@ async function saveTicket(){
     }
     const codigoRealM = (resM && resM.codigo) ? resM.codigo : code;
     t.codigo = codigoRealM; t.id = codigoRealM;
+    const recepM = _mtLeerRecepcion();
+    // Vincular el activo con el código real y, si el ticket es de mantenimiento,
+    // dejar constancia de que el equipo entró a custodia de IT. Hasta ahora el
+    // módulo móvil no tocaba el activo al crear el ticket.
+    if(aId){
+      const act = activos.find(a=>a.codigo===aId);
+      if(act){
+        act.historial = act.historial || [];
+        act.historial.push({tipo:'Ticket vinculado',desc:codigoRealM+': '+titulo,fecha:ts(),usuario:session.nombre,color:'blue'});
+        if(t.tipo==='mantenimiento'){
+          act.estado = 'mantenimiento';
+          act.historial.push({
+            tipo:      'Entrada a Mantenimiento',
+            desc:      `Equipo ingresado a IT por el ticket ${codigoRealM}: ${titulo} (app móvil).`
+                       + (recepM && recepM.nombre ? ` Entregado por: ${recepM.nombre}.` : '')
+                       + ' Equipo estará en el Departamento de Tecnología hasta ser devuelto.',
+            tecnico:   (respSelected && respSelected!=='Sin asignar') ? respSelected : session.nombre,
+            emailResp: (recepM && recepM.email) || act.asignadoEmail || '',
+            entregadoPorNombre: (recepM && recepM.nombre) || '',
+            asignadoA: act.asignado||'—',
+            ticket:    codigoRealM,
+            fecha:     ts(), usuario: session.nombre, color: 'amber'
+          });
+        }
+        await apiPost('activos','update',act);
+      }
+    }
+    // Sin activo vinculado la constancia vive en el ticket. Se manda como
+    // ACTUALIZACION posterior al alta: el backend solo revisa el último evento
+    // al actualizar, no al insertar, así que el correo a compras no saldría.
+    if(!aId){
+      const evM = [];
+      if(recepM){
+        evM.push({
+          tipo: 'Recepción de equipo externo',
+          desc: `Equipo recibido en IT que no pertenece al inventario: ${recepM.equipo||'sin descripción'}.`
+                + (recepM.cond   ? ` Condición al recibirlo: ${recepM.cond}.` : '')
+                + (recepM.nombre ? ` Entregado por: ${recepM.nombre}.` : '')
+                + (recepM.email  ? ` Correo: ${recepM.email}.` : ''),
+          equipoExterno:true, equipoDesc:recepM.equipo, condicion:recepM.cond,
+          entregadoPorNombre:recepM.nombre, emailResp:recepM.email, tecnico:session.nombre,
+          fecha:ts(), usuario:session.nombre, color:'amber'
+        });
+      }
+      if(solicitudPiezas){
+        // Se saca del alta y se vuelve a poner de último: así no se duplica y
+        // es el evento que dispara el correo a compras.
+        t.historial = t.historial.filter(h=>h!==solicitudPiezas);
+        evM.push(solicitudPiezas);
+      }
+      if(evM.length){
+        t.historial = t.historial.concat(evM);
+        await apiPost('tickets','update',t);
+      }
+    }
     if(solicitudPiezas) await _propagarSolicitudPiezasAlActivo(t.activoId, solicitudPiezas);
     await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"CREAR",tipo:"Ticket",codigo:codigoRealM,detalle:"Creado desde app móvil: "+titulo+(solicitudPiezas?" | Solicitud de compra":"")});
     showToast(resM && resM.duplicadoEvitado
@@ -2600,8 +2737,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=2.6").then(reg=>{
-    console.log("[SAGAE] SW registrado v2.6:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=2.7").then(reg=>{
+    console.log("[SAGAE] SW registrado v2.7:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;
