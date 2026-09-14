@@ -264,7 +264,7 @@ function _generarRequestId(){
 // Google Apps Script NO agrega encabezados CORS a las respuestas de
 // POST (sí lo hace en GET) — confirmado en pruebas reales. Este patrón
 // dispara el POST "a ciegas" (no-cors) y sondea el resultado con GET.
-async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
+async function apiPostAsync(sheet, action, payload, timeoutMs=35000){
   const requestId = _generarRequestId();
   const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId};
   fetch(API, {
@@ -287,7 +287,7 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=15000){
   return {ok:false, error:'TIMEOUT', message:'El servidor tardó demasiado en responder. Intenta de nuevo.'};
 }
 
-async function apiGetTimeout(sheet,ms=10000){
+async function apiGetTimeout(sheet,ms=35000){
   try{
     const ctrl=new AbortController();
     const t=setTimeout(()=>ctrl.abort(),ms);

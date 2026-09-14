@@ -2435,7 +2435,7 @@ async function apiGet(sheet, intento=1, params=''){
     // Reduce el payload de MB a KB y la respuesta llega en <2s.
     const modoLigero = (sheet === 'tickets' && !params.includes('mode=')) ? '&mode=light' : '';
     const controller = new AbortController();
-    const timeoutMs = (sheet === 'tickets' || sheet === 'activos') ? 25000 : 15000;
+    const timeoutMs = 35000;
     const timer = setTimeout(()=>controller.abort(), timeoutMs);
     const tok = session && session.token ? '&session='+encodeURIComponent(session.token) : '';
     const r = await fetch(API+'?sheet='+sheet+tok+modoLigero+params, {mode:'cors', signal:controller.signal});
@@ -2481,7 +2481,7 @@ function _generarRequestId(){
 // respuesta) y luego pregunta el resultado real con un GET, que sí es
 // legible. El servidor guarda el resultado bajo el mismo _requestId
 // durante 60 segundos (ver enviarRespuesta_ en el backend).
-async function apiPostAsync(sheet, action, payload, timeoutMs=20000){
+async function apiPostAsync(sheet, action, payload, timeoutMs=35000){
   const requestId = _generarRequestId();
   // _sessionToken: sin él, cualquier acción autenticada (insert/update) era
   // rechazada con SESSION_INVALID. _opId: hace que un reintento del usuario
@@ -4134,7 +4134,7 @@ async function saveTicket(){
     const t={id:code,codigo:code,titulo,activoId:aId||'',activoNombre:aNom,resp:document.getElementById('et-resp').value||'—',tipo:document.getElementById('et-tipo').value,prior:document.getElementById('et-prior').value,estado:document.getElementById('et-estado').value,avance:Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0)),dead:document.getElementById('et-dead').value||'—',proy:document.getElementById('et-proy').value.trim()||'—',desc:document.getElementById('et-desc').value.trim(),fotos:JSON.stringify(_etFotosActuales),foto:_etFotosActuales.length?_etFotosActuales[0].url:'—',historial:[{tipo:'Creación',desc:'Creado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
     tickets.push(t);
 
-    const res = await apiPostAsync('tickets','insert',t,30000);
+    const res = await apiPostAsync('tickets','insert',t,35000);
 
     if(res && res.ok===false && res.error==='TIMEOUT'){
       // No se pudo confirmar. NO se reintenta a ciegas: se recarga la lista
@@ -8997,7 +8997,7 @@ async function instalarTriggerNotifUI(){
   const status = document.getElementById('notif-queue-status');
   if(btn){ btn.disabled=true; btn.textContent='📬 Instalando...'; }
   try{
-    const res = await apiPostAsync('sistema','install_notif_trigger',{},20000);
+    const res = await apiPostAsync('sistema','install_notif_trigger',{},35000);
     if(res && res.ok){
       if(status) status.textContent = '✅ Trigger instalado — los correos se envían cada 1 minuto';
       showToast('✅ Cola de notificaciones activada','success');
@@ -9016,7 +9016,7 @@ async function verificarColaNotifUI(){
   const status = document.getElementById('notif-queue-status');
   if(btn){ btn.disabled=true; btn.textContent='🔍 Consultando...'; }
   try{
-    const res = await apiPostAsync('sistema','estado_cola_notif',{},15000);
+    const res = await apiPostAsync('sistema','estado_cola_notif',{},35000);
     if(res && res.ok!==undefined){
       const ico = res.triggerInstalado ? '✅' : '⚠️';
       const trig = res.triggerInstalado ? 'Trigger activo' : 'Trigger NO instalado';
