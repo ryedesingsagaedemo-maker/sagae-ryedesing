@@ -2045,7 +2045,7 @@ tbody tr.clickable{cursor:pointer;}
   <input type="hidden" id="et-id">
   <div class="f-row"><div class="f-lbl">Título *</div><input class="f-inp" id="et-titulo" placeholder="Describe el problema o tarea..."></div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Activo vinculado</div><select class="f-inp f-sel" id="et-activo"><option value="">— Sin activo —</option></select></div>
+    <div class="f-row"><div class="f-lbl">Activo vinculado</div><select class="f-inp f-sel" id="et-activo" onchange="_etActualizarBloquesRecepcion()"><option value="">— Sin activo —</option></select></div>
     <div class="f-row"><div class="f-lbl">Responsable</div><select class="f-inp f-sel" id="et-resp"><option value="">— Selecciona responsable —</option></select></div>
   </div>
   <div class="f-2">
@@ -2081,6 +2081,61 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div id="et-readonly-note" style="display:none;margin:2px 0 10px;font-size:11px;color:var(--text3);background:#F1F5F9;border-radius:6px;padding:8px 10px;">
     👁 <span id="et-readonly-msg">Estás viendo este ticket en modo solo lectura.</span>
+  </div>
+  <!-- Equipo que NO está en el inventario: personal del usuario, prestado o de un
+       proveedor. No hay activo cuyo estado cambiar, así que el comprobante queda
+       en el historial de este ticket. Solo aparece si el ticket no tiene activo. -->
+  <div class="f-row" id="et-externo-wrap" style="display:none;background:var(--amber-l);border:1px solid var(--amber-m);border-radius:6px;padding:10px;">
+    <div class="f-lbl" style="color:var(--amber);font-weight:700">📥 Equipo que no está en el inventario
+      <span style="font-size:10px;font-weight:400;color:var(--text2);display:block;margin-top:2px">Este ticket no tiene un activo vinculado. Describa aquí el equipo: la constancia queda en el historial del ticket.</span>
+    </div>
+    <div class="f-lbl" style="margin-top:6px">Equipo recibido (marca, modelo, serie o señas)</div>
+    <input class="f-inp" id="et-ext-equipo" placeholder="Ej: Laptop HP Pavilion, serie 5CD123, del docente Juan Pérez">
+    <div class="f-lbl" style="margin-top:6px">Condición al recibirlo</div>
+    <input class="f-inp" id="et-ext-cond" placeholder="Ej: pantalla rota, sin cargador, con golpe en la tapa">
+    <div class="f-lbl" style="margin-top:6px">¿Quién entrega el equipo?</div>
+    <div class="f-2">
+      <input class="f-inp" id="et-ext-nombre" placeholder="Nombre de quien lo entrega">
+      <input class="f-inp" type="email" id="et-ext-email" placeholder="correo@dominio.com"
+        oninput="validateField(this,'email','Ej: nombre@pca.edu.pa')">
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:4px">
+      Si el equipo es propiedad de la persona y no de la institución, déjelo escrito aquí. No se crea ningún activo.
+    </div>
+  </div>
+  <!-- ── SOLICITUD DE PIEZAS DESDE EL TICKET ──────────────────────
+       Mismo mecanismo que en Mantenimiento, pero sirve también cuando el
+       equipo no pertenece al inventario: el correo a compras sale desde
+       aquí y el pedido queda en el historial del ticket. -->
+  <div class="f-row" id="et-piezas-wrap" style="display:none;background:#F0F4F8;border-radius:8px;padding:12px;border:1px solid #CBD5E1">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <input type="checkbox" id="et-necesita-piezas" onchange="toggleSolicitudPiezasTicket(this.checked)" style="width:16px;height:16px;cursor:pointer">
+      <label for="et-necesita-piezas" style="font-size:13px;font-weight:700;color:var(--navy);cursor:pointer">🛒 Solicitar piezas o repuestos al encargado de compras</label>
+    </div>
+    <div id="et-piezas-form" style="display:none">
+      <div class="f-lbl">Piezas / repuestos necesarios *</div>
+      <textarea class="f-inp" id="et-piezas-desc" rows="2" placeholder="Ej: 1 disco duro SSD 256GB, 1 cargador Dell 65W..."></textarea>
+      <div class="f-2" style="margin-top:6px">
+        <div>
+          <div class="f-lbl">Correo del encargado de compras *</div>
+          <input class="f-inp" type="email" id="et-piezas-email" placeholder="compras@colegio.edu"
+            oninput="validateField(this,'email','Ej: correo@pca.edu.pa')">
+        </div>
+        <div>
+          <div class="f-lbl">Urgencia</div>
+          <select class="f-inp f-sel" id="et-piezas-urgencia">
+            <option value="normal">Normal</option>
+            <option value="alta">Alta</option>
+            <option value="critica">Crítica</option>
+          </select>
+        </div>
+      </div>
+      <div class="f-lbl" style="margin-top:6px">Presupuesto estimado (opcional)</div>
+      <input class="f-inp" type="number" id="et-piezas-presupuesto" placeholder="0.00" step="0.01" min="0">
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">
+        Al guardar, el encargado recibe el correo con el pedido y este queda en el historial del ticket.
+      </div>
+    </div>
   </div>
   <div class="f-row" id="et-motivo-wrap" style="display:none;">
     <div class="req-note">Motivo obligatorio — queda registrado en auditoría.</div>
@@ -3883,6 +3938,34 @@ function renderTicketHistorial(t){
   wrap.style.display='block';
 }
 
+// Bloques de recepción de equipo externo y de solicitud de piezas. Solo tienen
+// sentido sobre un ticket ya creado y editable — la misma condición que el
+// bloque de motivo, así que se apoyan en ella en vez de repetir la regla.
+function _etActualizarBloquesRecepcion(){
+  const ext = document.getElementById('et-externo-wrap');
+  const pzs = document.getElementById('et-piezas-wrap');
+  if(!ext || !pzs) return;
+  const editable = document.getElementById('et-motivo-wrap')?.style.display === 'block';
+  if(!editable){ ext.style.display='none'; pzs.style.display='none'; return; }
+  // Sin activo vinculado el equipo no pertenece al inventario: se describe a mano.
+  ext.style.display = document.getElementById('et-activo')?.value ? 'none' : 'block';
+  pzs.style.display = 'block';
+}
+
+function _etLimpiarBloquesRecepcion(){
+  ['et-ext-equipo','et-ext-cond','et-ext-nombre','et-ext-email',
+   'et-piezas-desc','et-piezas-email','et-piezas-presupuesto']
+    .forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  const u=document.getElementById('et-piezas-urgencia'); if(u) u.value='normal';
+  const c=document.getElementById('et-necesita-piezas'); if(c) c.checked=false;
+  const f=document.getElementById('et-piezas-form');     if(f) f.style.display='none';
+}
+
+function toggleSolicitudPiezasTicket(checked){
+  const f=document.getElementById('et-piezas-form');
+  if(f) f.style.display = checked ? 'block' : 'none';
+}
+
 function openTicket(id,forceReadOnly){
   const isEdit=id!=null;
   const per=PERMS[session.rol]||{};
@@ -3894,6 +3977,8 @@ function openTicket(id,forceReadOnly){
   document.getElementById('et-save-btn').textContent=isEdit?'Guardar cambios':'Guardar ticket';
   document.getElementById('et-save-btn').style.display=readOnly?'none':'';
   document.getElementById('et-motivo-wrap').style.display=(isEdit&&!readOnly)?'block':'none';
+  _etLimpiarBloquesRecepcion();
+  _etActualizarBloquesRecepcion();
   document.getElementById('et-readonly-note').style.display=readOnly?'block':'none';
   if(readOnly){
     document.getElementById('et-readonly-msg').textContent = per.edit
@@ -3910,6 +3995,7 @@ function openTicket(id,forceReadOnly){
   if(isEdit){
     const t=tickets.find(x=>x.codigo===id);if(!t)return;
     document.getElementById('et-titulo').value=t.titulo||'';document.getElementById('et-activo').value=t.activoId||'';
+    _etActualizarBloquesRecepcion();
     document.getElementById('et-resp').value=t.resp||''; // selectdocument.getElementById('et-tipo').value=t.tipo||'incidencia';
     document.getElementById('et-prior').value=t.prior||'importante';document.getElementById('et-estado').value=t.estado||'abierto';
     document.getElementById('et-avance').value=t.avance||0;document.getElementById('et-dead').value=t.dead!=='—'?t.dead:'';
@@ -4146,6 +4232,16 @@ async function saveTicket(){
     motivo=document.getElementById('et-motivo').value.trim();
     if(!motivo){alert('El motivo es obligatorio.');return;}
     if(!tickets.find(x=>x.codigo===editId)){showToast('No se encontró el ticket a editar.','error');return;}
+    // Si se pidieron piezas, los dos campos son obligatorios. Se valida aquí,
+    // antes de bloquear la pantalla y antes de tocar el ticket.
+    if(document.getElementById('et-necesita-piezas')?.checked){
+      if(!document.getElementById('et-piezas-desc')?.value.trim()){
+        alert('Describe las piezas o repuestos necesarios.');return;
+      }
+      if(!document.getElementById('et-piezas-email')?.value.trim()){
+        alert('El correo del encargado de compras es obligatorio.');return;
+      }
+    }
   }
 
   window._savingTicket = true;
@@ -4179,6 +4275,47 @@ async function saveTicket(){
       desc: det+(eventosDetalle.length?' | '+eventosDetalle.join(' · '):''),
       fecha:ts(),usuario:session.nombre,color:colorEvento
     });
+    // ── Recepción de un equipo que no está en el inventario ────────
+    // No hay activo cuyo estado cambiar, así que la constancia vive aquí,
+    // en el historial del ticket, y sale en su Expediente.
+    if(!t.activoId && document.getElementById('et-externo-wrap')?.style.display === 'block'){
+      const extEquipo = document.getElementById('et-ext-equipo')?.value.trim()||'';
+      const extCond   = document.getElementById('et-ext-cond')?.value.trim()||'';
+      const extNombre = document.getElementById('et-ext-nombre')?.value.trim()||'';
+      const extEmail  = document.getElementById('et-ext-email')?.value.trim()||'';
+      if(extEquipo || extNombre){
+        t.historial.push({
+          tipo: 'Recepción de equipo externo',
+          desc: `Equipo recibido en IT que no pertenece al inventario: ${extEquipo||'sin descripción'}.`
+                + (extCond   ? ` Condición al recibirlo: ${extCond}.` : '')
+                + (extNombre ? ` Entregado por: ${extNombre}.` : '')
+                + (extEmail  ? ` Correo: ${extEmail}.` : ''),
+          equipoExterno: true,
+          equipoDesc: extEquipo,
+          condicion: extCond,
+          entregadoPorNombre: extNombre,
+          emailResp: extEmail,
+          tecnico: session.nombre,
+          fecha: ts(), usuario: session.nombre, color: 'amber'
+        });
+      }
+    }
+    // ── Solicitud de piezas ────────────────────────────────────────
+    // Va de ÚLTIMA a propósito: el backend mira el último evento del
+    // historial para decidir si manda el correo al encargado de compras.
+    if(document.getElementById('et-necesita-piezas')?.checked){
+      const piezasDesc   = document.getElementById('et-piezas-desc')?.value.trim()||'';
+      const emailCompras = document.getElementById('et-piezas-email')?.value.trim()||'';
+      const urgencia     = document.getElementById('et-piezas-urgencia')?.value||'normal';
+      const presupuesto  = parseFloat(document.getElementById('et-piezas-presupuesto')?.value)||0;
+      t.historial.push({
+        tipo: 'Solicitud de Compra',
+        desc: `Piezas: ${piezasDesc}. Urgencia: ${urgencia}. Presupuesto: $${presupuesto||'TBD'}. Solicita: ${session.nombre}. Email: ${emailCompras}.`,
+        fecha: ts(), usuario: session.nombre, tec: session.nombre,
+        piezas: piezasDesc, urgencia, presupuesto, emailCompras,
+        estado: 'pendiente', color: 'red'
+      });
+    }
     const rEdit = await apiPost('tickets','update',t);
     audit('EDITAR','Ticket',t.codigo,det);
     if(rEdit===false){
