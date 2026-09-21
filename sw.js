@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v2.7
+// SAGAE — Service Worker v2.8
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v2.7';
-const CACHE_STATIC = 'sagae-static-v2.7';
+const CACHE_NAME   = 'sagae-mobile-v2.8';
+const CACHE_STATIC = 'sagae-static-v2.8';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -69,17 +69,25 @@ const CACHE_STATIC = 'sagae-static-v2.7';
 //   del equipo: antes el movil no tocaba el activo y la custodia quedaba sin
 //   constancia. Se sube el numero de cache para que los dispositivos con la
 //   PWA instalada reciban la version nueva sin volver a instalar nada.
+// v2.8: IDENTIDAD VISUAL — se incorpora el logo oficial de SAGAE (la S con
+//   la llama) en el inicio de sesion, la pantalla de bienvenida, la barra
+//   superior, el portal publico y la cabecera de todos los reportes y
+//   expedientes. Los iconos de la PWA se regeneran con la marca nueva. Se
+//   sube el numero de cache para que los dispositivos con la app instalada
+//   reciban la imagen nueva sin volver a instalar nada.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './logo/sagae-simbolo.png',
+  './logo/sagae-simbolo-blanco.png'
 ];
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v2.7...');
+  console.log('[SAGAE SW] Instalando v2.8...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -94,7 +102,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v2.7...');
+  console.log('[SAGAE SW] Activando v2.8...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -212,4 +220,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v2.7 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v2.8 cargado correctamente');

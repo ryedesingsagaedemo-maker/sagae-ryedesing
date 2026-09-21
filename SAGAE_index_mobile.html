@@ -239,6 +239,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <body>
 <div id="update-banner">🔄 Nueva versión disponible<button onclick="aplicarActualizacion()">Actualizar ahora</button></div>
 <div id="splash">
+  <img src="logo/sagae-simbolo-blanco.png" alt="" style="height:74px;width:auto;margin-bottom:10px">
   <div class="splash-logo">SAGAE</div>
   <div class="splash-sub">Sistema de Activos y Gestión Administrativa Educativa</div>
   <div class="splash-sub" style="font-size:10px;opacity:.6;margin-top:2px;">Desarrollado por RYE Design</div>
@@ -250,7 +251,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="login-veil"></div>
     <div class="login-card">
       <div class="login-logo-row">
-        <div class="login-logo-mark"><svg viewBox="0 0 64 64" width="30" height="30" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 24 C 26 19, 16 19, 12 22 L 12 42 C 16 39, 26 39, 32 44 C 38 39, 48 39, 52 42 L 52 22 C 48 19, 38 19, 32 24 Z" stroke="#8FCFEA" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><line x1="32" y1="24" x2="32" y2="44" stroke="#8FCFEA" stroke-width="2.6"/><circle cx="32" cy="14" r="3" fill="#8FCFEA"/><line x1="32" y1="17" x2="32" y2="24" stroke="#8FCFEA" stroke-width="2.6" stroke-linecap="round"/></svg></div>
+        <div class="login-logo-mark"><img src="logo/sagae-simbolo.png" alt="SAGAE" style="height:36px;width:auto;display:block"></div>
         <div>
           <div class="login-logo">SAGAE<span class="dot">.</span></div>
           <div class="login-tagline">Tecnología al servicio de la educación</div>
@@ -290,7 +291,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div class="app" id="app">
   <div class="veil-strip"></div>
   <div class="topbar">
-    <div class="topbar-logo">SAGAE</div>
+    <div class="topbar-logo"><img src="logo/sagae-simbolo-blanco.png" alt="" style="height:19px;width:auto;vertical-align:-3px;margin-right:6px">SAGAE</div>
     <div style="flex:1"></div>
     <button id="mob-scan-btn" onclick="abrirEscanerQR()" title="Escanear código QR o de barras">📷 Escanear</button>
     <div class="sync-indicator" id="sync-dot" style="margin-right:10px"></div>
@@ -2737,8 +2738,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=2.7").then(reg=>{
-    console.log("[SAGAE] SW registrado v2.7:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=2.8").then(reg=>{
+    console.log("[SAGAE] SW registrado v2.8:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;

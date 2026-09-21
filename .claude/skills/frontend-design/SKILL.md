@@ -54,6 +54,30 @@ status, inventory state, etc. Pick the semantic color by meaning (green =
 resolved/ok, amber = pending/warning, red = urgent/error, blue = info,
 never by "what looks nice here".
 
+## Logo e identidad
+
+El logo oficial de SAGAE vive en `logo/` y **siempre se usa desde ahí** — no
+recrear la marca en SVG ni en texto:
+
+| Archivo | Cuándo usarlo |
+|---|---|
+| `logo/sagae-logo.png` | Marca completa (símbolo + palabra SAGAE). Cabeceras de reportes y expedientes, documentos impresos. |
+| `logo/sagae-simbolo.png` | Solo el símbolo, en su dorado original. Sobre fondos claros: login, portada del portal público. |
+| `logo/sagae-simbolo-blanco.png` | Solo el símbolo, en blanco. Sobre fondos navy: barra superior, barra lateral, pantalla de bienvenida. |
+
+El símbolo es una **S isométrica con una llama encima**, en dorado `#B3A300`.
+Es alto y angosto (proporción ~0.54), así que se dimensiona **por altura**
+(`height:NNpx; width:auto`) y nunca se estira.
+
+Los iconos de la PWA en `icons/` se generan a partir de `sagae-simbolo.png`
+sobre el degradado navy, con la marca dentro de la zona segura *maskable*
+(altura ≤ 62 % del lienzo). Si el logo cambia, hay que regenerarlos.
+
+En reportes y expedientes el logo va como `background-image` del encabezado
+(`.rep-header`, `.exp-header`), no como `<img>`: así aparece en todos los
+reportes sin tocar cada uno. Esas reglas llevan `print-color-adjust: exact`,
+sin el cual el navegador no imprime ni el fondo ni el logo.
+
 ## Typography
 
 - `index.html` loads Google Fonts **Inter** (weights 400–800) via

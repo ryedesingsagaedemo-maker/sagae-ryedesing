@@ -351,7 +351,9 @@ tbody tr.clickable{cursor:pointer;}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:#1B3A6B;border-radius:50%;animation:spin .7s linear infinite;}
 .loading-text{font-size:13px;color:var(--text2);font-weight:500;}
 .loading-sub{font-size:11px;color:var(--text3);}
-.rep-header{background:#E8F0FB;border:1px solid #A8C0D8;border-radius:var(--r-lg);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+/* El logo va como fondo del encabezado: aparece en TODOS los reportes sin
+   tener que tocar cada uno, y no altera la caja del título. */
+.rep-header{background:#E8F0FB url('logo/sagae-logo.png') no-repeat right 18px center;background-size:auto 40px;border:1px solid #A8C0D8;border-radius:var(--r-lg);padding:14px 96px 14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
 .rep-title{font-size:15px;font-weight:700;color:#1B3A6B;}
 .rep-meta{font-size:11px;color:var(--text3);}
 .rep-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
@@ -504,7 +506,7 @@ tbody tr.clickable{cursor:pointer;}
     background:#fff!important;
     font-family:Arial,Helvetica,sans-serif!important; color:#111!important;
   }
-  .exp-header{border:0.5mm solid #1B3A6B;border-radius:3mm;padding:5mm 6mm;margin-bottom:6mm;background:#E8F0FB;break-inside:avoid;}
+  .exp-header{border:0.5mm solid #1B3A6B;border-radius:3mm;padding:5mm 30mm 5mm 6mm;margin-bottom:6mm;background:#E8F0FB url('logo/sagae-logo.png') no-repeat right 6mm center;background-size:auto 16mm;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .exp-title{font-size:15pt;font-weight:700;color:#1B3A6B;margin-bottom:2mm;}
   .exp-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5mm 6mm;font-size:9pt;}
   .exp-meta-grid b{color:#1B3A6B;}
@@ -567,10 +569,14 @@ tbody tr.clickable{cursor:pointer;}
   body.printing-report .rep-header{
     border:0.5mm solid #1B3A6B!important;
     border-radius:3mm!important;
-    padding:4mm 6mm!important;
+    padding:4mm 28mm 4mm 6mm!important;
     margin-bottom:5mm!important;
-    background:#E8F0FB!important;
+    background:#E8F0FB url('logo/sagae-logo.png') no-repeat right 6mm center!important;
+    background-size:auto 14mm!important;
     break-inside:avoid!important;
+    /* sin esto el navegador no imprime ni el fondo ni el logo */
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
   }
 
   body.printing-report .rep-title{
@@ -805,7 +811,7 @@ tbody tr.clickable{cursor:pointer;}
     <div class="login-veil"></div>
     <div class="login-card">
       <div class="login-logo-row">
-        <div class="login-logo-mark"><svg viewBox="0 0 64 64" width="34" height="34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 24 C 26 19, 16 19, 12 22 L 12 42 C 16 39, 26 39, 32 44 C 38 39, 48 39, 52 42 L 52 22 C 48 19, 38 19, 32 24 Z" stroke="#8FCFEA" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><line x1="32" y1="24" x2="32" y2="44" stroke="#8FCFEA" stroke-width="2.6"/><circle cx="32" cy="14" r="3" fill="#8FCFEA"/><line x1="32" y1="17" x2="32" y2="24" stroke="#8FCFEA" stroke-width="2.6" stroke-linecap="round"/></svg></div>
+        <div class="login-logo-mark"><img src="logo/sagae-simbolo.png" alt="SAGAE" style="height:40px;width:auto;display:block"></div>
         <div>
           <div class="login-logo">SAGAE</div>
           <div class="login-tagline">Tecnología al servicio de la educación</div>
@@ -839,7 +845,7 @@ tbody tr.clickable{cursor:pointer;}
 <div class="app" id="app-screen">
   <div class="sb">
     <div class="sb-head">
-      <div class="sb-logo">SAGAE</div>
+      <div class="sb-logo"><img src="logo/sagae-simbolo.png" alt="" style="height:22px;width:auto;vertical-align:-4px;margin-right:7px">SAGAE</div>
       <div class="sb-user" id="sb-username">—</div>
       <div class="sb-conn">● Google Sheets</div>
       <div style="font-size:9px;color:#5A7A9A;margin-top:3px;letter-spacing:.1em;text-transform:uppercase;">Desarrollado por RYE Design</div><br>
