@@ -1079,21 +1079,34 @@ function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"nu
   if(c.ts) _ultimaSyncOk=c.ts;
   return true;}}catch(e){}return false;}
 async function apiGet(sheet, intento=1){
+  /* v2.9: Google a veces demora o devuelve 404 aunque el servidor ya haya
+     respondido. Se reintenta hasta 3 veces con una pausa creciente. */
+  const MAX_INTENTOS = 3;
   try{
     const tok = (typeof session!=='undefined' && session && session.token) ? '&session='+encodeURIComponent(session.token) : '';
     const controller = new AbortController();
-    const timer = setTimeout(()=>controller.abort(), 35000);
-    const r=await fetch(API+"?sheet="+sheet+tok,{mode:"cors", signal:controller.signal});
+    const timer = setTimeout(()=>controller.abort(), 30000);
+    const r=await fetch(API+"?sheet="+sheet+tok+"&t="+Date.now(),{mode:"cors", signal:controller.signal});
     clearTimeout(timer);
-    if(!r.ok){ if(intento<2) return apiGet(sheet, intento+1); return null; }
+    if(!r.ok) throw new Error("HTTP "+r.status);
     const d=await r.json();
     if(d && d.ok===false && d.error==='SESSION_INVALID'){ _sesionExpiradaMobile(); return []; }
     return Array.isArray(d)?d:[];
   }
   catch(e){
-    if(intento<2) return apiGet(sheet, intento+1);
+    if(intento<MAX_INTENTOS){
+      await new Promise(res=>setTimeout(res, intento*1500));
+      return apiGet(sheet, intento+1);
+    }
     return null;
   }
+}
+/* v2.9: los tickets y activos nunca se borran físicamente (solo se marcan
+   "eliminado"), así que una lista vacía cuando el teléfono ya tiene datos es
+   siempre una falla de conexión: se trata como falla y NO se reemplaza la
+   copia guardada que el técnico usa sin señal. */
+function _listaVaciaSospechosa(nueva, actual){
+  return Array.isArray(nueva) && nueva.length===0 && Array.isArray(actual) && actual.length>0;
 }
 function _generarRequestId(){
   return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);
@@ -1101,7 +1114,7 @@ function _generarRequestId(){
 function _generarOpId(){
   return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12);
 }
-async function apiPostAsync(sheet, action, payload, timeoutMs=35000){
+async function apiPostAsync(sheet, action, payload, timeoutMs=60000){
   const requestId = _generarRequestId();
   const securePayload = {...(payload||{}), _apiToken: API_TOKEN, _requestId: requestId,
                          _sessionToken: (typeof session!=='undefined'&&session)?session.token:null,
@@ -1116,10 +1129,14 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=35000){
   let intervalo = 500;
   while(Date.now()-inicio < timeoutMs){
     try{
-      const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(), {mode:'cors'});
+      /* v2.9: cada consulta tiene su propio límite (si Google la deja
+         colgada, se hace otra) y solo se acepta una respuesta real del
+         servidor: nunca una lista, que no es una confirmación. */
+      const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(),
+                            {mode:'cors', signal:AbortSignal.timeout(10000)});
       if(r.ok){
         const d = await r.json();
-        if(d && !d.pending) return d;
+        if(d && typeof d==='object' && !Array.isArray(d) && !d.pending) return d;
       }
     }catch(e){ }
     await new Promise(r=>setTimeout(r, intervalo));
@@ -1225,12 +1242,14 @@ async function loadData(){
           apiGetTimeout("espacios"),
           apiGetTimeout("personas")
         ]);
-        if(rawT)tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));
-        if(rawA)activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));
+        const tOk = rawT && !_listaVaciaSospechosa(rawT, tickets);
+        const aOk = rawA && !_listaVaciaSospechosa(rawA, activos);
+        if(tOk)tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));
+        if(aOk)activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));
         if(rawDep)departamentos=rawDep.map(r=>({...r}));
         if(rawEsp)espacios=rawEsp.map(r=>({...r}));
         if(rawPer)personas=rawPer.map(r=>({...r}));
-        if(rawT||rawA){
+        if(tOk||aOk){
           saveCache();cntTickets=tickets.length;
           setSyncStatus(true);
           setEstadoConexion("ok");
@@ -1260,12 +1279,14 @@ async function cargarDatosPostLogin(){
       ()=> apiGetTimeout("activos"),
       ()=> cargarResponsablesMobile()
     ], 3, 100);
-    if(rawT){tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));cntTickets=tickets.length;}
-    if(rawA){activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));}
+    const tFalla = rawT===null || _listaVaciaSospechosa(rawT, tickets);
+    const aFalla = rawA===null || _listaVaciaSospechosa(rawA, activos);
+    if(!tFalla){tickets=rawT.map(r=>({...r,id:r.codigo,avance:parseInt(r.avance)||0,historial:parseHist(r.historial)}));cntTickets=tickets.length;}
+    if(!aFalla){activos=rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));}
     saveCache();
     const fallaron=[];
-    if(rawT===null) fallaron.push("tickets");
-    if(rawA===null) fallaron.push("activos");
+    if(tFalla) fallaron.push("tickets");
+    if(aFalla) fallaron.push("activos");
     if(fallaron.length){
       setSyncStatus(false);
       marcarFalloSync();
@@ -1341,11 +1362,11 @@ async function doLogin(){
   const _avisoLargo=setTimeout(()=>{ if(btnLogin) btnLogin.textContent="Esto está tardando más de lo normal..."; },8000);
   let resp;
   try{
-    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'}, 35000);
+    resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'}, 60000);
     if(resp && resp.error==='TIMEOUT'){
       if(btnLogin) btnLogin.textContent="Reintentando conexión...";
       await new Promise(res=>setTimeout(res, 1000 + Math.random()*1500));
-      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'}, 35000);
+      resp = await apiPostAsync(null,'procesarLogin',{username:u,password:p,plataforma:'mobile'}, 60000);
     }
   }catch(e){
     clearTimeout(_avisoLargo);
@@ -1407,7 +1428,7 @@ async function verificarLoginTOTP(){
   if(btnV){ btnV.disabled=true; btnV.textContent='Verificando...'; }
   let resp;
   try{
-    resp = await apiPostAsync(null,'procesarLoginTOTP',{preAuthToken:_preAuthToken, codigo, plataforma:'mobile'}, 35000);
+    resp = await apiPostAsync(null,'procesarLoginTOTP',{preAuthToken:_preAuthToken, codigo, plataforma:'mobile'}, 60000);
   }catch(e){
     if(btnV){ btnV.disabled=false; btnV.textContent='Verificar'; }
     err.textContent='⚠ No se pudo contactar al servidor. Verifica tu conexión.'; err.style.display='block';
@@ -2282,7 +2303,7 @@ async function saveTicket(){
     if(solicitudPiezas) histInicial.push(solicitudPiezas);
     const t={id:code,codigo:code,titulo,activoId:aId||"",activoNombre:aNom,resp:respSelected,tipo:document.getElementById("mt-tipo").value,prior:document.getElementById("mt-prior").value,estado:document.getElementById("mt-estado").value,avance:parseInt(document.getElementById("mt-avance").value)||0,dead:document.getElementById("mt-dead").value||"—",proy:"—",desc:document.getElementById("mt-desc").value.trim(),foto:_mtFotosActuales.length?_mtFotosActuales[0].url:"—",fotos:JSON.stringify(_mtFotosActuales),historial:histInicial,fechaCreacion:ts()};
     tickets.push(t);
-    const resM = await apiPostAsync("tickets","insert",t,35000);
+    const resM = await apiPostAsync("tickets","insert",t,60000);
     if(resM && resM.ok===false && resM.error==='TIMEOUT'){
       tickets = tickets.filter(x=>x.codigo!==code);
       showToast("⏱ No se pudo confirmar. Actualizando lista para verificar...","error");
@@ -2738,8 +2759,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=2.8").then(reg=>{
-    console.log("[SAGAE] SW registrado v2.8:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=2.9").then(reg=>{
+    console.log("[SAGAE] SW registrado v2.9:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;
@@ -2838,7 +2859,7 @@ async function _ejecutarPollMob(){
   if(document.hidden){ _programarPollMob(); return; }
   try{
     const rawT = await apiGet('tickets');
-    if(!Array.isArray(rawT)){ marcarFalloSync(); _programarPollMob(); return; }
+    if(!Array.isArray(rawT) || _listaVaciaSospechosa(rawT, tickets)){ marcarFalloSync(); _programarPollMob(); return; }
     setEstadoConexion("ok");   /* v2.4: lectura exitosa = datos al día */
     const nuevoHash = _mobHash(rawT);
     if(nuevoHash === _mobTicketHash){ _programarPollMob(); return; }
@@ -3139,7 +3160,7 @@ async function guardarNuevoActivoMobile(){
       detalle: editCodigo ? `Editado desde app móvil${eventosEdicion[0]?.tipo==='Reasignación'?' (reasignación de responsable)':''}` : `Registrado desde app móvil: ${nombre}`
     });
     const rawA = await apiGet('activos');
-    activos = Array.isArray(rawA) ? rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3})) : activos;
+    activos = (Array.isArray(rawA) && !_listaVaciaSospechosa(rawA, activos)) ? rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3})) : activos;
     cerrarNuevoActivoMobile();
     renderActivos();
     showMobToast(editCodigo ? '✅ Activo actualizado correctamente' : '✅ Activo registrado correctamente');

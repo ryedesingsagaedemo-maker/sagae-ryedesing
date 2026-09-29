@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v2.8
+// SAGAE — Service Worker v2.9
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v2.8';
-const CACHE_STATIC = 'sagae-static-v2.8';
+const CACHE_NAME   = 'sagae-mobile-v2.9';
+const CACHE_STATIC = 'sagae-static-v2.9';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -75,6 +75,15 @@ const CACHE_STATIC = 'sagae-static-v2.8';
 //   expedientes. Los iconos de la PWA se regeneran con la marca nueva. Se
 //   sube el numero de cache para que los dispositivos con la app instalada
 //   reciban la imagen nueva sin volver a instalar nada.
+// v2.9: SIN SENAL YA NO BORRA DATOS — si fallaba la conexion con Google, este
+//   archivo respondia "lista vacia" como si todo estuviera bien: la app
+//   reemplazaba los tickets guardados en el telefono por nada, podia decir
+//   "Ticket creado" sin haberlo creado y no guardaba en la cola sin conexion
+//   lo que el tecnico registraba. Ahora la falla llega como falla y la app usa
+//   sus reintentos, su cola y su copia guardada. Se sube el numero de cache
+//   para que todos los telefonos reciban la version nueva automaticamente.
+//   Ademas, la pagina se pide siempre al servidor ('no-cache') para que la
+//   recarga automatica traiga de inmediato la version publicada.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -87,7 +96,7 @@ const STATIC_ASSETS = [
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v2.8...');
+  console.log('[SAGAE SW] Instalando v2.9...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -102,7 +111,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v2.8...');
+  console.log('[SAGAE SW] Activando v2.9...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -128,12 +137,10 @@ self.addEventListener('fetch', event => {
   if (url.hostname.includes('script.google.com') ||
       url.hostname.includes('googleapis.com') ||
       url.hostname.includes('google.com')) {
+    // Si no hay conexión, la falla se entrega como falla (igual que si no
+    // existiera este Service Worker). Nunca inventar una respuesta vacía.
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response(JSON.stringify([]), {
-          headers: { 'Content-Type': 'application/json' }
-        });
-      })
+      fetch(event.request).catch(() => Response.error())
     );
     return;
   }
@@ -157,8 +164,15 @@ self.addEventListener('fetch', event => {
   }
 
   // HTML, JS, CSS propios — Network First (garantiza actualizaciones automáticas)
+  // v2.9: se pide siempre la versión al servidor ('no-cache' = preguntar si
+  // cambió; si no cambió, GitHub responde 304 sin volver a enviarla). Sin
+  // esto, el navegador podía reutilizar la página vieja hasta 10 minutos
+  // después de publicar una actualización.
+  const pedido = event.request.method === 'GET'
+    ? fetch(event.request.url, { cache: 'no-cache', credentials: 'same-origin' })
+    : fetch(event.request);
   event.respondWith(
-    fetch(event.request)
+    pedido
       .then(response => {
         if (response && response.status === 200 && event.request.method === 'GET') {
           const clone = response.clone();
@@ -220,4 +234,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v2.8 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v2.9 cargado correctamente');
