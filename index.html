@@ -2517,20 +2517,20 @@ async function cargarResponsablesLista(){
 }
 
 async function apiGet(sheet, intento=1, params=''){
+  // Google a veces devuelve 404 o se queda sin responder aunque el script
+  // haya terminado. Se reintenta hasta 3 veces, con una pausa creciente.
+  const MAX_INTENTOS = 3;
   try{
-    // Tickets en modo ligero: sin fotos ni historial completo.
-    // Reduce el payload de MB a KB y la respuesta llega en <2s.
+    // Tickets en modo ligero: historial recortado (primer evento + últimos 4)
+    // y sin las fotos de los eventos. El detalle se pide al abrir el ticket.
     const modoLigero = (sheet === 'tickets' && !params.includes('mode=')) ? '&mode=light' : '';
     const controller = new AbortController();
-    const timeoutMs = 35000;
+    const timeoutMs = 25000;
     const timer = setTimeout(()=>controller.abort(), timeoutMs);
     const tok = session && session.token ? '&session='+encodeURIComponent(session.token) : '';
-    const r = await fetch(API+'?sheet='+sheet+tok+modoLigero+params, {mode:'cors', signal:controller.signal});
+    const r = await fetch(API+'?sheet='+sheet+tok+modoLigero+params+'&t='+Date.now(), {mode:'cors', signal:controller.signal});
     clearTimeout(timer);
-    if(!r.ok){
-      if(intento < 2) return apiGet(sheet, intento+1, params);
-      const fallo=[]; fallo._failed=true; return fallo;
-    }
+    if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
     if(d && d.ok===false && d.error==='SESSION_INVALID'){
       _sesionExpirada();
@@ -2540,7 +2540,10 @@ async function apiGet(sheet, intento=1, params=''){
   }
   catch(e){
     if(e.name==='AbortError') console.warn('Timeout cargando '+sheet+' (intento '+intento+')');
-    if(intento < 2) return apiGet(sheet, intento+1, params);
+    if(intento < MAX_INTENTOS){
+      await new Promise(res=>setTimeout(res, intento*1500));
+      return apiGet(sheet, intento+1, params);
+    }
     const fallo=[]; fallo._failed=true; return fallo;
   }
 }
@@ -2548,14 +2551,31 @@ async function apiGet(sheet, intento=1, params=''){
 // Carga el detalle completo de UN ticket (con fotos e historial).
 // Se usa al abrir el modal de edición/visualización de un ticket.
 async function apiGetTicketDetail(codigo){
-  try{
-    const tok = session && session.token ? '&session='+encodeURIComponent(session.token) : '';
-    const r = await fetch(API+'?action=ticket_detail&codigo='+encodeURIComponent(codigo)+tok, {mode:'cors'});
-    if(!r.ok) return null;
-    const d = await r.json();
-    if(d && d.ok && d.ticket) return d.ticket;
-    return null;
-  }catch(e){ return null; }
+  const tok = session && session.token ? '&session='+encodeURIComponent(session.token) : '';
+  for(let intento=1; intento<=3; intento++){
+    try{
+      const r = await fetch(API+'?action=ticket_detail&codigo='+encodeURIComponent(codigo)+tok+'&t='+Date.now(),
+                            {mode:'cors', signal:AbortSignal.timeout(20000)});
+      if(r.ok){
+        const d = await r.json();
+        if(d && d.ok && d.ticket) return d.ticket;
+        if(d && d.ok===false) return null; // respuesta real del servidor: no reintentar
+      }
+    }catch(e){ /* Google no respondió: reintentar */ }
+    if(intento<3) await new Promise(res=>setTimeout(res, intento*1500));
+  }
+  return null;
+}
+
+// La lista de tickets llega en modo ligero. Antes de mostrar el historial
+// completo o generar el expediente, se trae el ticket entero del servidor.
+async function _completarHistorialTicket(t){
+  if(!t || !t._histLigero) return true;
+  const d = await apiGetTicketDetail(t.codigo);
+  if(!d) return false;
+  t.historial = parseHist(d.historial);
+  delete t._histLigero; delete t._histTotal;
+  return true;
 }
 
 function _generarRequestId(){
@@ -2568,7 +2588,7 @@ function _generarRequestId(){
 // respuesta) y luego pregunta el resultado real con un GET, que sí es
 // legible. El servidor guarda el resultado bajo el mismo _requestId
 // durante 60 segundos (ver enviarRespuesta_ en el backend).
-async function apiPostAsync(sheet, action, payload, timeoutMs=35000){
+async function apiPostAsync(sheet, action, payload, timeoutMs=60000){
   const requestId = _generarRequestId();
   // _sessionToken: sin él, cualquier acción autenticada (insert/update) era
   // rechazada con SESSION_INVALID. _opId: hace que un reintento del usuario
@@ -2590,7 +2610,10 @@ async function apiPostAsync(sheet, action, payload, timeoutMs=35000){
   let intervalo = 500;
   while(Date.now()-inicio < timeoutMs){
     try{
-      const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(), {mode:'cors'});
+      // Límite por sondeo: si Google deja colgada una consulta, se abandona
+      // y se hace otra, en vez de esperar sin fin a esa sola.
+      const r = await fetch(API+'?action=resultado&requestId='+requestId+'&t='+Date.now(),
+                            {mode:'cors', signal:AbortSignal.timeout(10000)});
       if(r.ok){
         const d = await r.json();
         if(d && !d.pending) return d;
@@ -3931,7 +3954,7 @@ const ET_CAMPOS_FORM=['et-titulo','et-activo','et-resp','et-tipo','et-prior','et
 function renderTicketHistorial(t){
   const wrap=document.getElementById('et-hist-wrap'),list=document.getElementById('et-hist-list'),count=document.getElementById('et-hist-count');
   const hist=(t&&t.historial)||[];
-  count.textContent=hist.length;
+  count.textContent=(t&&t._histLigero&&t._histTotal)?t._histTotal:hist.length;
   list.innerHTML = hist.length ? hist.slice().reverse().map(h=>{
     const color=['red','green','amber','blue'].includes(h.color)?h.color:'navy';
     return `<div class="hist-item">
@@ -3943,6 +3966,10 @@ function renderTicketHistorial(t){
       </div>
     </div>`;
   }).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin eventos registrados todavía.</div>';
+  if(t && t._histLigero && (t._histTotal||0) > hist.length){
+    list.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:6px 0">Cargando el historial completo ('
+      + t._histTotal + ' eventos)…</div>' + list.innerHTML;
+  }
   wrap.style.display='block';
 }
 
@@ -4030,6 +4057,15 @@ function openTicket(id,forceReadOnly){
     document.getElementById('et-proy').value=t.proy!=='—'?t.proy:'';document.getElementById('et-desc').value=t.desc||'';
     _renderGaleriaFotosAdmin(t.fotos);
     renderTicketHistorial(t);
+    if(t._histLigero){
+      _completarHistorialTicket(t).then(ok=>{
+        const sigueAbierto = document.getElementById('mod-ticket').classList.contains('open')
+                          && document.getElementById('et-id').value===id;
+        if(!sigueAbierto) return;
+        if(ok) renderTicketHistorial(t);
+        else showToast('No se pudo cargar el historial completo. Se muestran los eventos más recientes.','error');
+      });
+    }
   }else{
     ['et-titulo','et-proy','et-desc'].forEach(i=>document.getElementById(i).value=''); document.getElementById('et-resp').value='';
     document.getElementById('et-avance').value=0;document.getElementById('et-estado').value='abierto';document.getElementById('et-dead').value='';document.getElementById('et-prior').value='importante';
@@ -4370,7 +4406,7 @@ async function saveTicket(){
     const t={id:code,codigo:code,titulo,activoId:aId||'',activoNombre:aNom,resp:document.getElementById('et-resp').value||'—',tipo:document.getElementById('et-tipo').value,prior:document.getElementById('et-prior').value,estado:document.getElementById('et-estado').value,avance:Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0)),dead:document.getElementById('et-dead').value||'—',proy:document.getElementById('et-proy').value.trim()||'—',desc:document.getElementById('et-desc').value.trim(),fotos:JSON.stringify(_etFotosActuales),foto:_etFotosActuales.length?_etFotosActuales[0].url:'—',historial:[{tipo:'Creación',desc:'Creado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
     tickets.push(t);
 
-    const res = await apiPostAsync('tickets','insert',t,35000);
+    const res = await apiPostAsync('tickets','insert',t,60000);
 
     if(res && res.ok===false && res.error==='TIMEOUT'){
       // No se pudo confirmar. NO se reintenta a ciegas: se recarga la lista
@@ -6089,8 +6125,8 @@ function repTickets(el, ts){
           <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${t.avance||0}%"></div></div><span class="prog-t">${t.avance||0}%</span></div></td>
           <td style="font-size:10px;color:var(--text3)">${renderDead(t.dead)}</td>
           <td style="text-align:center;white-space:nowrap">
-            <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial completo (${(t.historial||[]).length} eventos)">
-              👁 ${(t.historial||[]).length}
+            <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial completo (${t._histTotal||(t.historial||[]).length} eventos)">
+              👁 ${t._histTotal||(t.historial||[]).length}
             </button>
             <button class="act-btn" onclick="imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo (historial + fotos)"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
           </td>
@@ -6514,6 +6550,13 @@ const COLOR_DOT={green:'#3B6D11',red:'#B91C1C',blue:'#1B3A6B',yellow:'#BA7517',g
 async function imprimirExpedienteTicket(codigo){
   const t = tickets.find(x=>x.codigo===codigo);
   if(!t){ showToast('No se encontró el ticket.','error'); return; }
+  if(t._histLigero){
+    showToast('Cargando el historial completo del ticket...','');
+    if(!(await _completarHistorialTicket(t))){
+      showToast('No se pudo cargar el historial completo. Intenta de nuevo en unos segundos.','error');
+      return;
+    }
+  }
 
   const historial = Array.isArray(t.historial) ? t.historial : parseHist(t.historial);
   const fotos = parseHist(t.fotos); // fotos se guarda como string JSON, igual que historial
