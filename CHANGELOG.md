@@ -28,7 +28,7 @@ Service Worker **v3.0** (la app instalada en el teléfono se actualiza sola).
 - Campos libres (marca, color, tipo, departamento, correo en `title=`) se sanean al dibujar las tablas.
 
 ### Backend (pendiente de instalar por el administrador)
-- `docs/backend/PARCHE-BACKEND-2026-10-01.gs`: (1) el servidor exige el permiso de **eliminar** también cuando la eliminación llega como `update`; (2) códigos de Mobiliario/Personas/Espacios/Departamentos sin repetirse aunque se borren filas a mano. Con 13 pruebas unitarias.
+- `docs/backend/PARCHE-BACKEND-2026-10-01.gs` (v2, corregida sobre el código real de producción): (1) el servidor exige el permiso de **eliminar** cuando el `update` pasa un registro a "eliminado"; (2) códigos de Mobiliario/Personas/Espacios/Departamentos/Licencias sin repetirse aunque se borren filas a mano. La v1 cambiaba `tienePermisoEscritura_` y habría dejado editar la Auditoría al administrador: retirada. Probado con 33 comprobaciones sobre el script completo con servicios de Google simulados.
 
 ## [Hardening Phase B] - Security Hardening (Fases 0-2)
 
