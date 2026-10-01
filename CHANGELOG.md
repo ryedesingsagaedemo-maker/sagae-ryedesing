@@ -1,5 +1,35 @@
 # CHANGELOG - SAGAE Hardening
 
+## [2026-10-01] Auditoría de lógica: mobiliario, cierre de tickets y trazabilidad
+
+Revisión completa de la lógica de mobiliario y de los procesos que cruzan módulos, en **portal web y app móvil**.
+Cada fallo se reprodujo primero en un navegador real contra un servidor simulado y se verificó el arreglo con el mismo método.
+Service Worker **v3.0** (la app instalada en el teléfono se actualiza sola).
+
+### Mobiliario (web)
+- **Editar ya no borra el historial.** Se enviaba un texto con un solo evento y el servidor lo escribía encima. Ahora el historial se acumula (arreglo) y registra motivo + qué cambió. Editar exige **motivo**.
+- Tras editar, el registro quedaba con el historial como texto (abrir el detalle fallaba hasta recargar). Corregido.
+- **Lote o individual.** Al crear con cantidad > 1 se pregunta: un registro por unidad (recomendado, cada una con su código y etiqueta) o un lote. Nuevo botón **Dividir en registros individuales** (conserva historial, ofrece imprimir etiquetas de los nuevos; si algo falla a medias se anula todo y el lote queda intacto).
+- Un registro individual ya no puede pasar a varias unidades al editarlo.
+- Tarjetas, dashboard y reporte cuentan **unidades** (antes mezclaban registros y unidades); nueva tarjeta "Dado de baja".
+- Eliminar pide **motivo** y lo deja en el historial (igual que Activos).
+- Etiquetas masivas: se pueden imprimir los registros recién creados; ahora dejan constancia (historial si son ≤10, auditoría si son más) y el nombre se inserta como texto (antes HTML sin sanear).
+
+### Cierre de tickets (web y móvil)
+- Cerrar un ticket de mantenimiento **devuelve el equipo**: sale de "mantenimiento", pide quién lo retira y la condición, deja "Salida de Mantenimiento" en su hoja de vida (el backend avisa a quien lo entregó) y lo registra en auditoría. Con otro ticket de mantenimiento abierto sobre el mismo equipo, sigue en IT.
+- Web: guardar un ticket cuya lista llegó en modo ligero primero trae el historial completo; si no puede, no guarda (evita borrar eventos).
+
+### Trazabilidad e integridad
+- **Auditoría con códigos reales** al crear activos, mobiliario, departamentos, espacios y licencias (guardaba `ACT-P…` / `NUEVO`). El alta de activos confirma el código real y lo adopta (antes, editar un activo recién creado antes de recargar buscaba una fila inexistente).
+- **Móvil: editar dos veces el mismo activo corrompía su historial** (lo partía en letras sueltas) porque la lista recargada guardaba el historial como texto. Corregido; sin daños detectados en los datos actuales.
+- Serial de equipo **único** (web y móvil): el escáner busca por código o por serial.
+- Renombrar un departamento actualiza también los **espacios** (el portal público filtra ubicaciones por ese nombre). Renombrar un espacio actualiza equipos, mobiliario y responsables (buscaba por el nombre nuevo y no encontraba nada). Eliminar un departamento/espacio revisa también mobiliario, espacios y usuarios, y el mensaje dice lo que realmente ocurre.
+- Auditoría de espacios decía CREAR al editar; la de departamentos decía "Renombrado" en cualquier edición. Corregidos.
+- Campos libres (marca, color, tipo, departamento, correo en `title=`) se sanean al dibujar las tablas.
+
+### Backend (pendiente de instalar por el administrador)
+- `docs/backend/PARCHE-BACKEND-2026-10-01.gs`: (1) el servidor exige el permiso de **eliminar** también cuando la eliminación llega como `update`; (2) códigos de Mobiliario/Personas/Espacios/Departamentos sin repetirse aunque se borren filas a mano. Con 13 pruebas unitarias.
+
 ## [Hardening Phase B] - Security Hardening (Fases 0-2)
 
 **Timeline:** Semanas 1-3  

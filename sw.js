@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v2.9
+// SAGAE — Service Worker v3.0
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v2.9';
-const CACHE_STATIC = 'sagae-static-v2.9';
+const CACHE_NAME   = 'sagae-mobile-v3.0';
+const CACHE_STATIC = 'sagae-static-v3.0';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -84,6 +84,14 @@ const CACHE_STATIC = 'sagae-static-v2.9';
 //   para que todos los telefonos reciban la version nueva automaticamente.
 //   Ademas, la pagina se pide siempre al servidor ('no-cache') para que la
 //   recarga automatica traiga de inmediato la version publicada.
+// v3.0: MOBILIARIO POR UNIDAD, CIERRE DE TICKET QUE DEVUELVE EL EQUIPO Y
+//   CORRECCION DE HISTORIAL — al cerrar un ticket de mantenimiento el equipo sale
+//   de mantenimiento y queda quien lo retira (antes quedaba "en mantenimiento"
+//   para siempre). Se corrige que, tras guardar un activo, la lista en memoria
+//   guardaba su historial como texto y la siguiente edicion lo partia en letras
+//   sueltas. El alta de activos ahora confirma el codigo real y el escaner avisa
+//   si un mueble es un lote. Se sube el numero de cache para que todos los
+//   telefonos reciban la version nueva automaticamente, sin reinstalar nada.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -96,7 +104,7 @@ const STATIC_ASSETS = [
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v2.9...');
+  console.log('[SAGAE SW] Instalando v3.0...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -111,7 +119,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v2.9...');
+  console.log('[SAGAE SW] Activando v3.0...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -234,4 +242,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v2.9 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v3.0 cargado correctamente');

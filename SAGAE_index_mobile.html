@@ -499,7 +499,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="form-group"><label class="form-label">Responsable</label><select class="form-select" id="mt-resp"><option value="Sin asignar">— Sin asignar —</option></select></div>
     <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="mt-tipo" onchange="_mtActualizarBloqueRecepcion()"><option value="incidencia">Incidencia</option><option value="mantenimiento">Mantenimiento</option><option value="solicitud">Solicitud</option><option value="tarea">Tarea</option></select></div>
     <div class="form-group"><label class="form-label">Prioridad</label><select class="form-select" id="mt-prior"><option value="urgente">Urgente</option><option value="importante" selected>Importante</option><option value="normal">Normal</option></select></div>
-    <div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="mt-estado"><option value="abierto">Abierto</option><option value="progreso">En progreso</option><option value="revision">En revisión</option><option value="cerrado">Cerrado</option></select></div>
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="mt-estado" onchange="_mtActualizarBloqueDevolucion()"><option value="abierto">Abierto</option><option value="progreso">En progreso</option><option value="revision">En revisión</option><option value="cerrado">Cerrado</option></select></div>
     <div class="form-group">
       <label class="form-label">Avance: <span id="mt-avance-val">0</span>%</label>
       <div class="range-wrap"><input type="range" class="range-input" id="mt-avance" min="0" max="100" value="0" oninput="document.getElementById('mt-avance-val').textContent=this.value"></div>
@@ -522,6 +522,15 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <div style="font-size:10px;color:var(--text3);margin-top:6px">
         Quien entrega no tiene que ser la persona asignada ni el dueño del equipo.
       </div>
+    </div>
+    <div class="form-group" id="mt-dev-wrap" style="display:none;background:var(--green-l);border:1px solid var(--green-m);border-radius:var(--r-md);padding:12px;">
+      <label class="form-label" style="color:var(--green)">📤 Devolución del equipo
+        <span style="font-size:10px;font-weight:400;color:var(--text2);display:block">Al cerrar este ticket el equipo sale de mantenimiento. Quede constancia de quién lo retira.</span>
+      </label>
+      <label class="form-label" style="margin-top:6px">¿Quién retira el equipo?</label>
+      <input class="form-input" id="mt-dev-nombre" placeholder="Nombre de quien retira el equipo" style="margin-bottom:8px">
+      <label class="form-label">Condición al devolver (opcional)</label>
+      <input class="form-input" id="mt-dev-cond" placeholder="Ej: funcionando, se cambió la batería">
     </div>
     <div class="form-group" style="background:var(--gold-l);border-radius:var(--r-md);padding:12px;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -782,7 +791,7 @@ function mostrarResultadoEscaneo(item, tipo){
   status.className = 'scanner-status success';
   document.getElementById('scan-res-nombre').textContent = item.nombre;
   const estadoVal = tipo === 'mobiliario' ? (item.condicion||'') : item.estado;
-  document.getElementById('scan-res-codigo').textContent = item.codigo + ' · ' + (item.tipo||'') + ' · ' + (tipo==='mobiliario' ? '' : (item.marca||''));
+  document.getElementById('scan-res-codigo').textContent = item.codigo + ' · ' + (item.tipo||'') + ' · ' + (tipo==='mobiliario' ? ((item.cantidad||1)>1 ? 'lote de '+item.cantidad+' unidades' : 'unidad individual') : (item.marca||''));
   const estadoEl = document.getElementById('scan-res-estado');
   estadoEl.textContent = estadoVal;
   estadoEl.className = 'scanner-result-estado badge b-' + estadoVal;
@@ -817,6 +826,7 @@ async function verDetalleEscaneado(){
 // el móvil, solo consulta de ficha + historial.
 function openMobiliarioDetalle(codigo){
   const m = mobiliario.find(x=>x.codigo===codigo); if(!m) return;
+  m.historial = parseHist(m.historial);
   mobiliarioDetalle = m;
   document.getElementById("sheet-tkt-title").textContent = m.nombre;
   document.getElementById("sheet-tkt-code").textContent = `${m.codigo} · ${m.tipo||''}`;
@@ -824,7 +834,7 @@ function openMobiliarioDetalle(codigo){
   estadoEl.textContent = m.condicion || '—';
   estadoEl.className = `badge b-${m.condicion||''}`;
   const campos = [
-    ["Cantidad", m.cantidad||1],
+    ["Cantidad", (m.cantidad||1)>1 ? "Lote de "+m.cantidad+" unidades (un solo código)" : "1 unidad individual"],
     ["Ubicación", m.ubicacion||"—"],
     ["Departamento", m.depto||"—"],
     ["Material", m.material||"—"],
@@ -833,6 +843,7 @@ function openMobiliarioDetalle(codigo){
   ];
   document.getElementById("sheet-body").innerHTML=`
     ${campos.map(([l,v])=>`<div class="det-field"><div class="det-field-label">${l}</div><div class="det-field-val">${sanitizeHTML(String(v))}</div></div>`).join("")}
+    ${(m.cantidad||1)>1?`<div style="margin-top:12px;font-size:12px;color:var(--amber);background:var(--amber-l);border:1px solid var(--amber-m);border-radius:8px;padding:10px;">Este código identifica varias unidades a la vez. Para rastrear cada una por separado (condición, ubicación, etiqueta propia), divida el lote desde el portal web.</div>`:''}
     ${m.obs?`<div style="margin-top:12px;font-size:12px;color:var(--text2);background:var(--bg2);border-radius:8px;padding:10px;">${sanitizeHTML(m.obs)}</div>`:''}
     <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Historial (${(m.historial||[]).length})</div>
     ${(m.historial||[]).map(h=>`<div class="hist-item">
@@ -2047,6 +2058,7 @@ function quickEstado(codigo){
   document.getElementById("mt-save-btn").textContent="Guardar cambios";
   overlay.classList.add("open");
   modal.classList.add("open");
+  _mtActualizarBloqueDevolucion();
   setTimeout(()=>document.getElementById("mt-estado").focus(),300);
 }
 function quickAvance(codigo){
@@ -2068,6 +2080,7 @@ function quickAvance(codigo){
   document.getElementById("mt-motivo-wrap").style.display="block";
   document.getElementById("mt-motivo").value="";
   document.getElementById("mt-save-btn").textContent="Guardar cambios";
+  _mtActualizarBloqueDevolucion();
   document.getElementById("modal-overlay").classList.add("open");
   document.getElementById("modal-ticket").classList.add("open");
 }
@@ -2141,6 +2154,7 @@ function openEditTicket(codigo){
   sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=="eliminado").map(a=>`<option value="${a.codigo}">${a.codigo} — ${a.nombre}</option>`).join("");
   sel.value=t.activoId||"";
   _mtActualizarBloqueRecepcion();
+  _mtActualizarBloqueDevolucion();
   document.getElementById("modal-overlay").classList.add("open");
   document.getElementById("modal-ticket").classList.add("open");
 }
@@ -2174,8 +2188,59 @@ function _mtActualizarBloqueRecepcion(){
 }
 
 function _mtLimpiarBloqueRecepcion(){
-  ['mt-recep-equipo','mt-recep-cond','mt-recep-nombre','mt-recep-email']
+  ['mt-recep-equipo','mt-recep-cond','mt-recep-nombre','mt-recep-email','mt-dev-nombre','mt-dev-cond']
     .forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  const w=document.getElementById('mt-dev-wrap'); if(w) w.style.display='none';
+}
+
+// Bloque de devolución: solo al cerrar un ticket de mantenimiento cuyo equipo
+// vinculado sigue en mantenimiento. Usa el ticket guardado (no el selector de
+// activo), porque "Cambiar estado" no vuelve a llenar ese selector.
+function _mtActualizarBloqueDevolucion(){
+  const wrap = document.getElementById('mt-dev-wrap');
+  if(!wrap) return;
+  const t = tickets.find(x=>x.codigo===document.getElementById('mt-id')?.value);
+  const act = (t && t.activoId) ? activos.find(a=>a.codigo===t.activoId) : null;
+  const cierra = document.getElementById('mt-estado')?.value==='cerrado' && !!t && t.estado!=='cerrado';
+  const esMant = document.getElementById('mt-tipo')?.value==='mantenimiento';
+  const mostrar = cierra && esMant && !!act && act.estado==='mantenimiento';
+  wrap.style.display = mostrar ? 'block' : 'none';
+  if(mostrar){
+    const n = document.getElementById('mt-dev-nombre');
+    if(n && !n.value) n.value = (act.asignado && act.asignado!=='—') ? act.asignado : '';
+  }
+}
+
+// Al cerrar un ticket de mantenimiento, el equipo vinculado sale de mantenimiento
+// y queda la constancia de la devolución (el backend avisa a quien lo entregó).
+// Mismos nombres de campo que en la versión web.
+async function _devolverEquipoAlCerrarTicket(t, estadoAntes){
+  if(t.estado!=='cerrado' || estadoAntes==='cerrado') return null;
+  if(t.tipo!=='mantenimiento' || !t.activoId) return null;
+  const act = activos.find(a=>a.codigo===t.activoId);
+  if(!act || act.estado!=='mantenimiento') return null;
+  const otro = tickets.find(x=>x.codigo!==t.codigo && x.activoId===act.codigo && x.tipo==='mantenimiento' && !['cerrado','eliminado'].includes(x.estado));
+  if(otro) return {sigue:true, otro:otro.codigo};
+  const hist = parseHist(act.historial);
+  const entradas = hist.filter(h=>h && h.tipo==='Entrada a Mantenimiento');
+  const entrada = entradas.slice().reverse().find(h=>h.ticket===t.codigo) || entradas[entradas.length-1];
+  const retira = document.getElementById('mt-dev-nombre')?.value.trim() || '';
+  const cond   = document.getElementById('mt-dev-cond')?.value.trim() || '';
+  const estadoPrevio = act.estado, histPrevio = act.historial;
+  act.estado = 'activo';
+  act.historial = [...hist, {
+    tipo:'Salida de Mantenimiento',
+    desc:`Equipo devuelto de mantenimiento al cerrarse el ticket ${t.codigo}. Nuevo estado: activo. Técnico: ${session.nombre} (app móvil).`
+         + (retira ? ` Retirado por: ${retira}.` : '')
+         + (cond   ? ` Condición al devolver: ${cond}.` : ''),
+    tecnico:session.nombre, emailResp:(entrada && entrada.emailResp) || '',
+    devueltoANombre:retira, condicion:cond, asignadoA:act.asignado||'—', ticket:t.codigo,
+    fecha:ts(), usuario:session.nombre, color:'green'
+  }];
+  const res = await apiPostAsync('activos','update',act,60000);
+  if(!res || res.ok===false){ act.estado = estadoPrevio; act.historial = histPrevio; return {error:true}; }
+  await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Activo",codigo:act.codigo,detalle:"Salida de mantenimiento al cerrar el ticket "+t.codigo+" | App Móvil"});
+  return {devuelto:true, codigo:act.codigo};
 }
 
 function _mtLeerRecepcion(){
@@ -2290,8 +2355,12 @@ async function saveTicket(){
     if(solicitudPiezas) t.historial.push(solicitudPiezas);
     await apiPost("tickets","update",t);
     if(solicitudPiezas) await _propagarSolicitudPiezasAlActivo(t.activoId, solicitudPiezas);
+    // Si el ticket de mantenimiento se cerró, el equipo vuelve a estar disponible.
+    const dev = await _devolverEquipoAlCerrarTicket(t, estadoAntes);
     await apiPost("auditoria","insert",{ts:ts(),usuario:session.username,nombre:session.nombre,rol:session.rol,accion:"EDITAR",tipo:"Ticket",codigo:t.codigo,detalle:`Motivo: ${motivo}${solicitudPiezas?" | Solicitud de compra":""} | App Móvil`});
-    showToast("Ticket actualizado"+(solicitudPiezas?" + solicitud de compra":"")+" ✓","success");
+    showToast("Ticket actualizado"+(solicitudPiezas?" + solicitud de compra":"")+(dev&&dev.devuelto?" · equipo devuelto de mantenimiento":"")+" ✓","success");
+    if(dev && dev.sigue) showToast("ℹ El equipo sigue en mantenimiento: tiene otro ticket abierto ("+dev.otro+")","");
+    else if(dev && dev.error) showToast("⚠ El ticket se cerró, pero no se pudo devolver el equipo de mantenimiento. Edítelo y cámbiele el estado.","error");
   } else {
     const _sfxM = Date.now().toString(36).toUpperCase().slice(-4)
                + Math.random().toString(36).toUpperCase().slice(2,4);
@@ -2759,8 +2828,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=2.9").then(reg=>{
-    console.log("[SAGAE] SW registrado v2.9:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=3.0").then(reg=>{
+    console.log("[SAGAE] SW registrado v3.0:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;
@@ -3058,6 +3127,16 @@ async function guardarNuevoActivoMobile(){
   const modal = document.getElementById('mob-modal-activo');
   const editCodigo = modal?._editCodigo || null;
   const existente = editCodigo ? activos.find(x=>x.codigo===editCodigo) : null;
+  // Serial único: el escáner busca equipos por código O por serial; dos equipos
+  // con el mismo serial hacen que se abra el equivocado.
+  {
+    const _ser = (document.getElementById('mob-ea-serial')?.value||'').trim().toUpperCase();
+    const _cambio = !existente || String(existente.serial||'').trim().toUpperCase() !== _ser;
+    if(_ser && _ser!=='—' && _cambio){
+      const _dup = activos.find(x=>x.codigo!==editCodigo && x.estado!=='eliminado' && String(x.serial||'').trim().toUpperCase()===_ser);
+      if(_dup){ showMobToast('El serial "'+_ser+'" ya está registrado en '+_dup.codigo+' ('+_dup.nombre+')'); return; }
+    }
+  }
   if(btn){ btn.disabled=true; btn.textContent = editCodigo ? 'Guardando cambios...' : 'Guardando...'; }
   try{
     const nuevoAsignado = document.getElementById('mob-ea-asignado')?.value||'—';
@@ -3153,14 +3232,36 @@ async function guardarNuevoActivoMobile(){
       }],
       fechaCreacion: editCodigo ? (existente?.fechaCreacion || new Date().toLocaleString('es-PA')) : new Date().toLocaleString('es-PA')
     };
-    await apiPost('activos', editCodigo ? 'update' : 'insert', payload);
+    const _antesCods = new Set(activos.map(a=>a.codigo));
+    let _resNuevo = null;
+    if(editCodigo){
+      await apiPost('activos','update',payload);
+    }else{
+      // Con respuesta confirmada (no a ciegas): se sabe si el activo se creó y con qué código.
+      _resNuevo = await apiPostAsync('activos','insert',payload,60000);
+      if(!_resNuevo || _resNuevo.ok===false){
+        if(_resNuevo && _resNuevo.error==='TIMEOUT'){
+          const _rawT = await apiGet('activos');
+          if(Array.isArray(_rawT) && !_rawT._failed) activos = _rawT.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));
+          cerrarNuevoActivoMobile(); renderActivos();
+          showMobToast('⏱ El servidor tardó en confirmar. Revise la lista antes de repetirlo.');
+        }else{
+          showMobToast('⚠ No se pudo guardar el activo: '+((_resNuevo&&(_resNuevo.message||_resNuevo.error))||'sin respuesta'));
+        }
+        return;
+      }
+    }
+    // IMPORTANTE: el historial se vuelve a convertir en arreglo. Sin esto, la
+    // lista en memoria quedaba con el historial como TEXTO y la siguiente
+    // edición del mismo activo lo partía en letras sueltas.
+    const rawA = await apiGet('activos');
+    activos = (Array.isArray(rawA) && !rawA._failed && !_listaVaciaSospechosa(rawA, activos)) ? rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)})) : activos;
+    const _codAud = editCodigo || (_resNuevo && _resNuevo.codigo) || (activos.find(a=>!_antesCods.has(a.codigo) && a.nombre===nombre)||{}).codigo || 'NUEVO';
     await apiPost('auditoria','insert',{
       ts:new Date().toLocaleString('es-PA'), usuario:session.username, nombre:session.nombre, rol:session.rol,
-      accion: editCodigo?'EDITAR':'CREAR', tipo:'Activo', codigo: editCodigo||'NUEVO',
+      accion: editCodigo?'EDITAR':'CREAR', tipo:'Activo', codigo: _codAud,
       detalle: editCodigo ? `Editado desde app móvil${eventosEdicion[0]?.tipo==='Reasignación'?' (reasignación de responsable)':''}` : `Registrado desde app móvil: ${nombre}`
     });
-    const rawA = await apiGet('activos');
-    activos = (Array.isArray(rawA) && !_listaVaciaSospechosa(rawA, activos)) ? rawA.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3})) : activos;
     cerrarNuevoActivoMobile();
     renderActivos();
     showMobToast(editCodigo ? '✅ Activo actualizado correctamente' : '✅ Activo registrado correctamente');

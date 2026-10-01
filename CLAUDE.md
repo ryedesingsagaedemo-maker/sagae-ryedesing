@@ -1,9 +1,21 @@
 # SAGAE - Sistema de Activos y Gestión Administrativa Educativa
 ## Perfil del Proyecto | Claude Code Memory & Documentation
 
-**Última actualización:** 2026-09-13  
+**Última actualización:** 2026-10-01  
 **Estado:** 🔒 Hardening de Seguridad - Fase 2 Completada  
 **Rama de desarrollo:** `claude/frontend-design-skill-3vykdl`
+
+---
+
+## 🧭 Notas operativas para futuras sesiones (actualizado 2026-10-01)
+
+- **GitHub Pages publica SOLO `main`.** Lo que esté en la rama de trabajo no se ve en la web: "publicar" = dejar el cambio en `main`. Antes de empezar, traer `origin/main` (otra sesión o el usuario pueden haber subido commits) y partir de ahí.
+- **Portal web y móvil son casi uno** (técnico en campo / puesto de trabajo): todo cambio de lógica va en `index.html` **y** `SAGAE_index_mobile.html`, y si toca la app instalada se sube la versión de `sw.js` (hoy **v3.0**) y el `?v=` del registro en el móvil.
+- **El backend (Apps Script) NO está en el repo**; vive en el proyecto de Apps Script del usuario. Parches en `docs/backend/`. El respaldo automático del programa a Drive es `BackupPrograma.gs` (se instala a mano).
+- **Método de verificación usado**: Playwright + Chromium con un servidor simulado que imita el Apps Script (el `update` real sobrescribe toda columna enviada, así que un historial parcial borra el completo). Reproducir el fallo ANTES de corregir y repetir después. El proxy bloquea los CDN: las librerías (DOMPurify, JsBarcode, etc.) se sirven localmente desde `npm pack`.
+- **Convenciones de datos**: el historial viaja siempre como **arreglo** y se **acumula** (`[...parseHist(prev.historial), evento]`); nunca como texto ni solo con el evento nuevo. El backend mira solo el **último** evento del historial para decidir si manda correo, y solo al **actualizar**, no al insertar.
+- **Mobiliario**: un registro = un código = una etiqueta (lote solo para piezas intercambiables). Contar **unidades** con `_mobUnidades()`.
+- Al reemplazar bloques grandes con scripts, anclar con la cadena EXACTA y comprobar el diff (`git diff --stat`): un ancla ambigua ya llegó a borrar el módulo de Licencias en una pasada intermedia (detectado antes de guardar).
 
 ---
 

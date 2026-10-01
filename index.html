@@ -1439,7 +1439,7 @@ tbody tr.clickable{cursor:pointer;}
         </div>
         <div class="f-row">
           <div class="f-lbl">Cantidad *</div>
-          <input class="f-inp" id="mob-cantidad" type="number" min="1" placeholder="1">
+          <input class="f-inp" id="mob-cantidad" type="number" min="1" placeholder="1" oninput="_mobActualizarModo()">
         </div>
         <div class="f-row">
           <div class="f-lbl">Condición *</div>
@@ -1499,6 +1499,25 @@ tbody tr.clickable{cursor:pointer;}
           <div class="f-lbl">Observaciones</div>
           <textarea class="f-inp" id="mob-obs" rows="2" placeholder="Notas adicionales..." style="resize:vertical;"></textarea>
         </div>
+        <!-- Al CREAR con cantidad mayor a 1: ¿un registro por unidad o un lote? -->
+        <div class="f-row" id="mob-modo-wrap" style="grid-column:1/-1;display:none;background:var(--amber-l);border:1px solid var(--amber-m);border-radius:8px;padding:10px 12px;">
+          <div class="f-lbl" style="color:var(--amber)">¿Cómo registrar estas unidades?</div>
+          <select class="f-inp f-sel" id="mob-modo">
+            <option value="individual">Un registro por unidad — cada una con su código y su etiqueta (recomendado)</option>
+            <option value="lote">Un solo registro para todo el lote — un único código para todas</option>
+          </select>
+          <div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5">Con un registro por unidad cada pieza puede tener su propia condición, ubicación e historial. En un lote todas comparten una sola condición y una sola etiqueta, y no se puede saber cuál es cuál.</div>
+        </div>
+        <!-- Al EDITAR: motivo obligatorio, igual que en Activos -->
+        <div class="f-row" id="mob-motivo-wrap" style="grid-column:1/-1;display:none;">
+          <div class="f-lbl">Motivo del cambio *</div>
+          <input class="f-inp" id="mob-motivo" placeholder="Explica por qué se edita este registro...">
+        </div>
+        <!-- Al EDITAR un lote existente: aviso y botón para dividirlo -->
+        <div class="f-row" id="mob-lote-wrap" style="grid-column:1/-1;display:none;background:var(--amber-l);border:1px solid var(--amber-m);border-radius:8px;padding:10px 12px;">
+          <div id="mob-lote-txt" style="font-size:12px;color:var(--amber);line-height:1.5"></div>
+          <div style="margin-top:8px"><button type="button" class="btn" id="mob-lote-btn" style="font-size:12px;padding:6px 14px">✂ Dividir en registros individuales</button></div>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn" onclick="closeModals()">Cancelar</button>
@@ -1551,6 +1570,7 @@ tbody tr.clickable{cursor:pointer;}
           <option value="tipo">Por tipo específico</option>
           <option value="rango">Por rango de códigos</option>
           <option value="todos">Todos los elementos activos</option>
+          <option value="lista" hidden disabled>Los registros que acabo de crear</option>
         </select>
       </div>
       <div class="f-row" id="eg-panel-tipo" style="display:none;">
@@ -2059,7 +2079,7 @@ tbody tr.clickable{cursor:pointer;}
     <div class="f-row"><div class="f-lbl">Prioridad</div><select class="f-inp f-sel" id="et-prior"><option value="urgente">Urgente</option><option value="importante" selected>Importante</option><option value="normal">Normal</option></select></div>
   </div>
   <div class="f-2">
-    <div class="f-row"><div class="f-lbl">Estado</div><select class="f-inp f-sel" id="et-estado"><option value="abierto" selected>Abierto</option><option value="progreso">En progreso</option><option value="revision">En revisión</option><option value="cerrado">Cerrado</option></select></div>
+    <div class="f-row"><div class="f-lbl">Estado</div><select class="f-inp f-sel" id="et-estado" onchange="_etActualizarBloqueDevolucion()"><option value="abierto" selected>Abierto</option><option value="progreso">En progreso</option><option value="revision">En revisión</option><option value="cerrado">Cerrado</option></select></div>
     <div class="f-row"><div class="f-lbl">Avance %</div><input class="f-inp" type="number" id="et-avance" min="0" max="100" value="0"></div>
   </div>
   <div class="f-2">
@@ -2087,6 +2107,18 @@ tbody tr.clickable{cursor:pointer;}
   </div>
   <div id="et-readonly-note" style="display:none;margin:2px 0 10px;font-size:11px;color:var(--text3);background:#F1F5F9;border-radius:6px;padding:8px 10px;">
     👁 <span id="et-readonly-msg">Estás viendo este ticket en modo solo lectura.</span>
+  </div>
+  <!-- Devolución del equipo: aparece solo al CERRAR un ticket de mantenimiento cuyo
+       equipo vinculado está en mantenimiento. Al guardar, el equipo sale de
+       mantenimiento y queda la constancia de quién lo retira. -->
+  <div class="f-row" id="et-devolucion-wrap" style="display:none;background:var(--green-l);border:1px solid var(--green-m);border-radius:6px;padding:10px;">
+    <div class="f-lbl" style="color:var(--green);font-weight:700">📤 Devolución del equipo
+      <span style="font-size:10px;font-weight:400;color:var(--text2);display:block;margin-top:2px">Al cerrar este ticket el equipo sale de mantenimiento. Quede constancia de quién lo retira.</span>
+    </div>
+    <div class="f-lbl" style="margin-top:6px">¿Quién retira el equipo?</div>
+    <input class="f-inp" id="et-dev-nombre" placeholder="Nombre de quien retira el equipo">
+    <div class="f-lbl" style="margin-top:6px">Condición al devolver (opcional)</div>
+    <input class="f-inp" id="et-dev-cond" placeholder="Ej: funcionando, se reemplazó la batería">
   </div>
   <!-- Equipo que NO está en el inventario: personal del usuario, prestado o de un
        proveedor. No hay activo cuyo estado cambiar, así que el comprobante queda
@@ -2672,7 +2704,7 @@ function _pushHistorialItem(tipo, codigo, evento){
   const src = tipo==='mobiliario' ? mobiliario : activos;
   const item = src.find(x=>x.codigo===codigo);
   if(!item) return;
-  item.historial = item.historial || [];
+  item.historial = parseHist(item.historial);
   item.historial.push(evento);
   apiPost(tipo==='mobiliario'?'mobiliario':'activos','update',item);
 }
@@ -3697,6 +3729,23 @@ async function saveActivo(){
   if(garantiaEl.value && !validateDateField(garantiaEl)) formOk=false;
   // Garantía posterior a compra
   if(!validateFechas()) formOk=false;
+  // Serial único: el escáner del móvil busca equipos por código O por serial, así
+  // que dos equipos con el mismo serial hacen que se abra el equivocado.
+  {
+    const _ser = (document.getElementById('ea-serial')?.value||'').trim().toUpperCase();
+    const _idEd = document.getElementById('ea-id').value;
+    const _prev = _idEd ? activos.find(x=>x.codigo===_idEd) : null;
+    const _cambio = !_prev || String(_prev.serial||'').trim().toUpperCase() !== _ser;
+    if(_ser && _ser!=='—' && _cambio){
+      const _dup = activos.find(x=>x.codigo!==_idEd && x.estado!=='eliminado' && String(x.serial||'').trim().toUpperCase()===_ser);
+      if(_dup){
+        document.getElementById('ea-serial').classList.add('error');
+        showToast('El serial "'+_ser+'" ya está registrado en '+_dup.codigo+' ('+_dup.nombre+'). Cada equipo debe tener un serial único.','error');
+        document.getElementById('ea-serial').focus();
+        return;
+      }
+    }
+  }
 
   if(!formOk){
     showToast('Corrige los errores marcados en rojo antes de guardar','error');
@@ -3814,10 +3863,41 @@ async function saveActivo(){
     responsableEspacioEmail:document.getElementById('ea-responsable-espacio-email')?.value||'',
     responsableEspacioEmail:document.getElementById('ea-responsable-espacio-email')?.value||'',depto:document.getElementById('ea-depto').value.trim()||'—',compra:document.getElementById('ea-compra').value||'—',garantia:document.getElementById('ea-garantia').value||'—',valor:parseFloat(document.getElementById('ea-valor').value)||0,vida:parseInt(document.getElementById('ea-vida').value)||3,obs:document.getElementById('ea-obs').value.trim(),foto:document.getElementById('ea-foto')?.value.trim()||'—',historial:[{tipo:'Creación',desc:'Registrado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
     activos.push(a);
-    const _aOk = await apiPost('activos','insert',a);
-    window._savingActivo = false;
-    if(!_aOk){ showToast('⚠ Error guardando activo, reintenta','error'); return; }
-    audit('CREAR','Activo',code,'Registrado: '+nombre);
+    mostrarGuardando('Guardando activo...','No cierres esta ventana.');
+    let _resA;
+    try{ _resA = await apiPostAsync('activos','insert',a,60000); }
+    finally{ window._savingActivo = false; ocultarGuardando(); }
+    const _recargarActivos = async()=>{
+      try{
+        const raw = await apiGet('activos');
+        if(Array.isArray(raw) && !raw._failed){
+          activos = raw.map(r=>({...r,id:r.codigo,valor:parseFloat(r.valor)||0,vida:parseInt(r.vida)||3,historial:parseHist(r.historial)}));
+          cntActivos = activos.length;
+          return true;
+        }
+      }catch(e){}
+      return false;
+    };
+    if(!_resA || _resA.ok===false){
+      // Sin confirmación NO se reintenta a ciegas: se recarga para ver si entró.
+      activos = activos.filter(x=>x.codigo!==code);
+      if(_resA && _resA.error==='TIMEOUT'){
+        await _recargarActivos();
+        showToast('⏱ El servidor tardó en confirmar. Se actualizó la lista: verifique si el activo se creó antes de repetirlo.','error');
+        closeModals(); renderAll();
+      }else{
+        showToast('⚠ No se pudo guardar el activo: '+((_resA&&(_resA.message||_resA.error))||'sin respuesta'),'error');
+      }
+      return;
+    }
+    // Adoptar el código REAL: con el provisional, editar este activo antes de
+    // recargar buscaría una fila que no existe y el cambio se perdería.
+    let _codReal = _resA.codigo || '';
+    if(!_codReal){
+      await _recargarActivos();
+      _codReal = (activos.find(x=>x.nombre===nombre && x.fechaCreacion===a.fechaCreacion)||{}).codigo || '';
+    } else { a.codigo = _codReal; a.id = _codReal; }
+    audit('CREAR','Activo',_codReal||code,'Registrado: '+nombre);
   }
   closeModals();renderAll();if(isEdit&&activoActual)showDetalle(activoActual.codigo);
 }
@@ -3976,10 +4056,66 @@ function renderTicketHistorial(t){
 // Bloques de recepción de equipo externo y de solicitud de piezas. Solo tienen
 // sentido sobre un ticket ya creado y editable — la misma condición que el
 // bloque de motivo, así que se apoyan en ella en vez de repetir la regla.
+// Bloque de devolución: solo al cerrar un ticket de mantenimiento cuyo equipo
+// vinculado sigue en mantenimiento.
+function _etActualizarBloqueDevolucion(){
+  const wrap = document.getElementById('et-devolucion-wrap');
+  if(!wrap) return;
+  const puedeEditar = document.getElementById('et-save-btn')?.style.display !== 'none';
+  const t = tickets.find(x=>x.codigo===document.getElementById('et-id')?.value);
+  const act = activos.find(a=>a.codigo===(document.getElementById('et-activo')?.value||''));
+  const cierra = document.getElementById('et-estado')?.value==='cerrado' && !!t && t.estado!=='cerrado';
+  const esMant = document.getElementById('et-tipo')?.value==='mantenimiento';
+  const mostrar = puedeEditar && cierra && esMant && !!act && act.estado==='mantenimiento';
+  wrap.style.display = mostrar ? 'block' : 'none';
+  if(mostrar){
+    const n = document.getElementById('et-dev-nombre');
+    if(n && !n.value) n.value = (act.asignado && act.asignado!=='—') ? act.asignado : '';
+  }
+}
+
+// Al cerrar un ticket de mantenimiento, el equipo vinculado sale de mantenimiento.
+// Hasta ahora esto solo ocurría editando el equipo a mano, así que un ticket
+// cerrado podía dejar el equipo "en mantenimiento" para siempre y sin constancia
+// de la devolución ni aviso a quien lo entregó.
+async function _devolverEquipoAlCerrarTicket(t, estadoAntes){
+  if(t.estado!=='cerrado' || estadoAntes==='cerrado') return null;
+  if(t.tipo!=='mantenimiento' || !t.activoId) return null;
+  const act = activos.find(a=>a.codigo===t.activoId);
+  if(!act || act.estado!=='mantenimiento') return null;
+  // Si el mismo equipo tiene OTRO ticket de mantenimiento abierto, sigue en IT.
+  const otro = tickets.find(x=>x.codigo!==t.codigo && x.activoId===act.codigo && x.tipo==='mantenimiento' && !['cerrado','eliminado'].includes(x.estado));
+  if(otro) return {sigue:true, otro:otro.codigo};
+  const hist = parseHist(act.historial);
+  const entradas = hist.filter(h=>h && h.tipo==='Entrada a Mantenimiento');
+  const entrada = entradas.slice().reverse().find(h=>h.ticket===t.codigo) || entradas[entradas.length-1];
+  const retira = document.getElementById('et-dev-nombre')?.value.trim() || '';
+  const cond   = document.getElementById('et-dev-cond')?.value.trim() || '';
+  const estadoPrevio = act.estado, histPrevio = act.historial;
+  act.estado = 'activo';
+  act.historial = [...hist, {
+    tipo:'Salida de Mantenimiento',
+    desc:`Equipo devuelto de mantenimiento al cerrarse el ticket ${t.codigo}. Nuevo estado: activo. Técnico: ${session.nombre}.`
+         + (retira ? ` Retirado por: ${retira}.` : '')
+         + (cond   ? ` Condición al devolver: ${cond}.` : ''),
+    tecnico:session.nombre, emailResp:(entrada && entrada.emailResp) || '',
+    devueltoANombre:retira, condicion:cond, asignadoA:act.asignado||'—', ticket:t.codigo,
+    fecha:ts(), usuario:session.nombre, color:'green'
+  }];
+  const res = await apiPostAsync('activos','update',act,60000);
+  if(!res || res.ok===false){
+    act.estado = estadoPrevio; act.historial = histPrevio;
+    return {error:true};
+  }
+  audit('EDITAR','Activo',act.codigo,`Salida de mantenimiento al cerrar el ticket ${t.codigo}`);
+  return {devuelto:true, codigo:act.codigo};
+}
+
 function _etActualizarBloquesRecepcion(){
   const ext = document.getElementById('et-externo-wrap');
   const pzs = document.getElementById('et-piezas-wrap');
   if(!ext || !pzs) return;
+  _etActualizarBloqueDevolucion();
   const puedeEditar = document.getElementById('et-save-btn')?.style.display !== 'none';
   const esEdicion   = !!document.getElementById('et-id')?.value;
   const esMant      = document.getElementById('et-tipo')?.value === 'mantenimiento';
@@ -4009,6 +4145,7 @@ function _etActualizarBloquesRecepcion(){
 
 function _etLimpiarBloquesRecepcion(){
   ['et-ext-equipo','et-ext-cond','et-ext-nombre','et-ext-email',
+   'et-dev-nombre','et-dev-cond',
    'et-piezas-desc','et-piezas-email','et-piezas-presupuesto']
     .forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const u=document.getElementById('et-piezas-urgencia'); if(u) u.value='normal';
@@ -4318,6 +4455,12 @@ async function saveTicket(){
   try{
   if(isEdit){
     const t=tickets.find(x=>x.codigo===editId);if(!t)return;
+    // La lista llega en modo ligero (historial recortado). Guardar así borraría
+    // los eventos que no se descargaron: primero se trae el historial completo.
+    if(t._histLigero && !(await _completarHistorialTicket(t))){
+      showToast('⚠ No se pudo cargar el historial completo del ticket, así que no se guardó para no perder eventos. Intenta de nuevo en unos segundos.','error');
+      return;
+    }
     const cambios=[];const nResp=document.getElementById('et-resp').value||'—';
     // Capturar valores ANTES del cambio para el historial
     const estadoAnteriorTicket = t.estado;
@@ -4388,6 +4531,11 @@ async function saveTicket(){
     }else{
       showToast('✅ Cambios guardados en '+t.codigo,'success');
     }
+    // Si el ticket de mantenimiento se cerró, el equipo vuelve a estar disponible.
+    const dev = await _devolverEquipoAlCerrarTicket(t, estadoAnteriorTicket);
+    if(dev && dev.devuelto) showToast('🔧 El equipo '+dev.codigo+' salió de mantenimiento y quedó registrada su devolución.','success');
+    else if(dev && dev.sigue) showToast('ℹ El equipo sigue en mantenimiento: tiene otro ticket de mantenimiento abierto ('+dev.otro+').','');
+    else if(dev && dev.error) showToast('⚠ El ticket se cerró, pero no se pudo devolver el equipo de mantenimiento. Edite el equipo y cámbiele el estado.','error');
   }else{
     // ── CREACIÓN DE TICKET ────────────────────────────────────────
     // Cambios de esta versión:
@@ -4533,8 +4681,18 @@ async function recargarTickets(){
   }catch(e){ /* si falla, el sondeo periódico lo corregirá */ }
 }
 
+// Código real que el servidor asignó a un registro recién creado: el que no estaba antes.
+function _codigoNuevo(antes, lista, nombre){
+  const n = (lista||[]).filter(x=>x && x.codigo && !antes.has(x.codigo));
+  return (n.find(x=>x.nombre===nombre) || n[n.length-1] || {}).codigo || '';
+}
+// Escapa texto para usarlo dentro de un atributo HTML (title="...", etc.).
+function escAttr(v){
+  return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function openDelete(type,id){
-  pendingDelete={type,id};const obj=type==='activo'?activos.find(a=>a.codigo===id):tickets.find(t=>t.codigo===id);
+  pendingDelete={type,id};const obj=type==='activo'?activos.find(a=>a.codigo===id):type==='mobiliario'?mobiliario.find(m=>m.codigo===id):tickets.find(t=>t.codigo===id);
   document.getElementById('del-code').textContent=obj?obj.codigo:'';document.getElementById('del-motivo').value='';
   document.getElementById('mod-delete').classList.add('open');
 }
@@ -4546,6 +4704,16 @@ async function confirmDelete(){
     const a=activos.find(x=>x.codigo===id);if(!a)return;
     a.estado='eliminado';a.historial=a.historial||[];a.historial.push({tipo:'Eliminación lógica',desc:`Eliminado por ${session.nombre}. Motivo: ${motivo}`,fecha:ts(),usuario:session.nombre,color:'red'});
     await apiPost('activos','update',a);audit('ELIMINAR','Activo',a.codigo,`Por ${session.nombre}. Motivo: ${motivo}`);
+  }else if(type==='mobiliario'){
+    const m=mobiliario.find(x=>x.codigo===id);if(!m)return;
+    const hist=[...parseHist(m.historial),{tipo:'Eliminación lógica',desc:`Eliminado por ${session.nombre}. Motivo: ${motivo}`,fecha:ts(),usuario:session.nombre,color:'red'}];
+    const res=await apiPostAsync('mobiliario','update',{...m,estado:'eliminado',historial:hist},60000);
+    if(!res||res.ok===false){showToast('⚠ No se pudo eliminar: '+((res&&(res.message||res.error))||'sin respuesta'),'error');return;}
+    m.estado='eliminado';m.historial=hist;
+    audit('ELIMINAR','Mobiliario',m.codigo,`Por ${session.nombre}. Motivo: ${motivo} — ${m.nombre}`);
+    closeModals();renderMobiliario();renderDash();go('mobiliario',document.getElementById('nav-mobiliario'));
+    showToast('Elemento eliminado','success');
+    return;
   }else{
     const t=tickets.find(x=>x.codigo===id);if(!t)return;
     t.estado='eliminado';t.historial=t.historial||[];t.historial.push({tipo:'Eliminación lógica',desc:`Eliminado por ${session.nombre}. Motivo: ${motivo}`,fecha:ts(),usuario:session.nombre,color:'red'});
@@ -5129,12 +5297,13 @@ function showDetalle(id){
 // de barras con impresión de etiqueta.
 function showDetalleMob(codigo){
   mobiliarioActual = mobiliario.find(m=>m.codigo===codigo); if(!mobiliarioActual) return;
+  mobiliarioActual.historial = parseHist(mobiliarioActual.historial);
   document.getElementById('nav-detalle-mob').style.display='flex';
   document.getElementById('det-mob-content').innerHTML=`
     <div class="det-header">
       <div class="det-icon">${TIPO_ICON[mobiliarioActual.tipo]||'📦'}</div>
       <div style="flex:1"><div class="det-title">${sanitizeHTML(mobiliarioActual.nombre)}</div>
-        <div class="det-code">${mobiliarioActual.codigo} · ${sanitizeHTML(mobiliarioActual.tipo||'')} · Cantidad: ${mobiliarioActual.cantidad||1}</div>
+        <div class="det-code">${mobiliarioActual.codigo} · ${sanitizeHTML(mobiliarioActual.tipo||'')} · ${(mobiliarioActual.cantidad||1)>1 ? 'Lote de '+mobiliarioActual.cantidad+' unidades' : 'Unidad individual'}</div>
         <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap"><span class="badge" style="background:var(--bg2);color:var(--text2)">${mobiliarioActual.condicion||'—'}</span><span class="badge" style="background:var(--bg2);color:var(--text2)">${sanitizeHTML(mobiliarioActual.depto||'Sin depto')}</span></div>
       </div>
     </div>
@@ -5182,6 +5351,10 @@ function showDetalleMob(codigo){
           🏷️ Imprimir etiqueta
         </button>
       </div>
+      ${(mobiliarioActual.cantidad||1)>1?`<div style="margin-top:12px;background:var(--amber-l);border:1px solid var(--amber-m);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--amber);line-height:1.5">
+        Este código identifica un <strong>lote de ${mobiliarioActual.cantidad} unidades</strong>: una sola etiqueta para todas.
+        ${(PERMS[session.rol]||{}).edit?`<div style="margin-top:8px;text-align:center"><button class="btn" onclick="dividirLoteMobiliario('${mobiliarioActual.codigo}')" style="font-size:12px;padding:6px 14px">✂ Dividir en registros individuales</button></div>`:''}
+      </div>`:''}
     </div>`:''}`;
   go('detalle-mob',document.getElementById('nav-detalle-mob'));
   if(['admin','tecnico','inventario'].includes(session.rol)){
@@ -5205,8 +5378,8 @@ function renderActivos(){
   if(!list.length){tb.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text3);font-size:12px">Sin activos${filtroA!=='todos'?' en este estado':'. Usa "+ Nuevo activo"'}.</td></tr>`;return;}
   tb.innerHTML=list.map(a=>`<tr class="clickable ${a.estado==='eliminado'?'del-row':''}" onclick="showDetalle('${a.codigo}')">
     <td class="code-cell">${a.codigo}</td>
-    <td><div style="font-weight:600;font-size:12px">${sanitizeHTML(a.nombre||'')}</div><div style="font-size:10px;color:var(--text3)">${a.marca||''} ${sanitizeHTML(a.modelo||'')}</div></td>
-    <td>${a.tipo}</td><td><div title="${a.asignadoEmail?'📧 '+a.asignadoEmail:''}">${sanitizeHTML(a.asignado||'—')}${a.asignadoEmail?'<span style="font-size:9px;color:var(--navy);margin-left:3px">📧</span>':''}</div><div style="font-size:10px;color:var(--text3)">${a.depto||''}</div></td>
+    <td><div style="font-weight:600;font-size:12px">${sanitizeHTML(a.nombre||'')}</div><div style="font-size:10px;color:var(--text3)">${sanitizeHTML(a.marca||'')} ${sanitizeHTML(a.modelo||'')}</div></td>
+    <td>${sanitizeHTML(a.tipo||'')}</td><td><div title="${escAttr(a.asignadoEmail?'📧 '+a.asignadoEmail:'')}">${sanitizeHTML(a.asignado||'—')}${a.asignadoEmail?'<span style="font-size:9px;color:var(--navy);margin-left:3px">📧</span>':''}</div><div style="font-size:10px;color:var(--text3)">${sanitizeHTML(a.depto||'')}</div></td>
     <td style="font-size:11px">${sanitizeHTML(a.ubicacion||'—')}</td><td><span class="badge s-${a.estado}">${a.estado}</span></td>
     <td style="text-align:center">${a.foto && a.foto!=='—' ? `<a href="${sanitizeHTML(a.foto)}" target="_blank" title="Ver foto/doc" style="font-size:16px;text-decoration:none">📎</a>` : '<span style="color:var(--text3);font-size:11px">—</span>'}</td>
     <td style="font-size:11px;color:var(--text3)">${fmtFecha(a.garantia)}</td><td>
@@ -5492,10 +5665,10 @@ function renderDash(){
   const mobTotal    = mob.length;
   const mobUnidades = mob.reduce((s,m)=>s+(parseInt(m.cantidad)||1),0);
   const mobVal      = mob.reduce((s,m)=>s+(parseFloat(m.valor)||0)*(parseInt(m.cantidad)||1),0);
-  const mobBueno    = mob.filter(m=>m.condicion==='bueno').length;
-  const mobRegular  = mob.filter(m=>m.condicion==='regular').length;
-  const mobDeteri   = mob.filter(m=>m.condicion==='deteriorado').length;
-  const mobBaja     = mob.filter(m=>m.condicion==='baja').length;
+  const mobBueno    = _mobUnidades(mob,'bueno');
+  const mobRegular  = _mobUnidades(mob,'regular');
+  const mobDeteri   = _mobUnidades(mob,'deteriorado');
+  const mobBaja     = _mobUnidades(mob,'baja');
 
   if(el('d-mob-total'))    el('d-mob-total').textContent    = mobTotal;
   if(el('d-mob-unidades')) el('d-mob-unidades').textContent = mobUnidades;
@@ -5503,7 +5676,7 @@ function renderDash(){
 
   // Barras de condición
   const condEl = el('dash-mob-condicion');
-  if(condEl && mobTotal > 0){
+  if(condEl && mobUnidades > 0){
     const barras = [
       {label:'Bueno',     val:mobBueno,  color:'#1A7A4A'},
       {label:'Regular',   val:mobRegular,color:'#E8A800'},
@@ -5511,7 +5684,7 @@ function renderDash(){
       {label:'Dado de baja',val:mobBaja, color:'#9CA3AF'},
     ];
     condEl.innerHTML = barras.map(b=>{
-      const pct = mobTotal ? Math.round(b.val/mobTotal*100) : 0;
+      const pct = mobUnidades ? Math.round(b.val/mobUnidades*100) : 0;
       return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <span style="font-size:10px;color:#6B7280;width:80px;flex-shrink:0">${b.label}</span>
         <div style="flex:1;background:#F3F4F6;border-radius:4px;height:10px;">
@@ -6982,8 +7155,12 @@ let _etiqGrupoTipo = 'activo'; // 'activo' | 'mobiliario' — qué inventario se
 
 // Abre el modal de impresión masiva de etiquetas — sirve tanto para
 // activos como para mobiliario según el parámetro "tipo"
-function abrirModalEtiquetasGrupo(tipo){
+let _etiqListaForzada = null; // códigos concretos (p. ej. los recién creados al dividir un lote)
+function abrirModalEtiquetasGrupo(tipo, codigosForzados){
   _etiqGrupoTipo = tipo || 'activo';
+  _etiqListaForzada = (Array.isArray(codigosForzados) && codigosForzados.length) ? codigosForzados.slice() : null;
+  const optLista = document.querySelector('#eg-modo option[value="lista"]');
+  if(optLista){ optLista.hidden = !_etiqListaForzada; optLista.disabled = !_etiqListaForzada; }
   const esMob = _etiqGrupoTipo === 'mobiliario';
   const src = esMob ? mobiliario : activos;
   document.getElementById('eg-titulo').textContent = esMob
@@ -6998,8 +7175,8 @@ function abrirModalEtiquetasGrupo(tipo){
   tiposSel.innerHTML = '<option value="">— Selecciona un tipo —</option>' +
     tiposEnUso.map(t=>`<option value="${t}">${TIPO_ICON[t]||'📦'} ${t}</option>`).join('');
 
-  // Modo inicial: vista actual
-  document.getElementById('eg-modo').value = 'filtro';
+  // Modo inicial: vista actual (o la lista concreta recién creada)
+  document.getElementById('eg-modo').value = _etiqListaForzada ? 'lista' : 'filtro';
   actualizarModoEtiq();
   document.getElementById('mod-etiq-grupo').classList.add('open');
 }
@@ -7056,6 +7233,9 @@ function actualizarPreviewEtiq(){
   else if(modo === 'todos'){
     lista = src.filter(x=>x.estado!=='eliminado');
   }
+  else if(modo === 'lista'){
+    lista = _etiqListaForzada ? src.filter(x=>_etiqListaForzada.includes(x.codigo) && x.estado!=='eliminado') : [];
+  }
 
   _etiqCodigosActuales = lista.map(x=>x.codigo);
   const res = document.getElementById('eg-resumen');
@@ -7073,6 +7253,8 @@ function actualizarPreviewEtiq(){
       ? `Tipo: <strong>${document.getElementById('eg-tipo-sel').value}</strong>`
       : modo==='rango'
       ? `Rango ${pref}-${String(document.getElementById('eg-desde').value||'?').padStart(4,'0')} → ${pref}-${String(document.getElementById('eg-hasta').value||'?').padStart(4,'0')}`
+      : modo==='lista'
+      ? `Registros recién creados: <strong>${_etiqCodigosActuales.join(', ')}</strong>`
       : `Todos los ${esMob?'elementos de mobiliario':'activos'} activos`;
     res.innerHTML = `${desc}<br><span style="color:var(--green);font-weight:700">${_etiqCodigosActuales.length} etiqueta${_etiqCodigosActuales.length!==1?'s':''}</span> listas para imprimir`;
     btn.disabled = false;
@@ -7091,6 +7273,16 @@ function imprimirGrupoEtiquetas(){
   // 1. Cerrar modal PRIMERO
   closeModals();
 
+  // Constancia de la impresión: en el historial de cada registro si son pocos;
+  // si son muchos, una sola línea en la auditoría (evita cientos de peticiones).
+  const _tipoEtiq = esMob ? 'mobiliario' : 'activo';
+  if(_etiqCodigosActuales.length <= 10){
+    _etiqCodigosActuales.forEach(c=>registrarEventoEtiqueta(_tipoEtiq, c));
+  } else {
+    audit('CREAR', esMob?'Mobiliario':'Activo', _etiqCodigosActuales[0]+' … '+_etiqCodigosActuales[_etiqCodigosActuales.length-1],
+          'Impresión masiva de '+_etiqCodigosActuales.length+' etiquetas de código de barras');
+  }
+
   // 2. Preparar el área de impresión
   const area = document.getElementById('print-multi-area');
   area.innerHTML = '';
@@ -7105,11 +7297,14 @@ function imprimirGrupoEtiquetas(){
     const nom = a.nombre.length>42 ? a.nombre.substring(0,40)+'...' : a.nombre;
     const cod2 = a.codigo + (a.tipo ? ' - '+a.tipo : '');
     const svgId = 'ms_'+cod.replace(/[^a-zA-Z0-9]/g,'_');
+    // El nombre es texto libre: se inserta como TEXTO, nunca como HTML.
     const div = document.createElement('div');
     div.className = 'etiq-multi';
-    div.innerHTML = '<div class="etiq-multi-nom">'+nom+'</div>'
-      +'<div class="etiq-multi-bc"><svg id="'+svgId+'" xmlns="http://www.w3.org/2000/svg"></svg></div>'
-      +'<div class="etiq-multi-cod">'+cod2+'</div>';
+    const dNom = document.createElement('div'); dNom.className = 'etiq-multi-nom'; dNom.textContent = nom;
+    const dBc  = document.createElement('div'); dBc.className  = 'etiq-multi-bc';
+    dBc.innerHTML = '<svg id="'+svgId+'" xmlns="http://www.w3.org/2000/svg"></svg>';
+    const dCod = document.createElement('div'); dCod.className = 'etiq-multi-cod'; dCod.textContent = cod2;
+    div.appendChild(dNom); div.appendChild(dBc); div.appendChild(dCod);
     area.appendChild(div);
   });
 
@@ -7838,16 +8033,22 @@ function renderMobiliario(){
   );
 
   // KPIs
+  // Las tarjetas cuentan UNIDADES (un lote de 2 mesas son 2), igual que el
+  // valor total, el dashboard y el reporte. Antes contaban registros y el
+  // valor multiplicaba por cantidad: la misma pantalla mezclaba dos medidas.
   const total   = mobiliario.filter(m=>m.estado!=='eliminado');
-  const buenos  = total.filter(m=>m.condicion==='bueno').length;
-  const regular = total.filter(m=>m.condicion==='regular').length;
-  const deterio = total.filter(m=>m.condicion==='deteriorado').length;
+  const uTotal  = _mobUnidades(total);
+  const buenos  = _mobUnidades(total,'bueno');
+  const regular = _mobUnidades(total,'regular');
+  const deterio = _mobUnidades(total,'deteriorado');
+  const baja    = _mobUnidades(total,'baja');
   const valTotal = total.reduce((s,m)=>(s+(m.valor||0)*(m.cantidad||1)),0);
   kpi.innerHTML=`
-    <div class="rep-kpi-card"><div class="rep-kpi-v">${total.length}</div><div class="rep-kpi-l">Total elementos</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v">${uTotal}</div><div class="rep-kpi-l">Total unidades · ${total.length} registro${total.length!==1?'s':''}</div></div>
     <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${buenos}</div><div class="rep-kpi-l">En buen estado</div></div>
     <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${regular}</div><div class="rep-kpi-l">Estado regular</div></div>
     <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#D85A30">${deterio}</div><div class="rep-kpi-l">Deteriorado</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#888">${baja}</div><div class="rep-kpi-l">Dado de baja</div></div>
     <div class="rep-kpi-card"><div class="rep-kpi-v">$${valTotal.toLocaleString()}</div><div class="rep-kpi-l">Valor total inventario</div></div>
   `;
 
@@ -7863,13 +8064,13 @@ function renderMobiliario(){
       <td class="code-cell">${m.codigo||'—'}</td>
       <td>
         <div style="font-weight:600;font-size:12px">${sanitizeHTML(m.nombre||'')}</div>
-        <div style="font-size:10px;color:var(--text3)">${m.material||''} ${m.color?'· '+m.color:''}</div>
+        <div style="font-size:10px;color:var(--text3)">${sanitizeHTML((m.material||'')+' '+(m.color?'· '+m.color:''))}</div>
       </td>
-      <td>${m.tipo||'—'}</td>
-      <td style="text-align:center;font-weight:700">${m.cantidad||1}</td>
+      <td>${sanitizeHTML(m.tipo||'—')}</td>
+      <td style="text-align:center;font-weight:700">${m.cantidad||1}${(m.cantidad||1)>1?'<div style="font-size:9px;font-weight:600;color:var(--amber)" title="Un solo código para varias unidades">LOTE</div>':''}</td>
       <td>
         <div style="font-size:11px">${sanitizeHTML(m.ubicacion||'—')}</div>
-        <div style="font-size:10px;color:var(--text3)">${m.depto||''}</div>
+        <div style="font-size:10px;color:var(--text3)">${sanitizeHTML(m.depto||'')}</div>
       </td>
       <td><span class="badge" style="background:${condColor[m.condicion]||'#888'}22;color:${condColor[m.condicion]||'#888'};border:1px solid ${condColor[m.condicion]||'#888'}44">${m.condicion||'—'}</span></td>
       <td style="text-align:center">
@@ -7884,6 +8085,28 @@ function renderMobiliario(){
         ${per.delete?`<button class="act-btn" onclick="eliminarMob('${m.codigo}')" style="color:var(--red)">×</button>`:''}
       </td>
     </tr>`).join('');
+}
+
+// ── UNIDADES ──────────────────────────────────────────────────────
+// Un registro puede agrupar varias piezas (lote). "Elementos" cuenta
+// registros; "unidades" suma sus cantidades. Todas las tarjetas, el
+// dashboard y el reporte usan esta misma función para no contradecirse.
+function _mobUnidades(lista, condicion){
+  return (lista||[]).filter(m=>!condicion || m.condicion===condicion)
+                    .reduce((s,m)=>s+(parseInt(m.cantidad)||1),0);
+}
+
+// Recarga la hoja de mobiliario desde el servidor. Si la lectura falla se
+// conserva lo que ya hay en pantalla: nunca se reemplaza por una lista vacía.
+async function _mobRecargar(){
+  try{
+    const raw = await apiGet('mobiliario');
+    if(Array.isArray(raw) && !raw._failed){
+      mobiliario = raw.map(r=>({...r,cantidad:parseInt(r.cantidad)||1,valor:parseFloat(r.valor)||0,historial:parseHist(r.historial)}));
+      return true;
+    }
+  }catch(e){}
+  return false;
 }
 
 // ── ABRIR MODAL ───────────────────────────────────────────────────
@@ -7909,25 +8132,47 @@ function openMob(codigo){
   document.getElementById('mob-valor').value     = m.valor||0;
   document.getElementById('mob-foto').value      = m.foto||'';
   document.getElementById('mob-obs').value       = m.obs||'';
-
+  document.getElementById('mob-motivo').value    = '';
+  document.getElementById('mob-modo').value      = 'individual';
+  document.getElementById('mob-motivo-wrap').style.display = isEdit ? 'block' : 'none';
   document.getElementById('mod-mob')._editCodigo = isEdit ? codigo : null;
+  _mobActualizarModo();
   document.getElementById('mod-mob').classList.add('open');
+}
+
+// Muestra u oculta los avisos del modal según lo que se esté haciendo.
+function _mobActualizarModo(){
+  const modal = document.getElementById('mod-mob');
+  if(!modal) return;
+  const editCodigo = modal._editCodigo;
+  const n = parseInt(document.getElementById('mob-cantidad').value)||1;
+  document.getElementById('mob-modo-wrap').style.display = (!editCodigo && n>1) ? 'block' : 'none';
+  const m = editCodigo ? mobiliario.find(x=>x.codigo===editCodigo) : null;
+  const esLote = !!m && (parseInt(m.cantidad)||1) > 1;
+  const wrap = document.getElementById('mob-lote-wrap');
+  wrap.style.display = esLote ? 'block' : 'none';
+  if(esLote){
+    document.getElementById('mob-lote-txt').textContent =
+      'Este registro agrupa '+m.cantidad+' unidades bajo un solo código y una sola etiqueta: no se puede saber cuál es cuál ni darle a cada una su propia condición o ubicación. Si necesita rastrearlas por separado, divídalo.';
+    document.getElementById('mob-lote-btn').onclick = ()=>{ closeModals(); dividirLoteMobiliario(editCodigo); };
+  }
 }
 
 // ── GUARDAR ───────────────────────────────────────────────────────
 async function guardarMobiliario(){
+  if(window._guardandoMob){ showToast('Ya se está guardando, espera un momento...',''); return; }
   const nombre    = document.getElementById('mob-nombre').value.trim();
   const tipo      = document.getElementById('mob-tipo').value;
   const condicion = document.getElementById('mob-condicion').value;
   if(!nombre){ showToast('El nombre/descripción es obligatorio',''); return; }
   if(!tipo)  { showToast('El tipo es obligatorio',''); return; }
+  const cantidad = parseInt(document.getElementById('mob-cantidad').value)||1;
+  if(cantidad < 1 || cantidad > 500){ showToast('La cantidad debe estar entre 1 y 500',''); return; }
 
   const editCodigo = document.getElementById('mod-mob')._editCodigo;
   const isEdit     = !!editCodigo;
-  const obj = {
-    codigo:     isEdit ? editCodigo : '',
-    nombre, tipo, condicion,
-    cantidad:   parseInt(document.getElementById('mob-cantidad').value)||1,
+  const campos = {
+    nombre, tipo, condicion, cantidad,
     ubicacion:  document.getElementById('mob-ubicacion').value.trim(),
     depto:      document.getElementById('mob-depto').value.trim(),
     material:   document.getElementById('mob-material').value,
@@ -7935,56 +8180,169 @@ async function guardarMobiliario(){
     fecha:      document.getElementById('mob-fecha').value.trim(),
     valor:      parseFloat(document.getElementById('mob-valor').value)||0,
     foto:       document.getElementById('mob-foto').value.trim(),
-    obs:        document.getElementById('mob-obs').value.trim(),
-    estado:     'activo',
-    historial:  JSON.stringify([{
-      tipo: isEdit?'Edición':'Creación',
-      desc: isEdit?`Editado por ${session.nombre}`:`Registrado por ${session.nombre}`,
-      fecha: ts(), usuario: session.nombre, color:'blue'
-    }]),
-    fechaCreacion: isEdit ? (mobiliario.find(m=>m.codigo===editCodigo)?.fechaCreacion||ts()) : ts()
+    obs:        document.getElementById('mob-obs').value.trim()
   };
 
-  const btn = document.querySelector('#mod-mob .btn-p');
-  btn.disabled = true; btn.textContent = 'Guardando...';
+  // ── Validaciones de edición ANTES de bloquear la pantalla ───────
+  let prev = null, motivo = '';
+  if(isEdit){
+    prev = mobiliario.find(m=>m.codigo===editCodigo);
+    if(!prev){ showToast('No se encontró el elemento a editar.','error'); return; }
+    motivo = document.getElementById('mob-motivo').value.trim();
+    if(!motivo){ showToast('El motivo del cambio es obligatorio',''); document.getElementById('mob-motivo').focus(); return; }
+    if((parseInt(prev.cantidad)||1) === 1 && cantidad > 1){
+      showToast('Un registro individual no puede pasar a varias unidades. Para agregar piezas, cree registros nuevos.','error'); return;
+    }
+  }
 
+  // ── Creación: ¿un registro por unidad o un lote? ────────────────
+  const modo = (!isEdit && cantidad > 1) ? document.getElementById('mob-modo').value : 'individual';
+  const nRegistros = (!isEdit && modo==='individual') ? cantidad : 1;
+  if(nRegistros > 20 && !confirm('Se crearán '+nRegistros+' registros individuales, cada uno con su propio código. ¿Continuar?')) return;
+
+  window._guardandoMob = true;
+  mostrarGuardando(isEdit ? 'Guardando cambios...' : (nRegistros>1 ? 'Creando '+nRegistros+' registros...' : 'Guardando...'),
+                   'No cierres esta ventana.');
   try{
-    await apiPost('mobiliario', isEdit?'update':'insert', obj);
     if(isEdit){
+      // ── EDICIÓN: el historial se ACUMULA y viaja como arreglo ───────
+      // Antes se enviaba un texto con un solo evento y el servidor lo
+      // escribía tal cual, borrando todo el historial anterior.
+      const nombresCampos = {nombre:'nombre',tipo:'tipo',condicion:'condición',cantidad:'cantidad',ubicacion:'ubicación',depto:'departamento',material:'material',color:'color',fecha:'fecha',valor:'valor',foto:'foto',obs:'observaciones'};
+      const cambios = [];
+      Object.keys(nombresCampos).forEach(k=>{
+        const a = (prev[k]===undefined||prev[k]===null) ? '' : String(prev[k]);
+        const b = String(campos[k]);
+        if(a !== b) cambios.push(`${nombresCampos[k]}: "${a}" → "${b}"`);
+      });
+      const det = `Motivo: ${motivo}. Cambios: ${cambios.length ? cambios.join('; ') : 'Sin cambios'}`;
+      const historial = [...parseHist(prev.historial), {tipo:'Edición', desc:det, fecha:ts(), usuario:session.nombre, color:'amber'}];
+      const obj = {...prev, ...campos, codigo:editCodigo, historial};
+      const res = await apiPostAsync('mobiliario','update',obj,60000);
+      if(!res || res.ok===false){
+        await _mobRecargar();
+        showToast('⚠ No se pudo confirmar el guardado: '+((res&&(res.message||res.error))||'sin respuesta')+'. Se actualizó la lista para que vea el estado real.','error');
+        renderMobiliario(); return;
+      }
       const idx = mobiliario.findIndex(m=>m.codigo===editCodigo);
-      if(idx>=0) mobiliario[idx]={...obj, cantidad:parseInt(obj.cantidad)||1, valor:parseFloat(obj.valor)||0};
-    } else {
-      // Código asignado por el servidor — recargar
-      const raw = await apiGet('mobiliario');
-      mobiliario = raw.map(r=>({...r,cantidad:parseInt(r.cantidad)||1,valor:parseFloat(r.valor)||0,historial:parseHist(r.historial)}));
+      if(idx>=0) mobiliario[idx] = {...obj, cantidad:cantidad, valor:campos.valor, historial};
+      audit('EDITAR','Mobiliario',editCodigo,det);
+      closeModals(); renderMobiliario(); renderDash();
+      showToast('✅ Elemento actualizado','success');
+      return;
     }
-    if(isEdit){
-      audit('EDITAR','Mobiliario',obj.codigo,'Editado por '+session.nombre);
-    } else {
-      audit('CREAR','Mobiliario',obj.codigo||'NUEVO','Registrado por '+session.nombre+': '+obj.nombre);
+
+    // ── CREACIÓN ───────────────────────────────────────────────────
+    const antes = new Set(mobiliario.map(m=>m.codigo));
+    let creados = 0, falla = null;
+    for(let i=0;i<nRegistros;i++){
+      const desc = modo==='lote'
+        ? `Registrado por ${session.nombre} como lote de ${cantidad} unidades`
+        : (nRegistros>1 ? `Registrado por ${session.nombre} — unidad ${i+1} de ${nRegistros}` : `Registrado por ${session.nombre}`);
+      const obj = {codigo:'', ...campos, cantidad: modo==='lote' ? cantidad : 1, estado:'activo',
+                   historial:[{tipo:'Creación', desc, fecha:ts(), usuario:session.nombre, color:'blue'}],
+                   fechaCreacion: ts()};
+      const res = await apiPostAsync('mobiliario','insert',obj,60000);
+      if(!res || res.ok===false){ falla = res; break; }
+      creados++;
     }
-    closeModals();
-    renderMobiliario();
-    showToast(isEdit?'✅ Elemento actualizado':'✅ Elemento registrado','success');
+    // Recargar para conocer los códigos REALES que asignó el servidor
+    await _mobRecargar();
+    const nuevos = mobiliario.filter(m=>!antes.has(m.codigo)).map(m=>m.codigo);
+    nuevos.forEach(c=>audit('CREAR','Mobiliario',c,'Registrado por '+session.nombre+': '+nombre+(modo==='lote'?' (lote de '+cantidad+')':'')));
+    closeModals(); renderMobiliario(); renderDash();
+    if(falla){
+      showToast('⚠ Solo se confirmaron '+creados+' de '+nRegistros+' registros ('+((falla&&(falla.message||falla.error))||'sin respuesta')+'). Revise la lista antes de repetir.','error');
+    } else {
+      showToast(nRegistros>1 ? '✅ '+nRegistros+' registros creados: '+nuevos[0]+' a '+nuevos[nuevos.length-1] : '✅ Elemento registrado'+(nuevos[0]?' ('+nuevos[0]+')':''),'success');
+    }
+    if(nuevos.length>1 && modo==='individual' && confirm('¿Imprimir ahora las '+nuevos.length+' etiquetas de los registros creados?')){
+      abrirModalEtiquetasGrupo('mobiliario', nuevos);
+    }
   }catch(e){
     showToast('Error guardando: '+e.message,'');
   }finally{
-    btn.disabled=false; btn.textContent='Guardar';
+    window._guardandoMob = false;
+    ocultarGuardando();
+  }
+}
+
+// ── DIVIDIR UN LOTE EN REGISTROS INDIVIDUALES ─────────────────────
+// Un registro con cantidad N pasa a ser N registros de cantidad 1: el
+// original queda como la unidad 1 y se crean N-1 nuevos, cada uno con su
+// propio código. Primero se crean los nuevos y solo si todos se confirman
+// se modifica el original; si algo falla, lo creado se anula.
+async function dividirLoteMobiliario(codigo){
+  if(!(PERMS[session.rol]||{}).edit){ showToast('Tu rol no tiene permiso para editar mobiliario.','error'); return; }
+  const m = mobiliario.find(x=>x.codigo===codigo);
+  if(!m){ showToast('No se encontró el elemento.','error'); return; }
+  const n = parseInt(m.cantidad)||1;
+  if(n < 2){ showToast('Este registro ya es una sola unidad.',''); return; }
+  if(window._guardandoMob){ showToast('Ya se está guardando, espera un momento...',''); return; }
+  if(!confirm(`El lote ${codigo} agrupa ${n} unidades.\n\nSe dividirá en ${n} registros individuales: ${codigo} quedará como la unidad 1 y se crearán ${n-1} registros nuevos con su propio código.\n\nDespués deberá imprimir las etiquetas nuevas (la etiqueta actual solo identificará a la unidad 1).\n\n¿Continuar?`)) return;
+  window._guardandoMob = true;
+  mostrarGuardando('Dividiendo el lote en '+n+' registros...','No cierres esta ventana.');
+  try{
+    const antes = new Set(mobiliario.map(x=>x.codigo));
+    let creados = 0, falla = null;
+    for(let i=2;i<=n;i++){
+      const obj = {codigo:'', nombre:m.nombre, tipo:m.tipo, cantidad:1, condicion:m.condicion, ubicacion:m.ubicacion, depto:m.depto,
+                   material:m.material, color:m.color, fecha:m.fecha, valor:m.valor, foto:m.foto, obs:m.obs, estado:'activo',
+                   historial:[{tipo:'Creación', desc:`Dividido del lote ${codigo} (${n} unidades) por ${session.nombre}: unidad ${i} de ${n}`, fecha:ts(), usuario:session.nombre, color:'blue'}],
+                   fechaCreacion: ts()};
+      const res = await apiPostAsync('mobiliario','insert',obj,60000);
+      if(!res || res.ok===false){ falla = res; break; }
+      creados++;
+    }
+    await _mobRecargar();
+    const nuevos = mobiliario.filter(x=>!antes.has(x.codigo)).map(x=>x.codigo);
+    if(falla || creados !== n-1){
+      // Deshacer: anular lo que sí se alcanzó a crear. El lote original no se tocó.
+      for(const c of nuevos){
+        const r = mobiliario.find(x=>x.codigo===c); if(!r) continue;
+        const h = [...parseHist(r.historial), {tipo:'Eliminación lógica', desc:'Anulado: la división del lote '+codigo+' no se completó', fecha:ts(), usuario:session.nombre, color:'red'}];
+        await apiPostAsync('mobiliario','update',{...r, estado:'eliminado', historial:h},60000);
+      }
+      await _mobRecargar();
+      renderMobiliario();
+      showToast('⚠ No se pudo dividir el lote (se confirmaron '+creados+' de '+(n-1)+' registros). El lote '+codigo+' quedó como estaba.','error');
+      return;
+    }
+    const orig = mobiliario.find(x=>x.codigo===codigo) || m;
+    const historial = [...parseHist(orig.historial), {tipo:'División de lote',
+      desc:`El lote de ${n} unidades se dividió en ${n} registros individuales por ${session.nombre}. Este código es ahora la unidad 1; las demás son: ${nuevos.join(', ')}.`,
+      fecha:ts(), usuario:session.nombre, color:'blue'}];
+    const res2 = await apiPostAsync('mobiliario','update',{...orig, cantidad:1, historial},60000);
+    if(!res2 || res2.ok===false){
+      for(const c of nuevos){
+        const r = mobiliario.find(x=>x.codigo===c); if(!r) continue;
+        const h = [...parseHist(r.historial), {tipo:'Eliminación lógica', desc:'Anulado: la división del lote '+codigo+' no se completó', fecha:ts(), usuario:session.nombre, color:'red'}];
+        await apiPostAsync('mobiliario','update',{...r, estado:'eliminado', historial:h},60000);
+      }
+      await _mobRecargar(); renderMobiliario();
+      showToast('⚠ No se pudo actualizar el lote original; se anularon los registros nuevos. Nada cambió.','error');
+      return;
+    }
+    await _mobRecargar();
+    audit('EDITAR','Mobiliario',codigo,`Lote de ${n} unidades dividido en registros individuales: ${codigo}, ${nuevos.join(', ')}`);
+    renderMobiliario(); renderDash();
+    go('mobiliario',document.getElementById('nav-mobiliario'));
+    showToast('✅ Lote dividido en '+n+' registros: '+codigo+' y '+nuevos.join(', '),'success');
+    if(confirm('¿Imprimir ahora las etiquetas de los '+nuevos.length+' registros nuevos?\n\n(La etiqueta de '+codigo+' ya impresa seguirá sirviendo para la unidad 1.)')){
+      abrirModalEtiquetasGrupo('mobiliario', nuevos);
+    }
+  }catch(e){
+    showToast('Error dividiendo el lote: '+e.message,'');
+  }finally{
+    window._guardandoMob = false;
+    ocultarGuardando();
   }
 }
 
 // ── ELIMINAR ──────────────────────────────────────────────────────
-async function eliminarMob(codigo){
-  if(!confirm('¿Eliminar este elemento del inventario de mobiliario?')) return;
-  const m = mobiliario.find(x=>x.codigo===codigo);
-  if(!m) return;
-  try{
-    await apiPost('mobiliario','update',{...m, estado:'eliminado'});
-    m.estado='eliminado';
-    audit('ELIMINAR','Mobiliario',codigo,`Eliminado: ${m.nombre}`);
-    showToast('Elemento eliminado','success');
-    go('mobiliario',document.getElementById('nav-mobiliario'));
-  }catch(e){ showToast('Error: '+e.message,''); }
+// Igual que Activos y Tickets: pide un motivo y lo deja en el historial.
+function eliminarMob(codigo){
+  openDelete('mobiliario', codigo);
 }
 
 // ── EXPORTAR CSV ──────────────────────────────────────────────────
@@ -8132,6 +8490,7 @@ async function guardarLicencia(){
   const btn = document.querySelector('#mod-licencia .btn-p');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try{
+    const _antesLic = new Set(licencias.map(l=>l.codigo));
     await apiPost('licencias', isEdit?'update':'insert', obj);
     if(isEdit){
       const idx = licencias.findIndex(l=>l.codigo===editCodigo);
@@ -8140,7 +8499,7 @@ async function guardarLicencia(){
       const raw = await apiGet('licencias');
       licencias = raw.map(r=>({...r, costoAnual:parseFloat(r.costoAnual)||0, cantidadTotal:parseInt(r.cantidadTotal)||0, instalaciones:parseHist(r.instalaciones), historial:parseHist(r.historial)}));
     }
-    audit(isEdit?'EDITAR':'CREAR','Licencia',obj.codigo||'NUEVO',(isEdit?'Editado':'Registrado')+' por '+session.nombre+': '+obj.nombre);
+    audit(isEdit?'EDITAR':'CREAR','Licencia',isEdit?obj.codigo:(_codigoNuevo(_antesLic,licencias,obj.nombre)||'NUEVO'),(isEdit?'Editado':'Registrado')+' por '+session.nombre+': '+obj.nombre);
     closeModals();
     renderLicencias();
     showToast(isEdit?'✅ Licencia actualizada':'✅ Licencia registrada','success');
@@ -8857,16 +9216,25 @@ async function guardarEspacio(){
   const btn = document.querySelector('#mod-espacio .btn-p');
   btn.disabled=true; btn.textContent='Guardando...';
   try{
+    const _antesEsp = new Set(espacios.map(e=>e.codigo));
     await apiPost('espacios', isEdit?'update':'insert', obj);
     if(isEdit){
       const idx = espacios.findIndex(e=>e.codigo===editCod);
+      const nombreAnterior = (idx>=0 && espacios[idx].nombre && espacios[idx].nombre!==nombre) ? espacios[idx].nombre : null;
       if(idx>=0) espacios[idx]={...obj};
-      // Actualizar email en activos del espacio — memoria Y Sheets
-    const activosEspacio = activos.filter(a=>a.ubicacion===nombre && a.estado!=='eliminado');
-    activosEspacio.forEach(a=>{ a.responsableEspacioEmail = respEmail; });
-    if(activosEspacio.length > 0){
-      await Promise.all(activosEspacio.map(a=>apiPost('activos','update',a)));
-    }
+      // Equipos y mobiliario que ya apuntan a este espacio. Antes se buscaba por el
+      // nombre NUEVO: tras renombrar no encontraba ninguno y quedaban huérfanos.
+      const refNombre = nombreAnterior || nombre;
+      const activosEspacio = activos.filter(a=>a.ubicacion===refNombre && a.estado!=='eliminado');
+      activosEspacio.forEach(a=>{ a.responsableEspacioEmail = respEmail; if(nombreAnterior) a.ubicacion = nombre; });
+      const _ps = activosEspacio.map(a=>apiPost('activos','update',a));
+      let _movidos = activosEspacio.length;
+      if(nombreAnterior){
+        mobiliario.filter(m=>m.ubicacion===nombreAnterior && m.estado!=='eliminado').forEach(m=>{ m.ubicacion=nombre; _ps.push(apiPost('mobiliario','update',m)); _movidos++; });
+        if(Array.isArray(personas)) personas.filter(p=>p.espacioResponsable===nombreAnterior).forEach(p=>{ p.espacioResponsable=nombre; _ps.push(apiPost('personas','update',p)); _movidos++; });
+        audit('EDITAR','Espacios',editCod,`Renombrado: "${nombreAnterior}" → "${nombre}". Cascada: ${_movidos} registro(s) actualizados`);
+      }
+      if(_ps.length) await Promise.all(_ps);
     } else {
       const raw = await apiGet('espacios');
       espacios = Array.isArray(raw) ? raw.map(r=>({...r})) : espacios;
@@ -8876,7 +9244,7 @@ async function guardarEspacio(){
       const per = personas.find(p=>p.nombre===respNombre);
       if(per) per.espacioResponsable = nombre;
     }
-    audit('CREAR','Espacios',obj.codigo||'NUEVO',isEdit?`Espacio editado: ${nombre}`:`Espacio registrado: ${nombre}`);
+    audit(isEdit?'EDITAR':'CREAR','Espacios',isEdit?obj.codigo:(_codigoNuevo(_antesEsp,espacios,nombre)||'NUEVO'),isEdit?`Espacio editado: ${nombre}`:`Espacio registrado: ${nombre}`);
     closeModals();
     renderEspacios();
     buildDataLists();
@@ -8889,13 +9257,14 @@ async function guardarEspacio(){
 async function eliminarEspacio(codigo){
   const e0 = espacios.find(x=>x.codigo===codigo);
   if(!e0) return;
-  const equiposEnEspacio = activos.filter(a=>a.ubicacion===e0.nombre && a.estado!=='eliminado').length;
+  const equiposEnEspacio = activos.filter(a=>a.ubicacion===e0.nombre && a.estado!=='eliminado').length
+                         + mobiliario.filter(m=>m.ubicacion===e0.nombre && m.estado!=='eliminado').length;
   const persResponsable  = Array.isArray(personas) ? personas.filter(p=>p.espacioResponsable===e0.nombre && p.estado!=='inactivo').length : 0;
   if(equiposEnEspacio > 0 || persResponsable > 0){
     const msg = [];
-    if(equiposEnEspacio > 0) msg.push(`${equiposEnEspacio} equipo(s) tienen este espacio como ubicación`);
+    if(equiposEnEspacio > 0) msg.push(`${equiposEnEspacio} equipo(s) o mueble(s) tienen este espacio como ubicación`);
     if(persResponsable  > 0) msg.push(`${persResponsable} persona(s) son responsables de este espacio`);
-    if(!confirm('⚠️ Atención:\n' + msg.join('\n') + '\n\n¿Deseas eliminar el espacio de todas formas? Los registros relacionados quedarán sin espacio asignado.')) return;
+    if(!confirm('⚠️ Atención:\n' + msg.join('\n') + '\n\n¿Deseas eliminar el espacio de todas formas? Esos registros conservarán el nombre del espacio como texto, pero el espacio dejará de aparecer en las listas.')) return;
   } else {
     if(!confirm(`¿Eliminar el espacio "${e0.nombre}"?`)) return;
   }
@@ -8986,6 +9355,7 @@ async function guardarDepartamento(){
   const btn = document.querySelector('#mod-departamento .btn-p');
   btn.disabled=true; btn.textContent='Guardando...';
   try{
+    const _antesDep = new Set(departamentos.map(d=>d.codigo));
     await apiPost('departamentos', isEdit?'update':'insert', obj);
     if(isEdit){
       const idx = departamentos.findIndex(d=>d.codigo===editCod);
@@ -8995,9 +9365,9 @@ async function guardarDepartamento(){
       departamentos = Array.isArray(raw) ? raw.map(r=>({...r})) : departamentos;
     }
     if(isEdit){
-      audit('EDITAR','Departamentos',obj.codigo,`Renombrado por ${session.nombre}: "${nombreAnterior||nombre}" → "${nombre}"`);
+      audit('EDITAR','Departamentos',obj.codigo,nombreAnterior ? `Renombrado por ${session.nombre}: "${nombreAnterior}" → "${nombre}"` : `Editado por ${session.nombre}: ${nombre}`);
     } else {
-      audit('CREAR','Departamentos',obj.codigo||'NUEVO',`Creado por ${session.nombre}: ${nombre}`);
+      audit('CREAR','Departamentos',_codigoNuevo(_antesDep,departamentos,nombre)||'NUEVO',`Creado por ${session.nombre}: ${nombre}`);
     }
     // ── PROPAGACIÓN EN CASCADA si hubo renombrado ──────────────
     if(nombreAnterior){
@@ -9019,6 +9389,11 @@ async function guardarDepartamento(){
       if(Array.isArray(mobiliario)) mobiliario.filter(m=>m.depto===nombreAnterior).forEach(m=>{
         m.depto=nombre; promises.push(apiPost('mobiliario','update',m)); cascadeCount++;
       });
+      // Espacios: el portal público filtra las ubicaciones por el nombre del
+      // departamento; sin esto, tras renombrarlo el portal dejaba de mostrarlas.
+      if(Array.isArray(espacios)) espacios.filter(e=>e.depto===nombreAnterior).forEach(e=>{
+        e.depto=nombre; promises.push(apiPost('espacios','update',e)); cascadeCount++;
+      });
       if(promises.length>0){
         await Promise.all(promises);
         showToast(`✅ Departamento renombrado. ${cascadeCount} registro(s) actualizados en cascada.`,'success');
@@ -9039,10 +9414,16 @@ async function guardarDepartamento(){
 async function eliminarDepartamento(codigo){
   const d = departamentos.find(x=>x.codigo===codigo);
   if(!d) return;
-  const enUso = activos.filter(a=>a.depto===d.nombre).length +
-    (Array.isArray(personas)?personas.filter(p=>p.depto===d.nombre).length:0);
-  if(enUso > 0){
-    showToast(`No se puede eliminar: ${enUso} registro(s) usan este departamento`,'');
+  const usos = [];
+  const _nA = activos.filter(a=>a.depto===d.nombre).length;
+  const _nP = Array.isArray(personas)?personas.filter(p=>p.depto===d.nombre).length:0;
+  const _nM = mobiliario.filter(m=>m.depto===d.nombre && m.estado!=='eliminado').length;
+  const _nE = espacios.filter(e=>e.depto===d.nombre && e.estado!=='eliminado').length;
+  const _nU = usuarios.filter(u=>u.depto===d.nombre && u.estado!=='inactivo' && u.estado!=='eliminado').length;
+  if(_nA) usos.push(_nA+' activo(s)'); if(_nP) usos.push(_nP+' persona(s)'); if(_nM) usos.push(_nM+' de mobiliario');
+  if(_nE) usos.push(_nE+' espacio(s)'); if(_nU) usos.push(_nU+' usuario(s)');
+  if(usos.length){
+    showToast(`No se puede eliminar: lo usan ${usos.join(', ')}`,'');
     return;
   }
   if(!confirm('¿Eliminar el departamento "'+d.nombre+'"?')) return;
@@ -9078,10 +9459,10 @@ function repMobiliarioInventario(el, tsStr){
 
   // KPIs del subconjunto filtrado
   const valTotal     = list.reduce((s,m)=>(s+(m.valor||0)*(m.cantidad||1)),0);
-  const buenos       = list.filter(m=>m.condicion==='bueno').length;
-  const regulares    = list.filter(m=>m.condicion==='regular').length;
-  const deteriorados = list.filter(m=>m.condicion==='deteriorado').length;
-  const baja         = list.filter(m=>m.condicion==='baja').length;
+  const buenos       = _mobUnidades(list,'bueno');
+  const regulares    = _mobUnidades(list,'regular');
+  const deteriorados = _mobUnidades(list,'deteriorado');
+  const baja         = _mobUnidades(list,'baja');
   const cantTotal    = list.reduce((s,m)=>s+(m.cantidad||1),0);
 
   // Etiqueta de filtros activos

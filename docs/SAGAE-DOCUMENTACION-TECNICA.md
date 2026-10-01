@@ -30,7 +30,7 @@ de datos es una Hoja de cálculo de Google.
 - **Personas** — directorio de personal y beneficiarios.
 - **Espacios** — catálogo de aulas/oficinas con responsable y capacidad.
 - **Inventario de activos** — registro de equipos tecnológicos, con "hoja de vida" (historial completo), código de barras/QR imprimible, y baja de activos sin perder su historial.
-- **Mobiliario** — registro de mobiliario (por cantidad/condición, no por serie individual), con su propia ficha de detalle e historial.
+- **Mobiliario** — registro de mobiliario con su propia ficha de detalle e historial. Cada pieza que se quiera rastrear (condición, ubicación, etiqueta propia) es **un registro con su propio código** (recomendado); un **lote** (un solo código para varias unidades iguales, p. ej. 30 sillas) existe pero es la excepción. Al crear con cantidad mayor a 1 el sistema pregunta cuál de los dos; un lote existente se divide con "Dividir en registros individuales" (crea los registros nuevos, conserva el historial del original y ofrece imprimir las etiquetas). Las tarjetas y reportes cuentan **unidades**, no registros. Editar exige motivo y el historial se acumula; eliminar exige motivo.
 - **Licencias** — control de licencias de software, alimenta las alertas de vencimiento.
 - **Tickets** — bandeja de solicitudes de mantenimiento/soporte, con "expediente completo" imprimible.
 - **Kanban** — la misma información de Tickets en tablero visual (Abierto/Progreso/Revisión/Cerrado).
@@ -48,7 +48,9 @@ de datos es una Hoja de cálculo de Google.
 - **Reportes** — estadísticas personales del técnico.
 - **Escáner de código de barras/QR** — cámara del celular, busca en Activos y Mobiliario, abre la hoja de vida.
 
-**Mobiliario es de solo consulta desde el móvil** — no se edita ahí a propósito, esa parte queda reservada al portal web.
+**Mobiliario es de solo consulta desde el móvil** — no se edita ahí a propósito, esa parte queda reservada al portal web. El escáner y la ficha indican si el código es un lote ("lote de N unidades") o una unidad individual.
+
+**Cierre de tickets de mantenimiento (web y móvil)** — al cerrar un ticket de tipo mantenimiento cuyo equipo vinculado está en mantenimiento, el equipo sale de mantenimiento automáticamente: se pide quién lo retira y en qué condición, queda el evento "Salida de Mantenimiento" en su hoja de vida (con el correo de quien lo entregó, para el aviso) y se registra en la auditoría. Si el mismo equipo tiene otro ticket de mantenimiento abierto, sigue en mantenimiento hasta cerrar el último.
 
 ## 4. Portal público de reportes
 
