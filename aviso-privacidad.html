@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0B1B30">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<title>Aviso de Privacidad — SAGAE</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#0B1B30;--navy-l:#E8F0FB;--navy-d:#071120;
+  --text:#1A1A1A;--text2:#444;--text3:#6B6B6B;
+  --border:#E0E0E0;--bg:#F0F4FB;--gold:#B8960C;--gold-l:#FDF8E1;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.65;font-size:15px;}
+.header{background:var(--navy);padding:18px 20px;display:flex;align-items:center;gap:12px;color:#fff;}
+.header img{height:30px;width:auto;}
+.header .t{font-size:14px;color:rgba(255,255,255,.8);}
+.wrap{max-width:760px;margin:0 auto;padding:24px 16px 56px;}
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 16px rgba(27,58,107,.08);padding:28px 24px;margin-bottom:18px;}
+h1{font-size:26px;line-height:1.25;color:var(--navy-d);margin-bottom:6px;}
+.meta{font-size:13px;color:var(--text3);margin-bottom:18px;}
+h2{font-size:17px;color:var(--navy-d);margin:26px 0 8px;padding-top:4px;}
+h2:first-child{margin-top:0;}
+p{margin-bottom:10px;}
+ul{margin:0 0 12px 20px;}
+li{margin-bottom:6px;}
+.resumen{background:var(--navy-l);border-radius:12px;padding:18px 20px;}
+.resumen h2{margin-top:0;}
+.resumen ul{margin-bottom:0;}
+.dato{font-weight:600;color:var(--navy-d);}
+.pendiente{background:var(--gold-l);border-bottom:1px dashed var(--gold);padding:0 3px;border-radius:3px;font-weight:600;}
+table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:14px;}
+th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--border);}
+th{background:#F7F9FC;color:var(--text2);font-weight:600;}
+.tabla{overflow-x:auto;}
+a{color:#1B4F8A;}
+.pie{font-size:12.5px;color:var(--text3);text-align:center;margin-top:10px;}
+@media(max-width:520px){h1{font-size:22px;}.card{padding:22px 16px;}}
+@media print{.header{background:#fff;color:#000;}.card{box-shadow:none;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <img src="assets/sagae-logo-mark.png" alt="SAGAE">
+  <span class="t">Aviso de Privacidad</span>
+</div>
+<div class="wrap">
+  <div class="card">
+    <h1>Aviso de Privacidad — <span class="js-inst">la institución</span></h1>
+    <div class="meta">Versión <span id="version">1.0</span> · Vigente desde <span id="vigencia">28 de septiembre de 2026</span> · Conforme a la Ley 81 de 2019 y el Decreto Ejecutivo 285 de 2021 de la República de Panamá</div>
+
+    <div class="resumen">
+      <h2>Lo esencial</h2>
+      <ul>
+        <li><strong>Quién es responsable de tus datos:</strong> <span class="js-inst dato">la institución</span>. Contacto: <span class="js-correo">—</span>.</li>
+        <li><strong>Para qué los usamos:</strong> únicamente para administrar los equipos de la institución y atender las solicitudes de soporte técnico.</li>
+        <li><strong>Qué no hacemos:</strong> no vendemos tus datos, no los usamos para publicidad y no los usamos para entrenar inteligencia artificial.</li>
+        <li><strong>Puedes reportar de forma anónima</strong> en el portal público, sin dar tu nombre ni tu correo.</li>
+        <li><strong>Tus derechos:</strong> puedes pedir acceso, rectificación, cancelación, oposición y portabilidad de tus datos. Respondemos en un máximo de <strong>10 días hábiles</strong>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1. Responsable del tratamiento</h2>
+    <p><span class="js-inst dato">la institución</span><span class="js-dir-wrap"> — <span class="js-dir"></span></span> es la <strong>responsable</strong> de los datos personales que se recogen a través del sistema SAGAE (Sistema de Activos y Gestión Administrativa Educativa).</p>
+    <p>Contacto para temas de privacidad: <span class="js-correo dato">—</span><span class="js-tel-wrap"> · Teléfono: <span class="js-tel dato"></span></span>.</p>
+    <p class="js-oficial-wrap">Oficial de protección de datos personales: <span class="js-oficial dato"></span>.</p>
+    <p><strong>RYE Design</strong>, desarrollador de SAGAE, actúa como <strong>custodio de la base de datos</strong> (proveedor técnico): da soporte al sistema siguiendo las instrucciones de la institución, bajo un contrato de confidencialidad, y no decide para qué se usan los datos.</p>
+
+    <h2>2. Qué datos recogemos</h2>
+    <div class="tabla"><table>
+      <tr><th>Persona</th><th>Datos</th></tr>
+      <tr><td>Quien reporta un problema en el portal público</td><td>Nombre y correo (<em>no se piden si eliges reporte anónimo</em>), departamento, ubicación, descripción del problema y las fotos que decidas adjuntar.</td></tr>
+      <tr><td>Personal y colaboradores registrados</td><td>Nombre, correo, teléfono, cargo, departamento y equipos o espacios asignados.</td></tr>
+      <tr><td>Usuarios del sistema (personal técnico y administrativo)</td><td>Usuario, contraseña (nunca se guarda en texto legible, solo cifrada), rol, datos de contacto, fecha del último acceso y registro de las acciones que realizan en el sistema.</td></tr>
+    </table></div>
+    <p>SAGAE <strong>no solicita datos sensibles</strong> (salud, religión, origen, datos biométricos, etc.). Te pedimos no escribirlos en las descripciones y <strong>no adjuntar fotos en las que aparezcan personas</strong>, especialmente estudiantes, ni documentos con datos personales.</p>
+    <p>SAGAE <strong>no toma decisiones automatizadas</strong> ni elabora perfiles sobre las personas.</p>
+
+    <h2>3. Para qué usamos los datos</h2>
+    <ul>
+      <li>Atender, dar seguimiento y cerrar las solicitudes de soporte técnico y mantenimiento.</li>
+      <li>Administrar el inventario de equipos, mobiliario y licencias, y saber a quién o a qué espacio están asignados.</li>
+      <li>Enviar avisos por correo sobre el estado de una solicitud (solo si diste tu correo).</li>
+      <li>Mantener la seguridad del sistema: controlar el acceso y conservar un registro de auditoría de quién hizo cada cambio.</li>
+    </ul>
+    <p>No usaremos los datos para un fin distinto sin informarte antes.</p>
+
+    <h2>4. Base legal</h2>
+    <ul>
+      <li><strong>Portal público:</strong> tu <strong>consentimiento</strong> previo, informado e inequívoco, que das al marcar la casilla de aceptación. Queda registrada la fecha y la versión de este aviso que aceptaste. Puedes revocarlo cuando quieras, sin efecto retroactivo (D.E. 285, arts. 17.1, 18 y 19).</li>
+      <li><strong>Personal y usuarios del sistema:</strong> la <strong>relación laboral o contractual</strong> con la institución (art. 17.2)<span class="js-publica">, y el <strong>ejercicio de las funciones legales</strong> de la institución como entidad pública (art. 17.6)</span>.</li>
+      <li><strong>Registro de auditoría y seguridad:</strong> el <strong>interés legítimo</strong> de la institución en proteger sus bienes y la información, y en poder defenderse ante reclamaciones (art. 17.7).</li>
+    </ul>
+
+    <h2>5. Menores de edad</h2>
+    <p>Si eres menor de edad, <strong>usa la opción de reporte anónimo</strong> o pide a un adulto (docente, madre, padre o acudiente) que haga el reporte. La institución solo registra datos de menores con la autorización previa de su madre, padre, acudiente o tutor (D.E. 285, art. 18), quienes también pueden ejercer los derechos del menor en su nombre (art. 22).</p>
+
+    <h2>6. Con quién se comparten los datos</h2>
+    <ul>
+      <li><strong>Google LLC</strong>, proveedor de la infraestructura donde funciona SAGAE (Google Sheets, Drive, Apps Script y correo), en la cuenta de Google propia de la institución.</li>
+      <li><strong>RYE Design</strong>, custodio y proveedor de soporte técnico, solo cuando es necesario para dar mantenimiento o resolver un problema.</li>
+      <li>Autoridades competentes, únicamente cuando la ley o una orden judicial lo exijan.</li>
+    </ul>
+    <p>No se comparten datos con anunciantes ni con ningún otro tercero.</p>
+
+    <h2>7. Transferencia fuera de Panamá</h2>
+    <p>Los servidores de Google pueden estar ubicados <strong>fuera de Panamá</strong> (por ejemplo, en los Estados Unidos). Esta transferencia se realiza con <strong>garantías adecuadas</strong>: los términos contractuales de protección de datos de Google para sus servicios de nube, que incluyen cifrado y controles de acceso, y, en el portal público, con tu <strong>consentimiento</strong> (D.E. 285, arts. 51 y 53).</p>
+
+    <h2>8. Cuánto tiempo guardamos los datos</h2>
+    <div class="tabla"><table>
+      <tr><th>Dato</th><th>Plazo</th></tr>
+      <tr><td>Datos de quien reporta (nombre y correo en tickets)</td><td>Mientras se atiende la solicitud y hasta <span class="js-anios dato">2</span> año(s) después de cerrada. Luego se anonimizan.</td></tr>
+      <tr><td>Personal, usuarios y asignaciones de equipos</td><td>Mientras dure la relación con la institución y hasta 1 año después.</td></tr>
+      <tr><td>Registro de auditoría</td><td>Hasta 5 años, para la defensa ante reclamaciones (plazo de prescripción de las infracciones muy graves, D.E. 285, art. 63).</td></tr>
+      <tr><td>Copias de respaldo automáticas</td><td>30 días. Se eliminan solas de forma rotativa.</td></tr>
+    </table></div>
+
+    <h2>9. Seguridad</h2>
+    <p>SAGAE aplica medidas técnicas y organizativas para proteger los datos: contraseñas cifradas, verificación en dos pasos, bloqueo tras intentos fallidos, sesiones que vencen por inactividad, permisos por rol verificados en el servidor, fotos privadas que solo ven usuarios con sesión, borrado de los datos guardados en el celular al cerrar sesión, respaldo diario y un registro de auditoría que no se puede modificar desde el sistema. Ninguna medida es infalible. Si ocurre un incidente que afecte tus datos, la institución te lo notificará a ti y a la Autoridad Nacional de Transparencia y Acceso a la Información (ANTAI) dentro de las <strong>72 horas</strong> siguientes a conocerlo (D.E. 285, art. 37).</p>
+
+    <h2>10. Almacenamiento en tu navegador (cookies)</h2>
+    <p>SAGAE <strong>no usa cookies</strong> de publicidad ni de analítica, ni herramientas de rastreo. Solo guarda en tu navegador lo técnicamente necesario:</p>
+    <ul>
+      <li><strong>Portal público:</strong> un identificador aleatorio del dispositivo y un contador temporal, para evitar envíos masivos (spam). No contienen tu nombre ni tu correo.</li>
+      <li><strong>App del personal técnico:</strong> una copia temporal de los tickets y equipos para trabajar con mala conexión. Se borra al cerrar sesión, al vencer la sesión y, como máximo, a los 7 días.</li>
+    </ul>
+    <p>Para mostrarse correctamente, algunas pantallas cargan tipografías y librerías desde servicios públicos (Google Fonts, jsDelivr y cdnjs), que reciben la dirección IP de tu dispositivo según sus propias políticas.</p>
+
+    <h2>11. Tus derechos</h2>
+    <p>Puedes ejercer, de forma <strong>gratuita</strong>, los derechos de:</p>
+    <ul>
+      <li><strong>Acceso:</strong> saber qué datos tuyos tenemos y obtener una copia.</li>
+      <li><strong>Rectificación:</strong> corregir datos incorrectos o incompletos.</li>
+      <li><strong>Cancelación:</strong> pedir que se eliminen tus datos cuando ya no sean necesarios.</li>
+      <li><strong>Oposición:</strong> oponerte a un uso concreto de tus datos.</li>
+      <li><strong>Portabilidad:</strong> recibir tus datos en un formato electrónico de uso común.</li>
+    </ul>
+    <p><strong>Cómo:</strong> escribe a <span class="js-correo dato">—</span> indicando tu nombre, el derecho que quieres ejercer, los datos a los que se refiere y un medio para responderte. Debes acreditar tu identidad (o la representación, si actúas por otra persona). <strong>Respondemos en un máximo de 10 días hábiles.</strong></p>
+    <p>Si no quedas conforme con la respuesta, puedes presentar una queja ante la <strong>Dirección de Protección de Datos Personales de la ANTAI</strong> (<a href="https://www.antai.gob.pa" target="_blank" rel="noopener">antai.gob.pa</a>).</p>
+
+    <h2>12. Cambios a este aviso</h2>
+    <p>Si cambiamos este aviso, publicaremos la nueva versión en esta misma página con su fecha. Si el cambio afecta la forma en que usamos tus datos, lo informaremos antes de aplicarlo.</p>
+  </div>
+  <p class="pie">SAGAE — Sistema de Activos y Gestión Administrativa Educativa · Desarrollado por RYE Design</p>
+</div>
+
+<script>
+// Misma URL que en los demás archivos HTML — actualizarla en la instalación
+// de cada escuela (ver docs/MANUAL-INSTALACION-SAGAE.md, paso 8).
+const API="https://script.google.com/macros/s/AKfycbxSA74xU_zCdMuS6GFwbwWcYwW0JxyzlPgb08TWaJPyu8AxthZVzuY9tYbwK6oXxFPU/exec"
+
+function _poner(sel, valor, wrapSel){
+  document.querySelectorAll(sel).forEach(el=>{ el.textContent = valor; });
+  if(wrapSel) document.querySelectorAll(wrapSel).forEach(el=>{ el.style.display = valor ? '' : 'none'; });
+}
+function _pendiente(sel, texto){
+  document.querySelectorAll(sel).forEach(el=>{ el.textContent = texto; el.classList.add('pendiente'); });
+}
+// Por defecto (sin conexión o sin configurar) se ocultan los campos opcionales.
+_poner('.js-dir', '', '.js-dir-wrap');
+_poner('.js-tel', '', '.js-tel-wrap');
+_poner('.js-oficial', '', '.js-oficial-wrap');
+document.querySelectorAll('.js-publica').forEach(el=>{ el.style.display='none'; });
+
+async function cargarDatosResponsable(){
+  try{
+    const r = await fetch(API+"?action=config&t="+Date.now(), {mode:"cors"});
+    const d = await r.json();
+    if(!d || !d.ok) throw new Error('sin datos');
+    const p = d.privacidad || {};
+    if(d.nombreInstitucion) _poner('.js-inst', d.nombreInstitucion);
+    document.title = 'Aviso de Privacidad — ' + (d.nombreInstitucion || 'SAGAE');
+    if(p.correo){
+      document.querySelectorAll('.js-correo').forEach(el=>{
+        el.textContent='';
+        const a=document.createElement('a'); a.href='mailto:'+p.correo; a.textContent=p.correo; el.appendChild(a);
+      });
+    } else {
+      _pendiente('.js-correo', 'la administración de la institución');
+    }
+    _poner('.js-dir', p.direccion || '', '.js-dir-wrap');
+    _poner('.js-tel', p.telefono || '', '.js-tel-wrap');
+    _poner('.js-oficial', p.oficial || '', '.js-oficial-wrap');
+    const esPublica = String(p.tipo||'').toLowerCase().startsWith('publ') || String(p.tipo||'').toLowerCase().startsWith('públ');
+    document.querySelectorAll('.js-publica').forEach(el=>{ el.style.display = esPublica ? '' : 'none'; });
+    const anios = parseInt(p.aniosTickets,10);
+    if(anios > 0) _poner('.js-anios', String(anios));
+    if(p.fechaVigencia) _poner('#vigencia', p.fechaVigencia);
+  }catch(e){
+    _pendiente('.js-correo', 'la administración de la institución');
+  }
+}
+cargarDatosResponsable();
+</script>
+</body>
+</html>

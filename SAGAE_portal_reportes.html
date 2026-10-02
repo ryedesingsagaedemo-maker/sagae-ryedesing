@@ -117,7 +117,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div class="form-body">
       <div class="connecting-badge"><span class="conn-dot"></span> Conectado al sistema SAGAE</div>
       <div class="msg-error" id="msg-error"></div>
-      <div class="form-row-2">
+      <!-- Ley 81 de 2019: opción de reporte anónimo (recomendada para menores de edad) -->
+      <label for="f-anonimo" style="display:flex;gap:10px;align-items:flex-start;background:var(--navy-l);border-radius:var(--r-md);padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--navy-d);cursor:pointer;">
+        <input type="checkbox" id="f-anonimo" onchange="toggleAnonimoPortal()" style="margin-top:3px;width:16px;height:16px;flex-shrink:0;">
+        <span><strong>Reportar de forma anónima</strong> — no se guardará tu nombre ni tu correo. No recibirás avisos por correo sobre tu reporte. <em>Si eres menor de edad, usa esta opción.</em></span>
+      </label>
+      <div class="form-row-2" id="bloque-identidad">
         <div class="form-group">
           <label class="form-label">Tu nombre <span>*</span></label>
           <input class="form-input" id="f-nombre" type="text" placeholder="Ej: María González" autocomplete="name">
@@ -186,6 +191,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
         </button>
         <div id="fotos-limite-note" style="display:none;font-size:11px;color:var(--text3);margin-top:6px;">Ya adjuntaste el máximo de 5 fotos.</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px;">Puedes adjuntar hasta 5 fotos desde tu camara o galeria. Maximo 10MB cada una. Formatos: JPG, PNG, GIF.</div>
+        <div style="font-size:11px;color:var(--text2,#555);margin-top:4px;">📷 Fotografía solo el equipo o el problema. <strong>No incluyas personas</strong> (especialmente estudiantes) ni documentos con datos personales.</div>
+      </div>
+      <!-- Ley 81 de 2019: consentimiento previo, informado e inequívoco -->
+      <div class="form-group" style="border-top:1px solid var(--border,#e5e7eb);padding-top:14px;">
+        <label for="f-mayor" id="bloque-mayor" style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--text2,#333);margin-bottom:10px;cursor:pointer;">
+          <input type="checkbox" id="f-mayor" style="margin-top:2px;width:16px;height:16px;flex-shrink:0;">
+          <span>Declaro que soy <strong>mayor de edad</strong>. (Si eres menor de edad, marca arriba “Reportar de forma anónima”.)</span>
+        </label>
+        <label for="f-acepto" style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--text2,#333);cursor:pointer;">
+          <input type="checkbox" id="f-acepto" style="margin-top:2px;width:16px;height:16px;flex-shrink:0;">
+          <span>He leído el <a href="aviso-privacidad.html" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">Aviso de Privacidad</a> y autorizo a la institución a usar los datos de este reporte únicamente para atender la solicitud, conforme a la Ley 81 de 2019. <span style="color:var(--red,#B91C1C)">*</span></span>
+        </label>
       </div>
       <button class="btn-submit" id="btn-submit" onclick="enviarReporte()">
         <span id="btn-text">📤 Enviar reporte al equipo técnico</span>
@@ -205,7 +222,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 </div>
 
 <div class="footer">
-  <p>Sistema gestionado por <strong>SAGAE</strong> · Desarrollado por <strong>RYE Design</strong> · <span id="footer-institucion">tu institución</span></p>
+  <p>Sistema gestionado por <strong>SAGAE</strong> · Desarrollado por <strong>RYE Design</strong> · <span id="footer-institucion">tu institución</span> · <a href="aviso-privacidad.html" target="_blank" rel="noopener" style="color:inherit">Aviso de Privacidad</a></p>
 </div>
 
 <script>
@@ -371,7 +388,7 @@ function _renderGaleriaFotosPortal(){
   const fotosHTML = _fotosPortalActuales.length ? _fotosPortalActuales.map((f,i)=>`
     <div style="display:flex;align-items:center;gap:10px;background:var(--navy-l);border-left:3px solid var(--navy);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--navy-d);">
       <div style="flex:1;min-width:0">
-        📷 <a href="${f.url}" target="_blank" style="color:var(--navy-d);font-weight:700">Ver foto ↗</a>
+        📷 <strong style="color:var(--navy-d)">Foto ${i+1} adjuntada ✓</strong>
         ${f.nota?' — '+f.nota:''}
       </div>
       <button type="button" onclick="quitarFotoPortal(${i})" style="background:none;border:none;color:var(--navy-d);cursor:pointer;font-size:14px;">🗑</button>
@@ -421,17 +438,40 @@ function subirFotoPortal(){
   input.click();
 }
 
+// ── PRIVACIDAD (Ley 81 de 2019) ─────────────────────────────────
+// Versión del aviso que acepta quien reporta; queda registrada en el
+// historial del ticket como constancia del consentimiento. Si se cambia
+// aviso-privacidad.html, subir también esta versión.
+const AVISO_PRIVACIDAD_VERSION = "1.0 (2026-09-28)";
+function toggleAnonimoPortal(){
+  const anon = document.getElementById("f-anonimo").checked;
+  const bloque = document.getElementById("bloque-identidad");
+  const mayor = document.getElementById("bloque-mayor");
+  ["f-nombre","f-correo"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(anon) el.value="";
+    el.disabled=anon;
+  });
+  if(bloque) bloque.style.display = anon ? "none" : "";
+  if(mayor) mayor.style.display = anon ? "none" : "";
+  if(anon) document.getElementById("f-mayor").checked=false;
+}
 async function enviarReporte(){
   hideError();
-  const nombre=document.getElementById("f-nombre").value.trim();
-  const correo=document.getElementById("f-correo").value.trim();
+  const anonimo=document.getElementById("f-anonimo").checked;
+  const nombre=anonimo ? "Anónimo" : document.getElementById("f-nombre").value.trim();
+  const correo=anonimo ? "" : document.getElementById("f-correo").value.trim();
   const depto=document.getElementById("f-depto").value.trim();
   const tipo=document.getElementById("f-tipo").value;
   const titulo=document.getElementById("f-titulo").value.trim();
   const desc=document.getElementById("f-desc").value.trim();
   const prior=prioridad;
-  if(!nombre){showError("Por favor escribe tu nombre completo.");return;}
-  if(!correo||!correo.includes("@")){showError("Por favor escribe un correo electrónico válido.");return;}
+  if(!anonimo){
+    if(!nombre){showError("Por favor escribe tu nombre completo, o marca “Reportar de forma anónima”.");return;}
+    if(!correo||!correo.includes("@")){showError("Por favor escribe un correo electrónico válido, o marca “Reportar de forma anónima”.");return;}
+    if(!document.getElementById("f-mayor").checked){showError("Confirma que eres mayor de edad. Si eres menor de edad, marca “Reportar de forma anónima”.");return;}
+  }
+  if(!document.getElementById("f-acepto").checked){showError("Para enviar el reporte debes leer y aceptar el Aviso de Privacidad.");return;}
   if(!depto){showError("Por favor indica tu departamento o área.");return;}
   if(!tipo){showError("Por favor selecciona el tipo de solicitud.");return;}
   if(!titulo){showError("Por favor escribe un título para el problema.");return;}
@@ -458,10 +498,14 @@ async function enviarReporte(){
     const ticket={
       titulo,activoId:"",activoNombre:"—",
       tipo,prior,
-      desc:`${desc}\n\n--- Reportado por: ${nombre} (${correo}) | Ubicación: ${ubicacion} | Departamento: ${depto} ---`,
+      desc:`${desc}\n\n--- Reportado por: ${nombre} (${anonimo ? "sin correo" : correo}) | Ubicación: ${ubicacion} | Departamento: ${depto} ---`,
       fotos: _fotosPortalActuales,
       reportadoPor:nombre, correoReportador:correo,
-      deviceId:_obtenerDeviceId()
+      deviceId:_obtenerDeviceId(),
+      anonimo: anonimo,
+      aceptaPrivacidad: true,
+      versionAviso: AVISO_PRIVACIDAD_VERSION,
+      declaraMayorEdad: !anonimo
     };
     // Antes esto leía la respuesta de un POST directo — no funciona en
     // Apps Script (no agrega encabezados CORS a las respuestas POST).
@@ -480,13 +524,13 @@ async function enviarReporte(){
     document.getElementById("success-screen").classList.add("show");
     window._enviandoPortal = false;
     document.getElementById("success-code").textContent=codigo;
-    document.getElementById("success-info").innerHTML=`
+    document.getElementById("success-info").innerHTML=sanitizeHTML(`
       <div class="success-info-item"><span class="success-info-label">Reportado por</span><span class="success-info-value">${nombre}</span></div>
-      <div class="success-info-item"><span class="success-info-label">Correo</span><span class="success-info-value">${correo}</span></div>
+      <div class="success-info-item"><span class="success-info-label">Correo</span><span class="success-info-value">${anonimo ? "— (reporte anónimo)" : correo}</span></div>
       <div class="success-info-item"><span class="success-info-label">Tipo</span><span class="success-info-value">${tipo.charAt(0).toUpperCase()+tipo.slice(1)}</span></div>
       <div class="success-info-item"><span class="success-info-label">Prioridad</span><span class="success-info-value">${prior.charAt(0).toUpperCase()+prior.slice(1)}</span></div>
       <div class="success-info-item"><span class="success-info-label">Área</span><span class="success-info-value">${depto}</span></div>
-      <div class="success-info-item"><span class="success-info-label">Estado</span><span class="success-info-value">✅ Enviado al equipo técnico</span></div>`;
+      <div class="success-info-item"><span class="success-info-label">Estado</span><span class="success-info-value">✅ Enviado al equipo técnico</span></div>`);
     window.scrollTo({top:0,behavior:"smooth"});
   }catch(e){
     window._enviandoPortal = false;
@@ -500,6 +544,8 @@ function nuevoReporte(){
   document.getElementById("form-card").style.display="block";
   document.getElementById("success-screen").classList.remove("show");
   ["f-nombre","f-correo","f-depto","f-ubicacion","f-titulo","f-desc"].forEach(id=>document.getElementById(id).value="");
+  ["f-anonimo","f-mayor","f-acepto"].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
+  toggleAnonimoPortal();
   poblarUbicacionesPortal("");
   _fotosPortalActuales = [];
   _renderGaleriaFotosPortal();

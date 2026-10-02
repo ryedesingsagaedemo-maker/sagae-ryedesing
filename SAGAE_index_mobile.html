@@ -285,6 +285,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
         <button class="btn-login" onclick="verificarLoginTOTP()">Verificar</button>
         <button class="btn-login" style="background:transparent;color:var(--navy);margin-top:8px;box-shadow:none" onclick="volverLoginPassword()">‹ Volver</button>
       </div>
+      <div style="text-align:center;margin-top:16px;font-size:12px;"><a href="aviso-privacidad.html" target="_blank" rel="noopener" style="color:var(--navy);opacity:.75;">Aviso de Privacidad</a></div>
     </div>
   </div>
 </div>
@@ -1078,13 +1079,33 @@ function setSyncStatus(ok){
   const d=document.getElementById("sync-dot");
   d.className="sync-indicator"+(ok?"":" err");
 }
+/* v2.9 (Ley 81 de 2019 — seguridad y confidencialidad): la caché local
+   guarda tickets y activos con nombres y correos de personas. Ahora se
+   borra al cerrar sesión o al expirar la sesión, se descarta si tiene más
+   de 7 días, y se marca con el usuario dueño para que otra persona que
+   use el mismo celular nunca vea los datos del usuario anterior. */
+const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+function borrarCacheLocal(){ try{ localStorage.removeItem(CACHE_KEY); }catch(e){} }
+function _descartarCacheDeOtroUsuario(){
+  try{
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY)||"null");
+    if(c && (!session || c.user !== session.username)){
+      borrarCacheLocal();
+      tickets=[]; activos=[]; cntTickets=0;
+    }
+  }catch(e){ borrarCacheLocal(); }
+}
 function saveCache(){try{
   /* v2.4: se depuran las banderas internas de "tomar ticket" antes de
      persistir, para que no revivan tras recargar la app. */
+  if(!session) return; // sin sesión no se guardan datos personales en el equipo
   const tks = tickets.map(t=>{ const c={...t}; delete c._isTakeTicket; delete c._respEsperado; return c; });
-  localStorage.setItem(CACHE_KEY,JSON.stringify({tickets:tks,activos,ts:Date.now()}));
+  localStorage.setItem(CACHE_KEY,JSON.stringify({tickets:tks,activos,ts:Date.now(),user:session.username}));
 }catch(e){}}
-function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c){
+function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");
+  if(c && (!c.ts || Date.now()-c.ts > CACHE_MAX_AGE_MS)){ borrarCacheLocal(); return false; }
+  if(c && session && c.user !== session.username){ borrarCacheLocal(); return false; }
+  if(c){
   tickets=(c.tickets||[]).map(t=>{ const o={...t}; delete o._isTakeTicket; delete o._respEsperado; return o; });
   activos=c.activos||[];cntTickets=tickets.length;
   if(c.ts) _ultimaSyncOk=c.ts;
@@ -1167,6 +1188,7 @@ async function cargarNombreInstitucion(){
 function _sesionExpiradaMobile(){
   if(typeof session==='undefined' || !session) return;
   session=null;
+  borrarCacheLocal(); // v2.9: la sesión venció o se abrió en otro equipo
   clearInterval(window._sesionCheck);
   clearTimeout(_inactivityTimer);
   document.getElementById("app").classList.remove("visible");
@@ -1480,6 +1502,7 @@ async function _completarLoginExitosoMobile_(resp, usernameIngresado, err){
     return;
   }
   session={username:resp.username, nombre:resp.nombre, rol:resp.rol, token:resp.token};
+  _descartarCacheDeOtroUsuario(); // v2.9: nunca mostrar datos del usuario anterior de este celular
   mostrarBotonEscaner();
   apiPost("auditoria","insert",{ts:ts(),usuario:usernameIngresado,nombre:resp.nombre,rol:resp.rol,accion:"LOGIN",tipo:"Sistema",codigo:"MOBILE",detalle:"Acceso desde app móvil SAGAE"});
   const mustChange = resp.mustChange===true || resp.mustChange==='true' || resp.mustChange==='TRUE';
@@ -2764,6 +2787,7 @@ function doLogout(){
   }
   session = null;
   usuarios=[];activos=[];tickets=[];departamentos=[];espacios=[];personas=[];
+  borrarCacheLocal(); // v2.9: no dejar datos personales en el celular tras cerrar sesión
   document.getElementById("app").classList.remove("visible");
   document.getElementById("login-screen").style.display="flex";
   document.getElementById("l-user").value="";
@@ -2828,8 +2852,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=3.0").then(reg=>{
-    console.log("[SAGAE] SW registrado v3.0:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=3.1").then(reg=>{
+    console.log("[SAGAE] SW registrado v3.1:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;
@@ -3339,6 +3363,83 @@ function showMobToast(msg){
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),3000);
 }
+
+// ════════════════════════════════════════════════════════════════
+// VISOR PRIVADO DE FOTOS (cumplimiento Ley 81 de 2019 — seguridad
+// de los datos). Las fotos en Drive ya NO son públicas: cualquier
+// enlace de Drive ("Ver foto ↗") se intercepta aquí y la foto se pide
+// al backend con la sesión activa (action=fotoBase64, que ya existía
+// para el expediente imprimible), mostrándola en un visor dentro de la
+// app. Si algo falla, se intenta abrir el enlace original como antes,
+// para no perder funcionalidad. No modifica ninguna pantalla existente.
+// ════════════════════════════════════════════════════════════════
+function _driveFileIdDeUrl(url){
+  const u = String(url||'');
+  if(!/^https:\/\/(drive|docs)\.google\.com\//.test(u)) return null;
+  const m = u.match(/\/d\/([a-zA-Z0-9_-]{10,})/) || u.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  return m ? m[1] : null;
+}
+function _cerrarVisorFoto(){
+  const v = document.getElementById('sagae-visor-foto');
+  if(!v) return;
+  const u = v.getAttribute('data-blob');
+  if(u){ try{ URL.revokeObjectURL(u); }catch(e){} }
+  v.remove();
+}
+async function verFotoPrivada(url){
+  const fileId = _driveFileIdDeUrl(url);
+  if(!fileId || typeof session==='undefined' || !session || !session.token){
+    window.open(url,'_blank','noopener');
+    return;
+  }
+  showToast('Cargando foto...','');
+  try{
+    const r = await fetch(API+'?action=fotoBase64&fileId='+encodeURIComponent(fileId)+'&session='+encodeURIComponent(session.token));
+    const d = await r.json();
+    if(!d || !d.ok || !d.data) throw new Error((d && d.error) || 'sin datos');
+    const mime = String(d.mime || 'image/jpeg');
+    const bin = atob(d.data);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    const blobUrl = URL.createObjectURL(new Blob([bytes],{type:mime}));
+    if(!mime.startsWith('image/')){
+      // Documentos (PDF, etc.): se descargan en vez de mostrarse.
+      const a = document.createElement('a');
+      a.href = blobUrl; a.download = 'documento-'+fileId.slice(0,8);
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>{ try{ URL.revokeObjectURL(blobUrl); }catch(e){} }, 60000);
+      return;
+    }
+    _cerrarVisorFoto();
+    const v = document.createElement('div');
+    v.id = 'sagae-visor-foto';
+    v.setAttribute('data-blob', blobUrl);
+    v.setAttribute('role','dialog');
+    v.setAttribute('aria-label','Foto');
+    v.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;';
+    const img = document.createElement('img');
+    img.src = blobUrl; img.alt = 'Foto';
+    img.style.cssText = 'max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,.5);';
+    const x = document.createElement('button');
+    x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label','Cerrar');
+    x.style.cssText = 'position:fixed;top:12px;right:12px;width:40px;height:40px;border:none;border-radius:50%;background:#fff;color:#1C1C1C;font-size:18px;cursor:pointer;';
+    v.appendChild(img); v.appendChild(x);
+    v.addEventListener('click', _cerrarVisorFoto);
+    document.body.appendChild(v);
+  }catch(e){
+    console.warn('[verFotoPrivada] no se pudo cargar por el backend, se intenta el enlace original:', e);
+    const w = window.open(url,'_blank','noopener');
+    if(!w) showToast('No se pudo cargar la foto. Intenta de nuevo.','error');
+  }
+}
+document.addEventListener('click', function(ev){
+  if(ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
+  const a = ev.target && ev.target.closest ? ev.target.closest('a[href]') : null;
+  if(!a || !_driveFileIdDeUrl(a.getAttribute('href'))) return;
+  ev.preventDefault();
+  verFotoPrivada(a.getAttribute('href'));
+}, true);
+document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape') _cerrarVisorFoto(); });
 </script>
 </body>
 </html>
