@@ -839,6 +839,7 @@ tbody tr.clickable{cursor:pointer;}
       </div>
       <div class="login-loading" id="login-loading">Verificando credenciales...</div>
       <div style="text-align:center;margin-top:14px;font-size:11.5px;"><a href="aviso-privacidad.html" target="_blank" rel="noopener" style="color:inherit;opacity:.7;">Aviso de Privacidad</a></div>
+      <div style="text-align:center;margin-top:6px;font-size:10.5px;opacity:.6;line-height:1.4;">© 2026 RYE Design. Todos los derechos reservados.<br>SAGAE es software de uso licenciado.</div>
     </div>
   </div>
 </div>
@@ -849,7 +850,7 @@ tbody tr.clickable{cursor:pointer;}
       <div class="sb-logo"><img src="logo/sagae-simbolo.png" alt="" style="height:22px;width:auto;vertical-align:-4px;margin-right:7px">SAGAE</div>
       <div class="sb-user" id="sb-username">—</div>
       <div class="sb-conn">● Google Sheets</div>
-      <div style="font-size:9px;color:#5A7A9A;margin-top:3px;letter-spacing:.1em;text-transform:uppercase;">Desarrollado por RYE Design</div><br>
+      <div style="font-size:9px;color:#5A7A9A;margin-top:3px;letter-spacing:.1em;text-transform:uppercase;">© RYE Design · Uso licenciado</div><br>
       <span class="sb-role" id="sb-role-badge">—</span>
     </div>
     <div class="sb-veil"></div>
@@ -1210,6 +1211,7 @@ tbody tr.clickable{cursor:pointer;}
         <span id="mod-persona-title">Nueva persona</span>
         <button class="modal-close" onclick="closeModals()">✕</button>
       </div>
+      <div class="info-note">🔒 Estos datos personales se usan únicamente para administrar los equipos y el soporte técnico de la institución. Más información en el <a href="aviso-privacidad.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Aviso de Privacidad</a>.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="f-row" style="grid-column:1/-1;">
           <div class="f-lbl">Nombre completo *</div>
@@ -2090,7 +2092,7 @@ tbody tr.clickable{cursor:pointer;}
   <div class="f-row"><div class="f-lbl">Descripción</div><input class="f-inp" id="et-desc" placeholder="Detalle completo..."></div>
   <div class="f-row">
     <div class="f-lbl">📎 Fotos del ticket (seguimiento)
-      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Hasta 5 fotos — quedan asociadas a la fecha y usuario que las subió</span>
+      <span style="font-size:10px;font-weight:400;color:var(--text3);display:block">Hasta 5 fotos — quedan asociadas a la fecha y usuario que las subió. Fotografía solo el equipo o el problema: no incluyas personas ni documentos con datos personales.</span>
     </div>
     <div id="et-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
     <button type="button" class="btn" id="et-fotos-add-btn" onclick="agregarFotoTicketAdmin()"
@@ -2191,6 +2193,7 @@ tbody tr.clickable{cursor:pointer;}
   <div class="modal-title"><span id="mod-usuario-title">Nuevo usuario</span><button class="modal-close" onclick="closeModals()">✕</button></div>
   <input type="hidden" id="eu-id">
   <div class="info-note">Las contraseñas se almacenan como hash en Google Sheets. Nunca son visibles en el código del sistema.</div>
+  <div class="info-note">🔒 Estos datos personales se usan únicamente para administrar los equipos y el soporte técnico de la institución. Más información en el <a href="aviso-privacidad.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Aviso de Privacidad</a>.</div>
   <div class="f-2">
     <div class="f-row"><div class="f-lbl">Usuario *</div><input class="f-inp" id="eu-username" placeholder="Ej: jperez" autocomplete="off"></div>
     <div class="f-row"><div class="f-lbl">Rol *</div><select class="f-inp f-sel" id="eu-rol"><option value="admin">Administrador</option><option value="tecnico">Técnico</option><option value="consultor">Consultor</option><option value="inventario">Inventario</option></select></div>
@@ -2238,7 +2241,7 @@ tbody tr.clickable{cursor:pointer;}
   <!-- ── FOTOS DE ESTE EVENTO — constancia visual (entrega, daño, etc.) ── -->
   <div class="f-row" style="background:#F8F5EC;border-radius:8px;padding:10px;border:1px solid #E7DFC6">
     <div class="f-lbl" style="color:var(--navy);font-weight:700">📷 Fotos de este evento
-      <span style="font-size:10px;font-weight:400;color:#666;display:block;margin-top:2px">Hasta 3 fotos — quedan asociadas a este evento específico (ej: estado del equipo al entregarlo, o la falla reportada)</span>
+      <span style="font-size:10px;font-weight:400;color:#666;display:block;margin-top:2px">Hasta 3 fotos — quedan asociadas a este evento específico (ej: estado del equipo al entregarlo, o la falla reportada). Fotografía solo el equipo: no incluyas personas ni documentos con datos personales.</span>
     </div>
     <div id="mm-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin:8px 0;"></div>
     <div id="mm-fotos-limite-note" style="display:none;font-size:10px;color:var(--text3);margin-bottom:6px;">Máximo de 3 fotos por evento alcanzado.</div>
@@ -4262,11 +4265,15 @@ function quitarFotoTicketAdmin(index){
   _renderGaleriaFotosAdmin(_etFotosActuales);
 }
 
+const AVISO_FOTO_PRIVACIDAD = '📷 Fotografía solo el equipo o el problema. No incluyas personas ni documentos con datos personales.';
+function _avisoFotoPrivacidad(){ try{ showToast(AVISO_FOTO_PRIVACIDAD, ''); }catch(e){} }
+
 function agregarFotoTicketAdmin(){
   if(_etFotosActuales.length >= 5){ showToast('Ya hay 5 fotos en este ticket, el máximo permitido.','error'); return; }
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*,application/pdf';
+  _avisoFotoPrivacidad();
   input.style.display = 'none';
   document.body.appendChild(input);
   input.onchange = async () => {
@@ -4344,6 +4351,7 @@ function agregarFotoMantenimiento(){
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
+  _avisoFotoPrivacidad();
   input.style.display = 'none';
   document.body.appendChild(input);
   input.onchange = async () => {
@@ -8786,6 +8794,7 @@ function abrirDrivePicker(targetInputId, modulo){
   const input = document.createElement('input');
   input.type  = 'file';
   input.accept= 'image/*,application/pdf,.doc,.docx';
+  _avisoFotoPrivacidad();
   input.style.display = 'none';
   document.body.appendChild(input);
 

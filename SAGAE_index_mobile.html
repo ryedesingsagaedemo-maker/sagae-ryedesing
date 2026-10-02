@@ -286,6 +286,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
         <button class="btn-login" style="background:transparent;color:var(--navy);margin-top:8px;box-shadow:none" onclick="volverLoginPassword()">‹ Volver</button>
       </div>
       <div style="text-align:center;margin-top:16px;font-size:12px;"><a href="aviso-privacidad.html" target="_blank" rel="noopener" style="color:var(--navy);opacity:.75;">Aviso de Privacidad</a></div>
+      <div style="text-align:center;margin-top:6px;font-size:10.5px;color:var(--text3);line-height:1.4;">© 2026 RYE Design. Todos los derechos reservados.<br>SAGAE es software de uso licenciado.</div>
     </div>
   </div>
 </div>
@@ -457,6 +458,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-textarea" id="mob-ea-obs" placeholder="Notas adicionales..."></textarea></div>
     <div class="form-group">
       <label class="form-label">📎 Foto del equipo</label>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Fotografía solo el equipo: no incluyas personas ni documentos con datos personales.</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input class="form-input" id="mob-ea-foto" placeholder="Se llenará al subir foto..." readonly style="flex:1;font-size:11px;color:#666;">
         <button type="button" class="btn-secondary" id="mob-btn-foto" onclick="abrirSubidaFotoMobile()" style="white-space:nowrap;padding:10px 14px;font-size:13px;min-width:80px;">📷 Subir</button>
@@ -568,7 +570,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="form-group"><label class="form-label">Descripción *</label><textarea class="form-textarea" id="mm-desc" placeholder="¿Qué se realizó?"></textarea></div>
     <div class="form-group" style="background:#FFF9EC;border-radius:12px;padding:14px;border:1px solid #E7DFC6">
       <label class="form-label" style="color:var(--navy)">📷 Fotos de este evento</label>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Hasta 3 fotos — ej: estado del equipo al entregarlo, o la falla reportada</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Hasta 3 fotos — ej: estado del equipo al entregarlo, o la falla reportada. Fotografía solo el equipo: no incluyas personas ni documentos con datos personales.</div>
       <div id="mm-fotos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
       <button type="button" class="btn-secondary" id="mm-fotos-add-btn" onclick="agregarFotoMantenimientoMobile()">📷 Tomar / agregar foto</button>
       <div id="mm-fotos-limite-note" style="display:none;margin-top:6px;font-size:11px;color:#666;">Máximo de 3 fotos por evento alcanzado.</div>
@@ -1965,9 +1967,13 @@ function _comprimirImagenMobile(file, maxDim=1600, calidad=0.72){
     img.src = url;
   });
 }
+const AVISO_FOTO_PRIVACIDAD = '📷 Fotografía solo el equipo o el problema. No incluyas personas ni documentos con datos personales.';
+function _avisoFotoPrivacidad(){ try{ showToast(AVISO_FOTO_PRIVACIDAD, ''); }catch(e){} }
+
 function agregarFotoMantenimientoMobile(){
   if(_mmFotosActuales.length >= 3){ showToast('Ya hay 3 fotos en este evento, el máximo permitido.','error'); return; }
   const input = document.createElement('input');
+  _avisoFotoPrivacidad();
   input.type = 'file';
   input.accept = 'image/*';
   input.capture = 'environment';
@@ -2013,6 +2019,7 @@ function agregarFotoMantenimientoMobile(){
 function agregarFotoTicketMobile(){
   if(_mtFotosActuales.length >= 5){ showMobToast('Ya hay 5 fotos en este ticket, el máximo permitido.'); return; }
   const input = document.createElement('input');
+  _avisoFotoPrivacidad();
   input.type = 'file';
   input.accept = 'image/*';
   input.capture = 'environment';
@@ -2852,8 +2859,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=3.1").then(reg=>{
-    console.log("[SAGAE] SW registrado v3.1:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=3.2").then(reg=>{
+    console.log("[SAGAE] SW registrado v3.2:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;
@@ -3301,6 +3308,7 @@ function abrirSubidaFotoMobile(targetInputId, previewId, btnId, modulo){
   btnId         = btnId         || 'mob-btn-foto';
   modulo        = modulo        || 'Activos';
   const input = document.createElement('input');
+  _avisoFotoPrivacidad();
   input.type   = 'file';
   input.accept = 'image/*';
   input.capture= 'environment';

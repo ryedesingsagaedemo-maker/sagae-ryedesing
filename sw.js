@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v3.1
+// SAGAE — Service Worker v3.2
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v3.1';
-const CACHE_STATIC = 'sagae-static-v3.1';
+const CACHE_NAME   = 'sagae-mobile-v3.2';
+const CACHE_STATIC = 'sagae-static-v3.2';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -97,6 +97,11 @@ const CACHE_STATIC = 'sagae-static-v3.1';
 //   y la copia de datos del telefono se borra al cerrar sesion, al vencer la
 //   sesion o si otro usuario entra en el mismo celular. Se sube el numero de
 //   cache para que todos los telefonos reciban la version nueva solos.
+// v3.2: AVISOS DE PRIVACIDAD EN CONTEXTO — al subir fotos (entrega de equipos y
+//   tickets) se avisa de no fotografiar personas ni documentos con datos personales,
+//   y el inicio de sesion muestra la titularidad del software (RYE Design, uso
+//   licenciado). Se sube el numero de cache para que todos los telefonos reciban
+//   la version nueva automaticamente.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -109,7 +114,7 @@ const STATIC_ASSETS = [
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v3.1...');
+  console.log('[SAGAE SW] Instalando v3.2...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -124,7 +129,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v3.1...');
+  console.log('[SAGAE SW] Activando v3.2...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -247,4 +252,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v3.1 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v3.2 cargado correctamente');
