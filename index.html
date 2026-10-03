@@ -7383,7 +7383,7 @@ function descargarPlantillaActivos(){
       [''],
       ['PASOS PARA COMPLETAR ESTA PLANTILLA'],
       ['PASO 1', 'Ir a la hoja "DATOS ACTIVOS" (pestaña en la parte inferior)'],
-      ['PASO 2', 'Llenar cada fila desde la fila 4 en adelante'],
+      ['PASO 2', 'Llenar cada fila desde la fila 5 (la fila 4 es un ejemplo: reemplácela o bórrela)'],
       ['PASO 3', 'NO modificar las filas 1, 2 y 3 (son los encabezados del sistema)'],
       ['PASO 4', 'Usar los desplegables en columnas TIPO y ESTADO'],
       ['PASO 5', 'Guardar el archivo y entregarlo al administrador de SAGAE'],
@@ -7397,11 +7397,13 @@ function descargarPlantillaActivos(){
       ['✅ Columna CÓDIGO', 'Dejarla VACÍA — el sistema la asigna automáticamente'],
       [''],
       ['VALORES VÁLIDOS PARA COLUMNA TIPO'],
-      ['Laptop', 'Computadora', 'Impresora', 'Monitor', 'Proyector', 'Tablet'],
-      ['Teléfono', 'Servidor', 'Switch', 'Router', 'Cámara', 'UPS', 'Escáner', 'Otro'],
+      ['Computadora', 'Laptop', 'Tablet', 'Móvil', 'Monitor', 'Impresora', 'Escáner'],
+      ['Lector de Código de Barras', 'Servidor', 'Router', 'Switch / Hub', 'Access Point', 'Antena WiFi', 'Firewall'],
+      ['Cableado / Patch Panel', 'Cámara', 'NVR', 'Proyector', 'Televisor', 'Bocina / Audio', 'UPS'],
+      ['Regulador', 'Teléfono IP', 'Red / Switch', 'Software', 'Vehículo', 'Otro'],
       [''],
       ['VALORES VÁLIDOS PARA COLUMNA ESTADO'],
-      ['activo', 'mantenimiento', 'baja'],
+      ['activo', 'mantenimiento', 'descarte'],
       [''],
       ['¿Dudas? Contacta a RYE Design: corpas84@hotmail.com  ·  (507) 6225-1042'],
     ];
@@ -7488,25 +7490,57 @@ function cerrarImportarActivos(){
   document.getElementById('mod-importar-activos').classList.remove('open');
 }
 
-function leerArchivoActivos(input){
-  const file = input.files[0];
-  if(!file) return;
-  const ext = file.name.split('.').pop().toLowerCase();
+// ── LECTOR GENÉRICO DE PLANTILLAS (xlsx/csv) ─────────────────────
+function _impNorm(s){
+  return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+}
 
+function _impParseCSV(text){
+  text = text.replace(/^﻿/,'');
+  const muestra = text.slice(0,2000);
+  const sep = (muestra.split(';').length > muestra.split(',').length) ? ';' : ',';
+  const rows = []; let row = [], cell = '', q = false;
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    if(q){
+      if(ch === '"'){ if(text[i+1] === '"'){ cell += '"'; i++; } else q = false; }
+      else cell += ch;
+    } else if(ch === '"') q = true;
+    else if(ch === sep){ row.push(cell); cell = ''; }
+    else if(ch === '\n' || ch === '\r'){
+      if(ch === '\r' && text[i+1] === '\n') i++;
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else cell += ch;
+  }
+  if(cell !== '' || row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r=>!String(r[0]||'').startsWith('#'));
+}
+
+function _impLeerArchivo(file, cb, onErr){
+  const ext = file.name.split('.').pop().toLowerCase();
   if(ext === 'csv'){
-    const reader = new FileReader();
-    reader.onload = e => procesarCSVActivos(e.target.result);
-    reader.readAsText(file, 'UTF-8');
+    const leer = enc => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const txt = e.target.result;
+        if(enc === 'UTF-8' && txt.indexOf('�') !== -1) return leer('windows-1252');
+        cb([{nombre:'CSV', filas:_impParseCSV(txt)}]);
+      };
+      reader.readAsText(file, enc);
+    };
+    leer('UTF-8');
   } else if(ext === 'xlsx' || ext === 'xls'){
     cargarSheetJS(()=>{
       const reader = new FileReader();
       reader.onload = e => {
-        const wb = XLSX.read(e.target.result, {type:'array'});
-        // Buscar hoja de datos (puede llamarse 'DATOS ACTIVOS' o ser la 2da)
-        let sheetName = wb.SheetNames.find(n=>n.includes('DATOS')) || wb.SheetNames[1] || wb.SheetNames[0];
-        const ws = wb.Sheets[sheetName];
-        const csv = XLSX.utils.sheet_to_csv(ws);
-        procesarCSVActivos(csv);
+        try{
+          const wb = XLSX.read(e.target.result, {type:'array', cellDates:true, dateNF:'dd/mm/yyyy'});
+          const hojas = wb.SheetNames.map(n=>({
+            nombre:n,
+            filas:XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, raw:false, defval:'', dateNF:'dd/mm/yyyy'})
+          }));
+          cb(hojas);
+        }catch(err){ onErr('❌ No se pudo leer el archivo Excel: '+err.message); }
       };
       reader.readAsArrayBuffer(file);
     });
@@ -7515,70 +7549,126 @@ function leerArchivoActivos(input){
   }
 }
 
-function procesarCSVActivos(csvText){
-  // Limpiar BOM y comentarios
-  const lineas = csvText.replace(/^\uFEFF/,'').split(/\r?\n/)
-    .filter(l=>l.trim() && !l.startsWith('#'));
-
-  if(lineas.length < 2){
-    document.getElementById('import-activos-status').textContent = '❌ El archivo no tiene datos. Mínimo: encabezado + 1 fila de datos.';
-    return;
+function _impCampo(celda, alias){
+  const n = _impNorm(celda);
+  if(!n) return null;
+  for(const [campo, pref] of alias){
+    if(pref.some(p=>n === p || n.startsWith(p))) return campo;
   }
+  return null;
+}
 
-  // Detectar separador (coma o punto y coma)
-  const sep = lineas[0].includes(';') ? ';' : ',';
-
-  // Parsear headers (primera línea sin comentarios)
-  const headers = lineas[0].split(sep).map(h=>h.replace(/^"|"$/g,'').trim().toLowerCase());
-
-  // Verificar que tenga las columnas mínimas
-  const requeridos = ['nombre','tipo','estado'];
-  const faltantes = requeridos.filter(r=>!headers.includes(r));
-  if(faltantes.length){
-    document.getElementById('import-activos-status').textContent =
-      '❌ El archivo no tiene las columnas requeridas: '+faltantes.join(', ')+'. Descarga la plantilla correcta.';
-    return;
+// Busca la fila de encabezados (la plantilla trae un banner arriba) en cualquier hoja.
+function _impBuscarEncabezado(hojas, alias, requeridos){
+  const ordenadas = hojas.slice().sort((a,b)=>
+    (/datos/i.test(b.nombre)?1:0) - (/datos/i.test(a.nombre)?1:0));
+  for(const hoja of ordenadas){
+    const limite = Math.min(hoja.filas.length, 25);
+    for(let r=0; r<limite; r++){
+      const idx = {};
+      (hoja.filas[r]||[]).forEach((celda, c)=>{
+        const campo = _impCampo(celda, alias);
+        if(campo && idx[campo] == null) idx[campo] = c;
+      });
+      if(requeridos.every(k=>idx[k] != null)){
+        return {idx, filas:hoja.filas.slice(r+1), filaEnc:r+1, hoja:hoja.nombre};
+      }
+    }
   }
+  return null;
+}
 
-  const TIPOS_VALIDOS = ['laptop','computadora','impresora','monitor','proyector','tablet','teléfono','telefono','servidor','switch','router','cámara','camara','ups','escáner','escaner','otro'];
-  const ESTADOS_VALIDOS = ['activo','mantenimiento','descarte'];
+const _IMP_ACT_ALIAS = [
+  ['codigo',['codigo','cod']],
+  ['nombre',['nombre']],
+  ['tipo',['tipo']],
+  ['estado',['estado']],
+  ['marca',['marca']],
+  ['modelo',['modelo']],
+  ['serial',['serial','nserie','numerodeserie','numserie','serie']],
+  ['ubicacion',['ubicacion']],
+  ['asignado',['asignado']],
+  ['depto',['depto','departamento']],
+  ['compra',['fechacompra','fechadecompra','compra']],
+  ['garantia',['garantia']],
+  ['valor',['valor']],
+  ['vida',['vida']],
+  ['obs',['obs','observacion']]
+];
 
-  let registros = [], errores = [], filaNum = 2;
+const _IMP_TIPO_ALIAS = {
+  telefono:'Teléfono IP', switch:'Switch / Hub', hub:'Switch / Hub', bocina:'Bocina / Audio',
+  audio:'Bocina / Audio', celular:'Móvil', licencia:'Software', licenciadesoftware:'Software',
+  antena:'Antena WiFi', tv:'Televisor', television:'Televisor', webcam:'Cámara', microfono:'Bocina / Audio',
+  lector:'Lector de Código de Barras',
+  patchpanel:'Cableado / Patch Panel', cableado:'Cableado / Patch Panel', ap:'Access Point'
+};
+const _IMP_ESTADO_ALIAS = {
+  activo:'activo', mantenimiento:'mantenimiento', enmantenimiento:'mantenimiento',
+  descarte:'descarte', baja:'descarte', dadodebaja:'descarte'
+};
 
-  // Saltar filas de instrucciones (las que empiezan con DEJAR, etc.)
-  const dataLineas = lineas.slice(1).filter(l=>{
-    const primera = l.split(sep)[0].replace(/^"|"$/g,'').trim();
-    return !primera.toUpperCase().startsWith('DEJAR') &&
-           !primera.toUpperCase().startsWith('NOMBRE DEL') &&
-           !primera.toUpperCase().startsWith('←');
+function _impTipoCanonico(txt){
+  const n = _impNorm(txt);
+  const clave = Object.keys(TIPO_ICON).find(k=>_impNorm(k) === n);
+  return clave || _IMP_TIPO_ALIAS[n] || null;
+}
+
+function leerArchivoActivos(input){
+  const file = input.files[0];
+  if(!file) return;
+  _impLeerArchivo(file, procesarArchivoActivos, msg=>{
+    document.getElementById('import-activos-status').textContent = msg;
   });
+}
 
-  dataLineas.forEach((linea, idx)=>{
-    if(!linea.trim()) return;
-    filaNum++;
-    const cols = linea.split(sep).map(c=>c.replace(/^"|"$/g,'').trim());
+function procesarArchivoActivos(hojas){
+  const st = document.getElementById('import-activos-status');
+  const enc = _impBuscarEncabezado(hojas, _IMP_ACT_ALIAS, ['nombre','tipo','estado']);
+  if(!enc){
+    window._importActivosData = [];
+    document.getElementById('import-activos-preview').innerHTML = '';
+    document.getElementById('import-activos-btn').disabled = true;
+    st.textContent = '❌ No se encontró una fila de encabezados con las columnas NOMBRE, TIPO y ESTADO. Descarga la plantilla con el botón ⬇ Plantilla y no cambies los nombres de las columnas.';
+    return;
+  }
+
+  let registros = [], errores = [];
+  const vacio = v => String(v==null?'':v).trim() === '';
+
+  enc.filas.forEach((cols, i)=>{
+    if(cols.every(vacio)) return;
+    const get = k => enc.idx[k]==null ? '' : String(cols[enc.idx[k]]==null?'':cols[enc.idx[k]]).trim();
+    if(_impNorm(get('tipo')) === 'usardesplegable' || _impNorm(get('codigo')).startsWith('dejarvacio')) return;
+
     const obj = {};
-    headers.forEach((h,i)=>{ obj[h]=cols[i]||''; });
-
-    // Validaciones
+    Object.keys(enc.idx).forEach(k=>{ obj[k] = get(k); });
+    const filaNum = enc.filaEnc + 1 + i;
     const errs = [];
+
     if(!obj.nombre) errs.push('nombre vacío');
-    if(!obj.tipo)   errs.push('tipo vacío');
-    else if(!TIPOS_VALIDOS.includes(obj.tipo.toLowerCase())) errs.push(`tipo inválido: "${obj.tipo}"`);
+
+    const tipo = obj.tipo ? _impTipoCanonico(obj.tipo) : null;
+    if(!obj.tipo) errs.push('tipo vacío');
+    else if(!tipo) errs.push(`tipo inválido: "${obj.tipo}" (use uno de la hoja INSTRUCCIONES; el mobiliario va en el módulo Mobiliario)`);
+
+    const estado = obj.estado ? _IMP_ESTADO_ALIAS[_impNorm(obj.estado)] : null;
     if(!obj.estado) errs.push('estado vacío');
-    else if(!ESTADOS_VALIDOS.includes(obj.estado.toLowerCase())) errs.push(`estado inválido: "${obj.estado}"`);
-    if(obj.valor && isNaN(parseFloat(obj.valor))) errs.push('valor no es número');
-    if(obj.vida  && isNaN(parseInt(obj.vida)))    errs.push('vida útil no es número');
+    else if(!estado) errs.push(`estado inválido: "${obj.estado}" (use activo, mantenimiento o descarte)`);
+
+    const valorNum = obj.valor ? parseFloat(String(obj.valor).replace(/[$\s,]/g,'')) : 0;
+    if(obj.valor && isNaN(valorNum)) errs.push('valor no es número');
+    const vidaNum = obj.vida ? parseInt(obj.vida,10) : 0;
+    if(obj.vida && isNaN(vidaNum)) errs.push('vida útil no es número');
 
     if(errs.length){
       errores.push({fila:filaNum, nombre:obj.nombre||'(sin nombre)', errores:errs});
     } else {
-      // Normalizar
-      obj.tipo   = obj.tipo.charAt(0).toUpperCase()+obj.tipo.slice(1).toLowerCase();
-      obj.estado = obj.estado.toLowerCase();
-      obj.valor  = obj.valor ? parseFloat(obj.valor)||0 : 0;
-      obj.vida   = obj.vida  ? parseInt(obj.vida)||0    : 0;
-      obj.codigo = ''; // Se asigna al importar
+      obj.tipo   = tipo;
+      obj.estado = estado;
+      obj.valor  = valorNum || 0;
+      obj.vida   = vidaNum || 0;
+      obj.codigo = '';
       registros.push(obj);
     }
   });
@@ -7594,7 +7684,7 @@ function procesarCSVActivos(csvText){
     html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
     html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores (serán omitidas):</strong><br>`;
     errores.slice(0,5).forEach(e=>{
-      html += `Fila ${e.fila}: <em>${e.nombre}</em> — ${e.errores.join(', ')}<br>`;
+      html += `Fila ${e.fila}: <em>${sanitizeHTML(e.nombre)}</em> — ${sanitizeHTML(e.errores.join(', '))}<br>`;
     });
     if(errores.length>5) html += `...y ${errores.length-5} más.`;
     html += `</div>`;
@@ -7612,7 +7702,7 @@ function procesarCSVActivos(csvText){
       const bg = i%2===0 ? '#fff' : '#f8f9fa';
       html += `<tr style="background:${bg}">`;
       [r.nombre,r.tipo,r.estado,r.marca||'—',r.modelo||'—',r.ubicacion||'—'].forEach(v=>{
-        html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${v}</td>`;
+        html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${sanitizeHTML(String(v))}</td>`;
       });
       html += '</tr>';
     });
@@ -7685,7 +7775,7 @@ async function ejecutarImportarActivos(){
 
   // Recargar datos
   await loadFromSheets();
-  showToast(`✅ ${ok} activos importados al inventario`,'success');
+  showToast(fail ? `⚠ ${ok} activos importados, ${fail} fallaron. Revisa tu conexión e intenta con los restantes.` : `✅ ${ok} activos importados al inventario`, fail ? '' : 'success');
   cerrarImportarActivos();
 }
 
@@ -7703,59 +7793,62 @@ function cerrarImportarUsuarios(){
   document.getElementById('mod-importar-usuarios').classList.remove('open');
 }
 
+const _IMP_USR_ALIAS = [
+  ['username',['username','usuario','user']],
+  ['pass_temp',['passtemp','passwordtemp','contrasenatemp','contrasena','password','pass','clave']],
+  ['rol',['rol']],
+  ['nombre',['nombre']],
+  ['email',['email','correo']],
+  ['tel',['tel','telefono']],
+  ['depto',['depto','departamento']],
+  ['cargo',['cargo']],
+  ['estado',['estado']]
+];
+
 function leerArchivoUsuarios(input){
-  const file=input.files[0]; if(!file) return;
-  const ext=file.name.split('.').pop().toLowerCase();
-  if(ext==='csv'){
-    const reader=new FileReader();
-    reader.onload=e=>procesarCSVUsuarios(e.target.result);
-    reader.readAsText(file,'UTF-8');
-  } else if(ext==='xlsx'||ext==='xls'){
-    cargarSheetJS(()=>{
-      const reader=new FileReader();
-      reader.onload=e=>{
-        const wb=XLSX.read(e.target.result,{type:'array'});
-        let sheetName=wb.SheetNames.find(n=>n.includes('DATOS'))||wb.SheetNames[1]||wb.SheetNames[0];
-        const ws=wb.Sheets[sheetName];
-        procesarCSVUsuarios(XLSX.utils.sheet_to_csv(ws));
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  }
+  const file = input.files[0]; if(!file) return;
+  _impLeerArchivo(file, procesarArchivoUsuarios, msg=>{
+    document.getElementById('import-usuarios-status').textContent = msg;
+  });
 }
 
-function procesarCSVUsuarios(csvText){
-  const lineas=csvText.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim()&&!l.startsWith('#'));
-  if(lineas.length<2){
-    document.getElementById('import-usuarios-status').textContent='❌ Archivo sin datos.'; return;
+function procesarArchivoUsuarios(hojas){
+  const st = document.getElementById('import-usuarios-status');
+  const enc = _impBuscarEncabezado(hojas, _IMP_USR_ALIAS, ['username','rol','nombre','email']);
+  if(!enc){
+    window._importUsuariosData = [];
+    document.getElementById('import-usuarios-preview').innerHTML = '';
+    document.getElementById('import-usuarios-btn').disabled = true;
+    st.textContent = '❌ No se encontró una fila de encabezados con las columnas username, rol, nombre y email.';
+    return;
   }
-  const sep=lineas[0].includes(';')?';':',';
-  const headers=lineas[0].split(sep).map(h=>h.replace(/^"|"$/g,'').trim().toLowerCase());
-  const ROLES=['admin','tecnico','inventario','consultor'];
-  const ESTADOS=['activo','inactivo'];
-  let registros=[],errores=[];
+  const ROLES = ['admin','tecnico','inventario','consultor'];
+  let registros = [], errores = [];
+  const vacio = v => String(v==null?'':v).trim() === '';
 
-  lineas.slice(1).filter(l=>{
-    const p=l.split(sep)[0].replace(/^"|"$/g,'').trim();
-    return p && !p.toUpperCase().startsWith('USUARIO') && !p.includes('←');
-  }).forEach((linea,idx)=>{
-    if(!linea.trim()) return;
-    const cols=linea.split(sep).map(c=>c.replace(/^"|"$/g,'').trim());
-    const obj={}; headers.forEach((h,i)=>{obj[h]=cols[i]||'';});
-    const errs=[];
+  enc.filas.forEach((cols, i)=>{
+    if(cols.every(vacio)) return;
+    const get = k => enc.idx[k]==null ? '' : String(cols[enc.idx[k]]==null?'':cols[enc.idx[k]]).trim();
+    const primera = get('username');
+    if(_impNorm(primera) === 'usuario' || primera.indexOf('←') !== -1) return;
+
+    const obj = {};
+    Object.keys(enc.idx).forEach(k=>{ obj[k] = get(k); });
+    const errs = [];
     if(!obj.username) errs.push('username vacío');
     else if(/\s/.test(obj.username)) errs.push('username con espacios');
-    if(!obj.pass_temp&&!obj.password) errs.push('contraseña vacía');
+    if(!obj.pass_temp) errs.push('contraseña vacía');
     if(!obj.rol) errs.push('rol vacío');
-    else if(!ROLES.includes(obj.rol.toLowerCase())) errs.push(`rol inválido: ${obj.rol}`);
+    else if(!ROLES.includes(_impNorm(obj.rol))) errs.push(`rol inválido: ${obj.rol}`);
     if(!obj.nombre) errs.push('nombre vacío');
-    if(!obj.email||!obj.email.includes('@')) errs.push('email inválido');
-    if(errs.length){ errores.push({fila:idx+2,nombre:obj.username||'?',errores:errs}); }
-    else {
+    if(!obj.email || !obj.email.includes('@')) errs.push('email inválido');
+    if(errs.length){
+      errores.push({fila:enc.filaEnc + 1 + i, nombre:obj.username||'?', errores:errs});
+    } else {
       registros.push({
         username:obj.username.toLowerCase(),
-        passwordPlano:(obj.pass_temp||obj.password||'Cambiar123'),
-        mustChange:'true', rol:obj.rol.toLowerCase(),
+        passwordPlano:obj.pass_temp,
+        mustChange:'true', rol:_impNorm(obj.rol),
         nombre:obj.nombre, email:obj.email,
         tel:obj.tel||'', depto:obj.depto||'', cargo:obj.cargo||'',
         estado:(obj.estado||'activo').toLowerCase(),
@@ -7770,7 +7863,7 @@ function procesarCSVUsuarios(csvText){
   let html='';
   if(errores.length){
     html+=`<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;"><strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores:</strong><br>`;
-    errores.slice(0,5).forEach(e=>{html+=`Fila ${e.fila}: ${e.nombre} — ${e.errores.join(', ')}<br>`;});
+    errores.slice(0,5).forEach(e=>{html+=`Fila ${e.fila}: ${sanitizeHTML(e.nombre)} — ${sanitizeHTML(e.errores.join(', '))}<br>`;});
     html+='</div>';
   }
   if(registros.length){
@@ -7780,7 +7873,7 @@ function procesarCSVUsuarios(csvText){
     html+='</tr></thead><tbody>';
     registros.slice(0,5).forEach((r,i)=>{
       html+=`<tr style="background:${i%2===0?'#fff':'#f8f9fa'}">`;
-      [r.username,r.rol,r.nombre,r.email,r.estado].forEach(v=>{html+=`<td style="padding:4px 8px;border-bottom:1px solid #eee">${v}</td>`;});
+      [r.username,r.rol,r.nombre,r.email,r.estado].forEach(v=>{html+=`<td style="padding:4px 8px;border-bottom:1px solid #eee">${sanitizeHTML(String(v))}</td>`;});
       html+='</tr>';
     });
     if(registros.length>5) html+=`<tr><td colspan="5" style="padding:4px 8px;color:var(--text3);font-size:10px">...y ${registros.length-5} más</td></tr>`;
