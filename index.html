@@ -7514,6 +7514,29 @@ function cerrarImportarActivos(){
 }
 
 // ── LECTOR GENÉRICO DE PLANTILLAS (xlsx/csv) ─────────────────────
+// Escapa texto para insertarlo en HTML o en atributos (&, <, >, comillas).
+function _escHtml(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Motivo legible de un fallo de escritura. TIMEOUT es ambiguo: la fila pudo guardarse.
+function _impMotivo(res){
+  if(!res) return 'sin respuesta del servidor';
+  if(res.error==='TIMEOUT') return 'sin confirmar por tiempo agotado: revise la lista ANTES de repetir (pudo guardarse)';
+  return res.message||res.error||'error desconocido';
+}
+
+// Celdas de un archivo cargado que no deben entrar al sistema: fórmulas de
+// hoja de cálculo (= + - @) y etiquetas HTML. Devuelve el motivo o ''.
+function _impCeldaPeligrosa(v){
+  const raw = String(v==null?'':v);
+  const s = raw.trim();
+  if(!s) return '';
+  if(/^[\t\r]/.test(raw) || /^[=@]/.test(s) || (/^[+\-]/.test(s) && !/^[+\-]?[\d\s().,\-]+$/.test(s))) return 'empieza con un carácter de fórmula (= + - @)';
+  if(/<\s*\/?\s*[a-zA-Z!]/.test(s)) return 'contiene etiquetas HTML';
+  return '';
+}
+
 function _impNorm(s){
   return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 }
@@ -7668,6 +7691,7 @@ function procesarArchivoActivos(hojas){
     Object.keys(enc.idx).forEach(k=>{ obj[k] = get(k); });
     const filaNum = enc.filaEnc + 1 + i;
     const errs = [];
+    Object.keys(obj).forEach(k=>{ const mot=_impCeldaPeligrosa(obj[k]); if(mot) errs.push(`${k}: ${mot}`); });
 
     if(!obj.nombre) errs.push('nombre vacío');
 
@@ -7707,7 +7731,7 @@ function procesarArchivoActivos(hojas){
     html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
     html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores (serán omitidas):</strong><br>`;
     errores.slice(0,5).forEach(e=>{
-      html += `Fila ${e.fila}: <em>${sanitizeHTML(e.nombre)}</em> — ${sanitizeHTML(e.errores.join(', '))}<br>`;
+      html += `Fila ${e.fila}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
     });
     if(errores.length>5) html += `...y ${errores.length-5} más.`;
     html += `</div>`;
@@ -7725,7 +7749,7 @@ function procesarArchivoActivos(hojas){
       const bg = i%2===0 ? '#fff' : '#f8f9fa';
       html += `<tr style="background:${bg}">`;
       [r.nombre,r.tipo,r.estado,r.marca||'—',r.modelo||'—',r.ubicacion||'—'].forEach(v=>{
-        html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${sanitizeHTML(String(v))}</td>`;
+        html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${_escHtml(v)}</td>`;
       });
       html += '</tr>';
     });
@@ -7753,7 +7777,7 @@ async function ejecutarImportarActivos(){
   btn.textContent = 'Importando...';
 
   const statusEl = document.getElementById('import-activos-status');
-  let ok=0, fail=0;
+  let ok=0, fail=0, primerError='';
 
   // Obtener el contador actual de activos para asignar códigos
   let cntBase = 0;
@@ -7778,15 +7802,17 @@ async function ejecutarImportarActivos(){
       }]),
       fechaCreacion:ts()
     };
-    try{
-      await apiPost('activos','insert',activo);
+    // apiPostAsync lee la respuesta REAL del servidor (apiPost es "a ciegas")
+    const res = await apiPostAsync('activos','insert',activo);
+    if(res && res.ok){
       activos.push({...activo, historial:[{tipo:'Creación',desc:'Importado',fecha:ts(),usuario:session.nombre,color:'blue'}]});
       ok++;
-    }catch(e){ fail++; }
+    } else {
+      fail++;
+      if(!primerError) primerError = _impMotivo(res);
+    }
 
-    statusEl.textContent = `Importando... ${i+1}/${registros.length} (${ok} OK, ${fail} errores)`;
-    // Pequeño delay para no saturar el API
-    if(i % 5 === 4) await new Promise(res=>setTimeout(res,500));
+    statusEl.textContent = `Importando... ${i+1}/${registros.length} (${ok} confirmados, ${fail} errores)`;
   }
 
   // Registrar en auditoría
@@ -7798,7 +7824,7 @@ async function ejecutarImportarActivos(){
 
   // Recargar datos
   await loadFromSheets();
-  showToast(fail ? `⚠ ${ok} activos importados, ${fail} fallaron. Revisa tu conexión e intenta con los restantes.` : `✅ ${ok} activos importados al inventario`, fail ? '' : 'success');
+  showToast(fail ? `⚠ ${ok} activos importados, ${fail} fallaron (${primerError}). Revisa e intenta con los restantes.` : `✅ ${ok} activos importados y confirmados por el servidor`, fail ? '' : 'success');
   cerrarImportarActivos();
 }
 
@@ -7858,6 +7884,7 @@ function procesarArchivoUsuarios(hojas){
     const obj = {};
     Object.keys(enc.idx).forEach(k=>{ obj[k] = get(k); });
     const errs = [];
+    Object.keys(obj).forEach(k=>{ if(k==='pass_temp') return; const mot=_impCeldaPeligrosa(obj[k]); if(mot) errs.push(`${k}: ${mot}`); });
     if(!obj.username) errs.push('username vacío');
     else if(/\s/.test(obj.username)) errs.push('username con espacios');
     if(!obj.pass_temp) errs.push('contraseña vacía');
@@ -7886,7 +7913,7 @@ function procesarArchivoUsuarios(hojas){
   let html='';
   if(errores.length){
     html+=`<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;"><strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores:</strong><br>`;
-    errores.slice(0,5).forEach(e=>{html+=`Fila ${e.fila}: ${sanitizeHTML(e.nombre)} — ${sanitizeHTML(e.errores.join(', '))}<br>`;});
+    errores.slice(0,5).forEach(e=>{html+=`Fila ${e.fila}: ${_escHtml(e.nombre)} — ${_escHtml(e.errores.join(', '))}<br>`;});
     html+='</div>';
   }
   if(registros.length){
@@ -7896,7 +7923,7 @@ function procesarArchivoUsuarios(hojas){
     html+='</tr></thead><tbody>';
     registros.slice(0,5).forEach((r,i)=>{
       html+=`<tr style="background:${i%2===0?'#fff':'#f8f9fa'}">`;
-      [r.username,r.rol,r.nombre,r.email,r.estado].forEach(v=>{html+=`<td style="padding:4px 8px;border-bottom:1px solid #eee">${sanitizeHTML(String(v))}</td>`;});
+      [r.username,r.rol,r.nombre,r.email,r.estado].forEach(v=>{html+=`<td style="padding:4px 8px;border-bottom:1px solid #eee">${_escHtml(v)}</td>`;});
       html+='</tr>';
     });
     if(registros.length>5) html+=`<tr><td colspan="5" style="padding:4px 8px;color:var(--text3);font-size:10px">...y ${registros.length-5} más</td></tr>`;
@@ -7917,19 +7944,19 @@ async function ejecutarImportarUsuarios(){
   if(!registros.length) return;
   const btn=document.getElementById('import-usuarios-btn');
   btn.disabled=true; btn.textContent='Importando...';
-  let ok=0,fail=0;
+  let ok=0,fail=0,primerError='';
   for(const r of registros){
     // Verificar si ya existe
-    if(usuarios.find(u=>u.username===r.username)){ fail++; continue; }
-    try{ await apiPost('usuarios','insert',r); usuarios.push(r); ok++; }
-    catch(e){ fail++; }
-    await new Promise(res=>setTimeout(res,200));
+    if(usuarios.find(u=>u.username===r.username)){ fail++; if(!primerError) primerError='el usuario ya existe'; continue; }
+    const res = await apiPostAsync('usuarios','insert',r);
+    if(res && res.ok){ usuarios.push(r); ok++; }
+    else { fail++; if(!primerError) primerError=_impMotivo(res); }
   }
   audit('CREAR','Usuarios','MASIVO',`Importación masiva: ${ok} usuarios importados`);
   document.getElementById('import-usuarios-status').textContent=
-    `✅ ${ok} usuarios importados${fail?` | ${fail} fallaron o ya existían`:''}`;
+    `✅ ${ok} usuarios importados${fail?` | ${fail} fallaron (${primerError})`:''}`;
   btn.textContent='Importar usuarios';
-  showToast(`✅ ${ok} usuarios importados al sistema`,'success');
+  showToast(fail ? `⚠ ${ok} usuarios importados, ${fail} fallaron (${primerError})` : `✅ ${ok} usuarios importados y confirmados`, fail ? '' : 'success');
   cerrarImportarUsuarios();
   await loadFromSheets();
 }
@@ -8064,6 +8091,7 @@ function procesarArchivoMob(hojas){
     const obj = {};
     Object.keys(enc.idx).forEach(k=>{ obj[k] = get(k); });
     const errs = [];
+    Object.keys(obj).forEach(k=>{ const mot=_impCeldaPeligrosa(obj[k]); if(mot) errs.push(`${k}: ${mot}`); });
 
     if(!obj.nombre) errs.push('descripción vacía');
 
@@ -8110,7 +8138,7 @@ function procesarArchivoMob(hojas){
     html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
     html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores (serán omitidas):</strong><br>`;
     errores.slice(0,5).forEach(e=>{
-      html += `Fila ${e.fila}: <em>${sanitizeHTML(e.nombre)}</em> — ${sanitizeHTML(e.errores.join(', '))}<br>`;
+      html += `Fila ${e.fila}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
     });
     if(errores.length>5) html += `...y ${errores.length-5} más.`;
     html += `</div>`;
@@ -8126,7 +8154,7 @@ function procesarArchivoMob(hojas){
     registros.slice(0,5).forEach((r,i)=>{
       html += `<tr style="background:${i%2===0?'#fff':'#f8f9fa'}">`;
       [r.nombre,r.tipo,r.cantidad,r.condicion,r.ubicacion||'—',r.valor?('$'+r.valor):'—'].forEach(v=>{
-        html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${sanitizeHTML(String(v))}</td>`;
+        html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${_escHtml(v)}</td>`;
       });
       html += '</tr>';
     });
@@ -8150,7 +8178,7 @@ async function ejecutarImportarMob(){
   const btn = document.getElementById('import-mob-btn');
   const st = document.getElementById('import-mob-status');
   btn.disabled = true; btn.textContent = 'Importando...';
-  let ok = 0, fail = 0;
+  let ok = 0, fail = 0, primerError = '';
 
   for(let i=0; i<registros.length; i++){
     const r = registros[i];
@@ -8164,9 +8192,10 @@ async function ejecutarImportarMob(){
       }]),
       fechaCreacion:ts()
     };
-    try{ await apiPost('mobiliario','insert',obj); ok++; }catch(e){ fail++; }
-    st.textContent = `Importando... ${i+1}/${registros.length} (${ok} OK, ${fail} errores)`;
-    await new Promise(res=>setTimeout(res, i % 5 === 4 ? 500 : 150));
+    const res = await apiPostAsync('mobiliario','insert',obj);
+    if(res && res.ok) ok++;
+    else { fail++; if(!primerError) primerError = _impMotivo(res); }
+    st.textContent = `Importando... ${i+1}/${registros.length} (${ok} confirmados, ${fail} errores)`;
   }
 
   audit('CREAR','Mobiliario','MASIVO',`Importación masiva: ${ok} elementos de mobiliario importados desde Excel`);
@@ -8178,7 +8207,7 @@ async function ejecutarImportarMob(){
   btn.textContent = 'Importar mobiliario';
   cerrarImportarMob();
   renderMobiliario();
-  showToast(fail ? `⚠ ${ok} elementos importados, ${fail} fallaron. Revisa tu conexión e intenta con los restantes.` : `✅ ${ok} elementos de mobiliario importados`, fail ? '' : 'success');
+  showToast(fail ? `⚠ ${ok} elementos importados, ${fail} fallaron (${primerError}). Revisa e intenta con los restantes.` : `✅ ${ok} elementos de mobiliario importados y confirmados`, fail ? '' : 'success');
 }
 
 function showToast(msg,tipo){
@@ -9018,7 +9047,7 @@ function buildDataLists(){
     if(!el) return;
     const cur = el.value;
     el.innerHTML = '<option value="">— Seleccionar departamento —</option>' +
-      deptos.map(d=>`<option value="${d}">${d}</option>`).join('');
+      deptos.map(d=>`<option value="${_escHtml(d)}">${_escHtml(d)}</option>`).join('');
     if(cur) el.value = cur;
   }
 
@@ -9032,7 +9061,7 @@ function buildDataLists(){
     const cur = el.value;
     const first = el.options[0]?.textContent || 'Todos';
     el.innerHTML = `<option value="">${first}</option>` +
-      deptos.map(d=>`<option value="${d}">${d}</option>`).join('');
+      deptos.map(d=>`<option value="${_escHtml(d)}">${_escHtml(d)}</option>`).join('');
     if(cur) el.value = cur;
   });
 
@@ -9043,10 +9072,10 @@ function buildDataLists(){
     if(!el) return;
     const cur = el.value;
     el.innerHTML = `<option value="">${placeholder}</option>` +
-      espActivos.map(e=>`<option value="${e.nombre}"
-        data-responsable="${e.responsableNombre||''}"
-        data-email="${e.responsableEmail||''}"
-      >${e.nombre}${e.tipo?' ('+e.tipo+')':''}</option>`).join('');
+      espActivos.map(e=>`<option value="${_escHtml(e.nombre)}"
+        data-responsable="${_escHtml(e.responsableNombre||'')}"
+        data-email="${_escHtml(e.responsableEmail||'')}"
+      >${_escHtml(e.nombre)}${e.tipo?' ('+_escHtml(e.tipo)+')':''}</option>`).join('');
     if(cur) el.value = cur;
   }
   poblarSelectEspacio('mob-ubicacion');
@@ -9058,11 +9087,11 @@ function buildDataLists(){
     if(!el) return;
     const cur = el.value;
     el.innerHTML = `<option value="">${placeholder}</option>` +
-      persActivas.map(p=>`<option value="${p.nombre}"
-        data-email="${p.email||''}"
-        data-cargo="${p.cargo||''}"
-        data-depto="${p.depto||''}"
-      >${p.nombre}${p.cargo?' — '+p.cargo:''}</option>`).join('');
+      persActivas.map(p=>`<option value="${_escHtml(p.nombre)}"
+        data-email="${_escHtml(p.email||'')}"
+        data-cargo="${_escHtml(p.cargo||'')}"
+        data-depto="${_escHtml(p.depto||'')}"
+      >${_escHtml(p.nombre)}${p.cargo?' — '+_escHtml(p.cargo):''}</option>`).join('');
     if(cur) el.value = cur;
   }
   poblarSelectPersona('dep-responsable','— Sin responsable —');
@@ -9072,7 +9101,7 @@ function buildDataLists(){
   if(selDepResp){
     const cur = selDepResp.value;
     selDepResp.innerHTML = '<option value="">— Sin responsable —</option>' +
-      persActivas.map(p=>`<option value="${p.nombre}">${p.nombre}${p.cargo?' — '+p.cargo:''}</option>`).join('');
+      persActivas.map(p=>`<option value="${_escHtml(p.nombre)}">${_escHtml(p.nombre)}${p.cargo?' — '+_escHtml(p.cargo):''}</option>`).join('');
     if(cur) selDepResp.value = cur;
   }
 
@@ -9091,7 +9120,7 @@ function buildDataLists(){
         .map(a=>(a.marca||'').trim())
         .filter(Boolean)
     )].sort((a,b)=>a.localeCompare(b,'es'));
-    dlMarcas.innerHTML = marcas.map(m=>`<option value="${sanitizeHTML(m)}">`).join('');
+    dlMarcas.innerHTML = marcas.map(m=>`<option value="${_escHtml(m)}">`).join('');
   }
 
   // ── Sugerencias de Cargo/Rol (datalist) ──────────────────────────
@@ -9105,7 +9134,7 @@ function buildDataLists(){
     const cargos = [...new Set(
       persActivas.map(p=>(p.cargo||'').trim()).filter(Boolean)
     )].sort((a,b)=>a.localeCompare(b,'es'));
-    dlCargos.innerHTML = cargos.map(c=>`<option value="${sanitizeHTML(c)}">`).join('');
+    dlCargos.innerHTML = cargos.map(c=>`<option value="${_escHtml(c)}">`).join('');
   }
 }
 
