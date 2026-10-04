@@ -1700,6 +1700,26 @@ tbody tr.clickable{cursor:pointer;}
     </div>
   </div>
 
+  <!-- Importar Excel/CSV — Espacios -->
+  <div class="modal-bg" id="mod-importar-esp">
+    <div class="modal" style="max-width:700px;">
+      <div class="modal-title">
+        <span>⬆ Importar espacios desde Excel/CSV</span>
+        <button class="modal-close" onclick="cerrarImportarEsp()">✕</button>
+      </div>
+      <div class="f-row">
+        <div class="f-lbl">Archivo (.csv o .xlsx)</div>
+        <input class="f-inp" type="file" id="import-esp-file" accept=".csv,.xlsx,.xls" onchange="leerArchivoEsp(this)">
+      </div>
+      <div id="import-esp-status" style="font-size:12px;color:var(--text2);margin:10px 0;">Selecciona un archivo CSV o Excel (.xlsx) para importar.</div>
+      <div id="import-esp-preview"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="cerrarImportarEsp()">Cancelar</button>
+        <button class="btn btn-p" id="import-esp-btn" onclick="ejecutarImportarEsp()" disabled>Importar espacios</button>
+      </div>
+    </div>
+  </div>
+
   <div class="pnl" id="pnl-licencias">
     <div class="pnl-header">
       <h2 class="pnl-title"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M14 9l2 2"/></svg></span> Licencias de Software</h2>
@@ -3383,6 +3403,10 @@ function renderTopbarBtns(p){
   }
   if(p==='espacios'){
     if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openEspacio(null)">+ Nuevo espacio</button>';
+    if(['admin','inventario'].includes(session.rol)){
+      btnsHTML+='<button class="btn" onclick="abrirModalImportarEsp()" style="margin-left:6px" title="Importar espacios desde CSV o Excel">⬆ Importar Excel</button>';
+      btnsHTML+='<button class="btn" onclick="descargarPlantillaEsp()" style="margin-left:4px" title="Descargar plantilla de carga masiva">⬇ Plantilla</button>';
+    }
   }
   if(p==='mobiliario'){
     if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openMob(null)">+ Nuevo elemento</button>';
@@ -8716,6 +8740,275 @@ async function ejecutarImportarPer(){
   buildDataLists();
   renderPersonas();
   showToast(fail ? `⚠ ${ok} personas importadas, ${fail} fallaron (${primerError}). Revisa e intenta con las restantes.` : `✅ ${ok} personas importadas y confirmadas`, fail ? '' : 'success');
+}
+
+// ── IMPORTAR / PLANTILLA ESPACIOS ─────────────────────────────────
+const _IMP_ESP_ALIAS = [
+  ['codigo',['codigo','cod']],
+  ['nombre',['nombredelespacio','nombre','espacio']],
+  ['tipo',['tipo']],
+  ['depto',['departamento','depto']],
+  ['ubicacion',['edificio','ubicacion']],
+  ['responsable',['responsable']],
+  ['capacidad',['capacidad']],
+  ['estado',['estado']],
+  ['obs',['observaciones','observacion','obs']]
+];
+const _IMP_ESP_TIPOS = ['Laboratorio','Aula','Oficina','Sala de reuniones','Biblioteca','Dirección','Secretaría','Otro'];
+const _IMP_ESP_ESTADO = { activo:'activo', activa:'activo', inactivo:'inactivo', inactiva:'inactivo' };
+
+function _impPuedeImportarEspacios(){
+  return !!session && ['admin','inventario'].includes(session.rol);
+}
+
+function descargarPlantillaEsp(){
+  cargarSheetJS(()=>{
+    const wb = XLSX.utils.book_new();
+    const inst = [
+      ['SAGAE — Plantilla de Carga Masiva de Espacios y Aulas'],
+      ['Sistema de Activos y Gestión Administrativa Educativa  ·  Desarrollado por RYE Design'],
+      [''],
+      ['PASOS PARA COMPLETAR ESTA PLANTILLA'],
+      ['PASO 1', 'Cargue primero en SAGAE los DEPARTAMENTOS y luego las PERSONAS: las columnas Departamento y Responsable solo aceptan registros ya existentes'],
+      ['PASO 2', 'Ir a la hoja "DATOS ESPACIOS" (pestaña en la parte inferior)'],
+      ['PASO 3', 'Llenar cada fila desde la fila 5 (la fila 4 es un ejemplo: reemplácela o bórrela)'],
+      ['PASO 4', 'NO modificar las filas 1, 2 y 3 (son los encabezados del sistema)'],
+      ['PASO 5', 'Guardar el archivo y subirlo con ⬆ Importar Excel en el módulo Espacios'],
+      [''],
+      ['REGLAS IMPORTANTES'],
+      ['⚠ NO modificar', 'Las filas 1, 2 y 3 de la hoja de datos'],
+      ['⚠ NO agregar', 'Columnas nuevas ni cambiar los nombres de las columnas'],
+      ['✅ Campos con *', 'Son OBLIGATORIOS — no dejarlos vacíos'],
+      ['✅ Nombre', 'Si ya existe un espacio con ese nombre, la fila se omite (no se modifica el existente)'],
+      ['✅ Departamento', 'Debe estar ya registrado y activo en el módulo Departamentos. Opcional'],
+      ['✅ Responsable', 'Debe ser una persona ya registrada y activa en el módulo Personas. Recibirá los avisos de los equipos del espacio. Opcional'],
+      ['✅ Capacidad', 'Número entero de equipos (0 o más). Si se deja vacío se toma 0'],
+      ['✅ Columna CÓDIGO', 'Dejarla VACÍA — el sistema la asigna automáticamente (ESP-0001...)'],
+      ['✅ Estado', 'activo o inactivo. Si se deja vacío se toma activo'],
+      [''],
+      ['VALORES VÁLIDOS PARA LA COLUMNA TIPO'],
+      _IMP_ESP_TIPOS.slice(0,4),
+      _IMP_ESP_TIPOS.slice(4),
+      [''],
+      ['¿Dudas? Contacta a RYE Design: corpas84@hotmail.com  ·  (507) 6225-1042']
+    ];
+    const wsInst = XLSX.utils.aoa_to_sheet(inst);
+    wsInst['!cols'] = [{wch:22},{wch:80},{wch:18},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, wsInst, '📋 INSTRUCCIONES');
+
+    const LABELS  = ['CÓDIGO','NOMBRE DEL ESPACIO *','TIPO *','DEPARTAMENTO','EDIFICIO / PISO / UBICACIÓN','RESPONSABLE','CAPACIDAD (EQUIPOS)','ESTADO','OBSERVACIONES'];
+    const HINTS   = ['Dejar VACÍO\n(auto-asignado)','Ej: Laboratorio\nde Informática','Ver valores válidos\nen INSTRUCCIONES','Departamento ya\nregistrado','Ej: Edificio A, Piso 2','Persona ya\nregistrada','Número entero\n(ej: 30)','activo o inactivo\n(vacío = activo)','Notas adicionales'];
+    const EJEMPLO = ['','Laboratorio de Informática','Laboratorio','','Edificio A, Piso 2','',30,'activo',''];
+    const wsData = XLSX.utils.aoa_to_sheet([
+      ['SAGAE — DATOS DE ESPACIOS  ·  Complete desde la fila 5  ·  NO modificar filas 1, 2, 3 y 4'],
+      LABELS, HINTS, EJEMPLO
+    ]);
+    wsData['!cols'] = [14,32,20,24,30,26,20,18,30].map(w=>({wch:w}));
+    wsData['!rows'] = [{hpt:20},{hpt:22},{hpt:40},{hpt:18}];
+    XLSX.utils.book_append_sheet(wb, wsData, '📥 DATOS ESPACIOS');
+
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'SAGAE_Plantilla_Espacios.xlsx';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ Plantilla de espacios descargada. Llénala y súbela con ⬆ Importar Excel','success');
+  });
+}
+
+function abrirModalImportarEsp(){
+  if(!_impPuedeImportarEspacios()){ showToast('Solo administración o inventario pueden importar espacios',''); return; }
+  document.getElementById('mod-importar-esp').classList.add('open');
+  document.getElementById('import-esp-preview').innerHTML = '';
+  document.getElementById('import-esp-file').value = '';
+  document.getElementById('import-esp-status').textContent = 'Selecciona un archivo CSV o Excel (.xlsx) para importar.';
+  document.getElementById('import-esp-btn').disabled = true;
+  window._importEspData = [];
+}
+
+function cerrarImportarEsp(){
+  document.getElementById('mod-importar-esp').classList.remove('open');
+  document.getElementById('import-esp-preview').innerHTML = '';
+  window._importEspData = [];
+}
+
+function leerArchivoEsp(input){
+  const file = input.files[0];
+  if(!file) return;
+  _impLeerArchivo(file, procesarArchivoEsp, msg=>{
+    document.getElementById('import-esp-status').textContent = msg;
+  });
+}
+
+function procesarArchivoEsp(hojas){
+  const st = document.getElementById('import-esp-status');
+  const prev = document.getElementById('import-esp-preview');
+  const btn = document.getElementById('import-esp-btn');
+  const enc = _impBuscarEncabezado(hojas, _IMP_ESP_ALIAS, ['nombre','tipo']);
+  if(!enc){
+    window._importEspData = [];
+    prev.innerHTML = '';
+    btn.disabled = true;
+    st.textContent = '❌ No se encontró una fila de encabezados con las columnas NOMBRE DEL ESPACIO y TIPO. Descarga la plantilla con el botón ⬇ Plantilla y no cambies los nombres de las columnas.';
+    return;
+  }
+
+  const existentes = new Map();
+  (Array.isArray(espacios) ? espacios : []).forEach(e=>{ existentes.set(_impNorm(e.nombre), e.estado === 'eliminado'); });
+  const deptosOk = new Map(), deptosInactivos = new Set();
+  (Array.isArray(departamentos) ? departamentos : []).forEach(d=>{
+    if(d.estado === 'eliminado') return;
+    if(d.estado === 'inactivo') deptosInactivos.add(_impNorm(d.nombre));
+    else deptosOk.set(_impNorm(d.nombre), d.nombre);
+  });
+  const personasOk = new Map(), personasInactivas = new Set();
+  (Array.isArray(personas) ? personas : []).forEach(p=>{
+    if(p.estado === 'eliminado') return;
+    if(p.estado === 'inactivo') personasInactivas.add(_impNorm(p.nombre));
+    else personasOk.set(_impNorm(p.nombre), p);
+  });
+  const vistos = new Map();
+  let registros = [], errores = [];
+  const vacio = v => String(v==null?'':v).trim() === '';
+
+  enc.filas.forEach((cols, i)=>{
+    if(cols.every(vacio)) return;
+    const get = k => enc.idx[k]==null ? '' : String(cols[enc.idx[k]]==null?'':cols[enc.idx[k]]).trim();
+    if(_impNorm(get('codigo')).startsWith('dejarvacio')) return;
+
+    const obj = {};
+    Object.keys(enc.idx).forEach(k=>{ obj[k] = get(k); });
+    const filaNum = enc.filaEnc + 1 + i;
+    const errs = [];
+    Object.keys(obj).forEach(k=>{ const mot=_impCeldaPeligrosa(obj[k]); if(mot) errs.push(`${k}: ${mot}`); });
+
+    if(!obj.nombre) errs.push('nombre vacío');
+    else if(obj.nombre.length > 100) errs.push('nombre demasiado largo (máximo 100 caracteres)');
+    if(obj.ubicacion && obj.ubicacion.length > 100) errs.push('ubicación demasiado larga (máximo 100 caracteres)');
+    if(obj.obs && obj.obs.length > 300) errs.push('observaciones demasiado largas (máximo 300 caracteres)');
+
+    const tipo = obj.tipo ? _impEnLista(_IMP_ESP_TIPOS, obj.tipo) : null;
+    if(!obj.tipo) errs.push('tipo vacío');
+    else if(!tipo) errs.push(`tipo inválido: "${obj.tipo}" (use: ${_IMP_ESP_TIPOS.join(', ')})`);
+
+    let capacidad = 0;
+    if(obj.capacidad){
+      if(/^\d{1,5}$/.test(obj.capacidad)) capacidad = parseInt(obj.capacidad, 10);
+      else errs.push(`capacidad inválida: "${obj.capacidad.slice(0,20)}" (use un número entero, 0 o más)`);
+    }
+
+    let estado = 'activo';
+    if(obj.estado){
+      estado = _IMP_ESP_ESTADO[_impNorm(obj.estado)];
+      if(!estado) errs.push(`estado inválido: "${obj.estado}" (use activo o inactivo)`);
+    }
+
+    let depto = '';
+    if(obj.depto){
+      const nd = _impNorm(obj.depto);
+      depto = deptosOk.get(nd) || '';
+      if(!depto) errs.push(deptosInactivos.has(nd)
+        ? `departamento "${obj.depto}" está inactivo`
+        : `departamento "${obj.depto}" no está registrado (cárguelo primero en Departamentos)`);
+    }
+
+    let responsableNombre = '', responsableEmail = '';
+    if(obj.responsable){
+      const nr = _impNorm(obj.responsable);
+      const per = personasOk.get(nr);
+      if(per){ responsableNombre = per.nombre; responsableEmail = per.email || ''; }
+      else errs.push(personasInactivas.has(nr)
+        ? `responsable "${obj.responsable}" está inactivo en Personas`
+        : `responsable "${obj.responsable}" no está registrado (cárguelo primero en Personas)`);
+    }
+
+    if(obj.nombre){
+      const n = _impNorm(obj.nombre);
+      if(existentes.has(n)) errs.push(existentes.get(n) ? 'ya existe y está eliminado (restáurelo desde el sistema)' : 'ya existe en el sistema (se omite, no se modifica)');
+      else if(vistos.has(n)) errs.push(`repetido en el archivo (ya aparece en la fila ${vistos.get(n)})`);
+    }
+
+    if(errs.length){
+      errores.push({fila:filaNum, nombre:obj.nombre||'(sin nombre)', errores:errs});
+    } else {
+      vistos.set(_impNorm(obj.nombre), filaNum);
+      registros.push({ nombre:obj.nombre, tipo, depto, ubicacion:obj.ubicacion||'', responsableNombre, responsableEmail, capacidad, obs:obj.obs||'', estado });
+    }
+  });
+
+  window._importEspData = registros;
+
+  let html = '';
+  if(errores.length){
+    html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
+    html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores u omitidas:</strong><br>`;
+    errores.slice(0,6).forEach(e=>{
+      html += `Fila ${e.fila}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
+    });
+    if(errores.length>6) html += `...y ${errores.length-6} más.`;
+    html += `</div>`;
+  }
+  if(registros.length){
+    html += `<div style="font-size:11px;margin-bottom:8px;color:var(--text2)"><strong>${registros.length} espacio(s) listos para importar</strong> — Preview de los primeros 8:</div>`;
+    html += `<div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>`;
+    ['Nombre','Tipo','Departamento','Responsable','Capac.','Estado'].forEach(h=>{
+      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${h}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    registros.slice(0,8).forEach((r,i)=>{
+      html += `<tr style="background:${i%2===0?'#fff':'#f8f9fa'}">`;
+      [r.nombre,r.tipo,r.depto||'—',r.responsableNombre||'—',r.capacidad,r.estado].forEach(v=>{
+        html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${_escHtml(v)}</td>`;
+      });
+      html += '</tr>';
+    });
+    if(registros.length>8) html += `<tr><td colspan="6" style="padding:4px 8px;color:var(--text3);font-size:10px">...y ${registros.length-8} más</td></tr>`;
+    html += '</tbody></table></div>';
+  }
+  prev.innerHTML = html;
+
+  if(registros.length > 0){
+    st.textContent = `✅ ${registros.length} espacio(s) válidos para importar${errores.length?` (${errores.length} omitidos)`:''}`;
+    btn.disabled = false;
+  } else {
+    st.textContent = `❌ No hay registros válidos para importar. Revisa los ${errores.length} motivos de arriba e intenta de nuevo.`;
+    btn.disabled = true;
+  }
+}
+
+async function ejecutarImportarEsp(){
+  if(!_impPuedeImportarEspacios()){ showToast('Solo administración o inventario pueden importar espacios',''); return; }
+  const registros = window._importEspData || [];
+  if(!registros.length) return;
+  const btn = document.getElementById('import-esp-btn');
+  const st = document.getElementById('import-esp-status');
+  btn.disabled = true; btn.textContent = 'Importando...';
+  let ok = 0, fail = 0, primerError = '';
+
+  for(let i=0; i<registros.length; i++){
+    const r = registros[i];
+    const obj = { codigo:'', nombre:r.nombre, tipo:r.tipo, depto:r.depto, ubicacion:r.ubicacion,
+                  responsableNombre:r.responsableNombre, responsableEmail:r.responsableEmail,
+                  capacidad:r.capacidad, obs:r.obs, estado:r.estado, fechaCreacion:ts() };
+    const res = await apiPostAsync('espacios','insert',obj);
+    if(res && res.ok) ok++;
+    else { fail++; if(!primerError) primerError = _impMotivo(res); }
+    st.textContent = `Importando... ${i+1}/${registros.length} (${ok} confirmados, ${fail} errores)`;
+  }
+
+  audit('CREAR','Espacios','MASIVO',`Importación masiva: ${ok} espacios importados desde Excel`);
+  try{
+    const raw = await apiGet('espacios');
+    if(Array.isArray(raw)) espacios = raw.map(r=>({...r}));
+  }catch(e){ /* la lista se refresca al recargar */ }
+
+  btn.textContent = 'Importar espacios';
+  cerrarImportarEsp();
+  buildDataLists();
+  renderEspacios();
+  showToast(fail ? `⚠ ${ok} espacios importados, ${fail} fallaron (${primerError}). Revisa e intenta con los restantes.` : `✅ ${ok} espacios importados y confirmados`, fail ? '' : 'success');
 }
 
 function showToast(msg,tipo){
