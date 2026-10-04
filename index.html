@@ -6786,6 +6786,12 @@ function garantiaColor(g){
 }
 
 // ── EXPORTAR CSV ───────────────────────────────────────────────────
+// Celda CSV segura: un texto que empieza por = + - @ (o tab/CR) se ejecutaría como fórmula al abrirlo en Excel; se antepone ' para que se vea como texto.
+function _csvCelda(c){
+  let s=String(c==null?'':c);
+  if(/^[\t\r]/.test(s)||(/^[=+\-@]/.test(s)&&!/^[+\-]?\d+([.,]\d+)?$/.test(s))) s="'"+s;
+  return '"'+s.replace(/"/g,'""')+'"';
+}
 function exportCSV(){
   if(!repDatosActuales.length){alert('No hay datos para exportar.');return;}
   const tipo=repActual;
@@ -6806,7 +6812,7 @@ function exportCSV(){
     rows=repDatosActuales.map(m=>[m.fecha||'',m.activoCodigo,m.activoNombre,m.activoTipo,m.activoDepto,m.tipo,m.desc,m.tec||'',m.costo||0]);
   }
 
-  const csv=[headers,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const csv=[headers,...rows].map(r=>r.map(_csvCelda).join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -9825,7 +9831,7 @@ function exportarMobiliarioCSV(){
     m.ubicacion,m.depto,m.material,m.color,
     m.valor,(m.valor||0)*(m.cantidad||1),m.fecha,m.obs
   ]);
-  const csv=[headers,...rows].map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const csv=[headers,...rows].map(r=>r.map(_csvCelda).join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
