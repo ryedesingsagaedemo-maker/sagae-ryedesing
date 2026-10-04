@@ -1637,6 +1637,26 @@ tbody tr.clickable{cursor:pointer;}
     </div>
   </div>
 
+  <!-- Importar Excel/CSV — Mobiliario -->
+  <div class="modal-bg" id="mod-importar-mob">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-title">
+        <span>⬆ Importar mobiliario desde Excel/CSV</span>
+        <button class="modal-close" onclick="cerrarImportarMob()">✕</button>
+      </div>
+      <div class="f-row">
+        <div class="f-lbl">Archivo (.csv o .xlsx)</div>
+        <input class="f-inp" type="file" id="import-mob-file" accept=".csv,.xlsx,.xls" onchange="leerArchivoMob(this)">
+      </div>
+      <div id="import-mob-status" style="font-size:12px;color:var(--text2);margin:10px 0;">Selecciona un archivo CSV o Excel (.xlsx) para importar.</div>
+      <div id="import-mob-preview"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="cerrarImportarMob()">Cancelar</button>
+        <button class="btn btn-p" id="import-mob-btn" onclick="ejecutarImportarMob()" disabled>Importar mobiliario</button>
+      </div>
+    </div>
+  </div>
+
   <div class="pnl" id="pnl-licencias">
     <div class="pnl-header">
       <h2 class="pnl-title"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M14 9l2 2"/></svg></span> Licencias de Software</h2>
@@ -3315,8 +3335,11 @@ function renderTopbarBtns(p){
   }
   if(p==='mobiliario'){
     if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openMob(null)">+ Nuevo elemento</button>';
-    if(['admin','inventario'].includes(session.rol))
+    if(['admin','inventario'].includes(session.rol)){
+      btnsHTML+='<button class="btn" onclick="abrirModalImportarMob()" style="margin-left:6px" title="Importar mobiliario desde CSV o Excel">⬆ Importar Excel</button>';
+      btnsHTML+='<button class="btn" onclick="descargarPlantillaMob()" style="margin-left:4px" title="Descargar plantilla de carga masiva">⬇ Plantilla</button>';
       btnsHTML+='<button class="btn" onclick="exportarMobiliarioCSV()" style="margin-left:6px">⬇ Exportar CSV</button>';
+    }
     if(['admin','tecnico','inventario'].includes(session.rol)){
       btnsHTML+='<button class="btn" onclick="abrirModalEtiquetasGrupo(\'mobiliario\')" style="margin-left:6px">🏷️ Etiquetas</button>';
     }
@@ -7911,6 +7934,252 @@ async function ejecutarImportarUsuarios(){
   await loadFromSheets();
 }
 
+
+// ── IMPORTAR / PLANTILLA MOBILIARIO ───────────────────────────────
+const _IMP_MOB_ALIAS = [
+  ['codigo',['codigo','cod']],
+  ['nombre',['descripcion','nombre']],
+  ['tipo',['tipo']],
+  ['cantidad',['cantidad','cant']],
+  ['condicion',['condicion','estado']],
+  ['ubicacion',['ubicacion','aula']],
+  ['depto',['depto','departamento']],
+  ['material',['material']],
+  ['color',['color']],
+  ['valor',['valorunitario','valor']],
+  ['obs',['obs','observacion']]
+];
+const _IMP_MOB_TIPOS = ['Silla','Escritorio','Mesa','Pizarra','Locker','Estante','Armario','Otro'];
+const _IMP_MOB_MATERIALES = ['Madera','Metal','Plástico','Mixto'];
+const _IMP_MOB_COND = {
+  bueno:'bueno', buena:'bueno', regular:'regular',
+  deteriorado:'deteriorado', deteriorada:'deteriorado', baja:'baja', dadodebaja:'baja'
+};
+
+function _impEnLista(lista, txt){
+  const n = _impNorm(txt), n2 = n.replace(/s$/,'');
+  return lista.find(x=>{ const k=_impNorm(x); return k===n || k===n2; }) || null;
+}
+
+function descargarPlantillaMob(){
+  cargarSheetJS(()=>{
+    const wb = XLSX.utils.book_new();
+    const inst = [
+      ['SAGAE — Plantilla de Carga Masiva de Mobiliario'],
+      ['Sistema de Activos y Gestión Administrativa Educativa  ·  Desarrollado por RYE Design'],
+      [''],
+      ['PASOS PARA COMPLETAR ESTA PLANTILLA'],
+      ['PASO 1', 'Ir a la hoja "DATOS MOBILIARIO" (pestaña en la parte inferior)'],
+      ['PASO 2', 'Llenar cada fila desde la fila 5 (la fila 4 es un ejemplo: reemplácela o bórrela)'],
+      ['PASO 3', 'NO modificar las filas 1, 2 y 3 (son los encabezados del sistema)'],
+      ['PASO 4', 'Guardar el archivo y subirlo con ⬆ Importar Excel en el módulo Mobiliario'],
+      [''],
+      ['REGLAS IMPORTANTES'],
+      ['⚠ NO modificar', 'Las filas 1, 2 y 3 de la hoja de datos'],
+      ['⚠ NO agregar', 'Columnas nuevas ni cambiar los nombres de las columnas'],
+      ['✅ Campos con *', 'Son OBLIGATORIOS — no dejarlos vacíos'],
+      ['✅ Cantidad', 'Número entero desde 1 (si se deja vacío se toma 1)'],
+      ['✅ Valor unitario', 'Solo el número, sin $ ni comas  (ejemplo: 45)'],
+      ['✅ Columna CÓDIGO', 'Dejarla VACÍA — el sistema la asigna automáticamente (MOB-0001...)'],
+      [''],
+      ['VALORES VÁLIDOS PARA COLUMNA TIPO'],
+      _IMP_MOB_TIPOS,
+      [''],
+      ['VALORES VÁLIDOS PARA COLUMNA CONDICIÓN'],
+      ['bueno', 'regular', 'deteriorado', 'baja'],
+      [''],
+      ['VALORES VÁLIDOS PARA COLUMNA MATERIAL (opcional)'],
+      _IMP_MOB_MATERIALES,
+      [''],
+      ['¿Dudas? Contacta a RYE Design: corpas84@hotmail.com  ·  (507) 6225-1042']
+    ];
+    const wsInst = XLSX.utils.aoa_to_sheet(inst);
+    wsInst['!cols'] = [{wch:22},{wch:65}];
+    XLSX.utils.book_append_sheet(wb, wsInst, '📋 INSTRUCCIONES');
+
+    const LABELS  = ['CÓDIGO','DESCRIPCIÓN *','TIPO *','CANTIDAD *','CONDICIÓN *','UBICACIÓN / AULA','DEPARTAMENTO','MATERIAL','COLOR','VALOR UNITARIO ($)','OBSERVACIONES'];
+    const HINTS   = ['Dejar VACÍO\n(auto-asignado)','Nombre descriptivo\ndel elemento','Usar valores de\nla hoja INSTRUCCIONES','Número entero\n(ej: 30)','bueno, regular,\ndeteriorado o baja','Aula o espacio','Área o departamento','Madera, Metal,\nPlástico o Mixto','Ej: Negro','Solo número (ej: 45)','Notas adicionales'];
+    const EJEMPLO = ['','Silla de estudiante','Silla',30,'bueno','Aula 101','Primaria','Plástico','Azul',45,'Lote entregado en 2026'];
+    const wsData = XLSX.utils.aoa_to_sheet([
+      ['SAGAE — DATOS DE MOBILIARIO  ·  Complete desde la fila 5  ·  NO modificar filas 1, 2, 3 y 4'],
+      LABELS, HINTS, EJEMPLO
+    ]);
+    wsData['!cols'] = [14,30,16,12,18,22,20,14,14,18,32].map(w=>({wch:w}));
+    wsData['!rows'] = [{hpt:20},{hpt:22},{hpt:40},{hpt:18}];
+    XLSX.utils.book_append_sheet(wb, wsData, '📥 DATOS MOBILIARIO');
+
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'SAGAE_Plantilla_Mobiliario.xlsx';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ Plantilla de mobiliario descargada. Llénala y súbela con ⬆ Importar Excel','success');
+  });
+}
+
+function abrirModalImportarMob(){
+  document.getElementById('mod-importar-mob').classList.add('open');
+  document.getElementById('import-mob-preview').innerHTML = '';
+  document.getElementById('import-mob-file').value = '';
+  document.getElementById('import-mob-status').textContent = 'Selecciona un archivo CSV o Excel (.xlsx) para importar.';
+  document.getElementById('import-mob-btn').disabled = true;
+  window._importMobData = [];
+}
+
+function cerrarImportarMob(){
+  document.getElementById('mod-importar-mob').classList.remove('open');
+}
+
+function leerArchivoMob(input){
+  const file = input.files[0];
+  if(!file) return;
+  _impLeerArchivo(file, procesarArchivoMob, msg=>{
+    document.getElementById('import-mob-status').textContent = msg;
+  });
+}
+
+function procesarArchivoMob(hojas){
+  const st = document.getElementById('import-mob-status');
+  const prev = document.getElementById('import-mob-preview');
+  const btn = document.getElementById('import-mob-btn');
+  const enc = _impBuscarEncabezado(hojas, _IMP_MOB_ALIAS, ['nombre','tipo']);
+  if(!enc){
+    window._importMobData = [];
+    prev.innerHTML = '';
+    btn.disabled = true;
+    st.textContent = '❌ No se encontró una fila de encabezados con las columnas DESCRIPCIÓN y TIPO. Descarga la plantilla con el botón ⬇ Plantilla y no cambies los nombres de las columnas.';
+    return;
+  }
+
+  let registros = [], errores = [];
+  const vacio = v => String(v==null?'':v).trim() === '';
+
+  enc.filas.forEach((cols, i)=>{
+    if(cols.every(vacio)) return;
+    const get = k => enc.idx[k]==null ? '' : String(cols[enc.idx[k]]==null?'':cols[enc.idx[k]]).trim();
+    if(_impNorm(get('tipo')) === 'usardesplegable' || _impNorm(get('codigo')).startsWith('dejarvacio') || _impNorm(get('tipo')).startsWith('usarvalores')) return;
+
+    const obj = {};
+    Object.keys(enc.idx).forEach(k=>{ obj[k] = get(k); });
+    const errs = [];
+
+    if(!obj.nombre) errs.push('descripción vacía');
+
+    const tipo = obj.tipo ? _impEnLista(_IMP_MOB_TIPOS, obj.tipo) : null;
+    if(!obj.tipo) errs.push('tipo vacío');
+    else if(!tipo) errs.push(`tipo inválido: "${obj.tipo}" (use: ${_IMP_MOB_TIPOS.join(', ')})`);
+
+    let cantidad = 1;
+    if(obj.cantidad){
+      cantidad = parseInt(String(obj.cantidad).replace(/[\s,]/g,''),10);
+      if(isNaN(cantidad) || cantidad < 1) errs.push(`cantidad inválida: "${obj.cantidad}"`);
+    }
+
+    let condicion = 'bueno';
+    if(obj.condicion){
+      condicion = _IMP_MOB_COND[_impNorm(obj.condicion)];
+      if(!condicion) errs.push(`condición inválida: "${obj.condicion}" (use bueno, regular, deteriorado o baja)`);
+    }
+
+    let material = '';
+    if(obj.material){
+      material = _impEnLista(_IMP_MOB_MATERIALES, obj.material);
+      if(!material) errs.push(`material inválido: "${obj.material}" (use ${_IMP_MOB_MATERIALES.join(', ')})`);
+    }
+
+    const valorNum = obj.valor ? parseFloat(String(obj.valor).replace(/[$\s,]/g,'')) : 0;
+    if(obj.valor && isNaN(valorNum)) errs.push('valor no es número');
+
+    if(errs.length){
+      errores.push({fila:enc.filaEnc + 1 + i, nombre:obj.nombre||'(sin descripción)', errores:errs});
+    } else {
+      registros.push({
+        nombre:obj.nombre, tipo, cantidad, condicion, material,
+        ubicacion:obj.ubicacion||'', depto:obj.depto||'', color:obj.color||'',
+        valor:valorNum||0, obs:obj.obs||''
+      });
+    }
+  });
+
+  window._importMobData = registros;
+
+  let html = '';
+  if(errores.length){
+    html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
+    html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores (serán omitidas):</strong><br>`;
+    errores.slice(0,5).forEach(e=>{
+      html += `Fila ${e.fila}: <em>${sanitizeHTML(e.nombre)}</em> — ${sanitizeHTML(e.errores.join(', '))}<br>`;
+    });
+    if(errores.length>5) html += `...y ${errores.length-5} más.`;
+    html += `</div>`;
+  }
+  if(registros.length){
+    const totalUnid = registros.reduce((s,r)=>s+r.cantidad,0);
+    html += `<div style="font-size:11px;margin-bottom:8px;color:var(--text2)"><strong>${registros.length} elemento(s) listos para importar</strong> (${totalUnid} unidades) — Preview de los primeros 5:</div>`;
+    html += `<div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>`;
+    ['Descripción','Tipo','Cant.','Condición','Ubicación','Valor'].forEach(h=>{
+      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${h}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    registros.slice(0,5).forEach((r,i)=>{
+      html += `<tr style="background:${i%2===0?'#fff':'#f8f9fa'}">`;
+      [r.nombre,r.tipo,r.cantidad,r.condicion,r.ubicacion||'—',r.valor?('$'+r.valor):'—'].forEach(v=>{
+        html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${sanitizeHTML(String(v))}</td>`;
+      });
+      html += '</tr>';
+    });
+    if(registros.length>5) html += `<tr><td colspan="6" style="padding:4px 8px;color:var(--text3);font-size:10px">...y ${registros.length-5} más</td></tr>`;
+    html += '</tbody></table></div>';
+  }
+  prev.innerHTML = html;
+
+  if(registros.length > 0){
+    st.textContent = `✅ ${registros.length} elemento(s) válidos para importar${errores.length?` (${errores.length} con errores serán omitidos)`:''}`;
+    btn.disabled = false;
+  } else {
+    st.textContent = `❌ No hay registros válidos para importar. Corrige los ${errores.length} errores e intenta de nuevo.`;
+    btn.disabled = true;
+  }
+}
+
+async function ejecutarImportarMob(){
+  const registros = window._importMobData || [];
+  if(!registros.length) return;
+  const btn = document.getElementById('import-mob-btn');
+  const st = document.getElementById('import-mob-status');
+  btn.disabled = true; btn.textContent = 'Importando...';
+  let ok = 0, fail = 0;
+
+  for(let i=0; i<registros.length; i++){
+    const r = registros[i];
+    const obj = {
+      codigo:'', nombre:r.nombre, tipo:r.tipo, condicion:r.condicion, cantidad:r.cantidad,
+      ubicacion:r.ubicacion, depto:r.depto, material:r.material, color:r.color,
+      valor:r.valor, foto:'', obs:r.obs, estado:'activo',
+      historial:JSON.stringify([{
+        tipo:'Creación', desc:`Importado masivamente desde Excel por ${session.nombre}`,
+        fecha:ts(), usuario:session.nombre, color:'blue'
+      }]),
+      fechaCreacion:ts()
+    };
+    try{ await apiPost('mobiliario','insert',obj); ok++; }catch(e){ fail++; }
+    st.textContent = `Importando... ${i+1}/${registros.length} (${ok} OK, ${fail} errores)`;
+    await new Promise(res=>setTimeout(res, i % 5 === 4 ? 500 : 150));
+  }
+
+  audit('CREAR','Mobiliario','MASIVO',`Importación masiva: ${ok} elementos de mobiliario importados desde Excel`);
+  try{
+    const raw = await apiGet('mobiliario');
+    mobiliario = raw.map(r=>({...r,cantidad:parseInt(r.cantidad)||1,valor:parseFloat(r.valor)||0,historial:parseHist(r.historial)}));
+  }catch(e){ /* la lista se refresca al recargar */ }
+
+  btn.textContent = 'Importar mobiliario';
+  cerrarImportarMob();
+  renderMobiliario();
+  showToast(fail ? `⚠ ${ok} elementos importados, ${fail} fallaron. Revisa tu conexión e intenta con los restantes.` : `✅ ${ok} elementos de mobiliario importados`, fail ? '' : 'success');
+}
 
 function showToast(msg,tipo){
   let t=document.getElementById('_toast');
