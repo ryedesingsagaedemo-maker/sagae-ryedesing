@@ -1657,6 +1657,26 @@ tbody tr.clickable{cursor:pointer;}
     </div>
   </div>
 
+  <!-- Importar Excel/CSV — Departamentos -->
+  <div class="modal-bg" id="mod-importar-dep">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-title">
+        <span>⬆ Importar departamentos desde Excel/CSV</span>
+        <button class="modal-close" onclick="cerrarImportarDep()">✕</button>
+      </div>
+      <div class="f-row">
+        <div class="f-lbl">Archivo (.csv o .xlsx)</div>
+        <input class="f-inp" type="file" id="import-dep-file" accept=".csv,.xlsx,.xls" onchange="leerArchivoDep(this)">
+      </div>
+      <div id="import-dep-status" style="font-size:12px;color:var(--text2);margin:10px 0;">Selecciona un archivo CSV o Excel (.xlsx) para importar.</div>
+      <div id="import-dep-preview"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="cerrarImportarDep()">Cancelar</button>
+        <button class="btn btn-p" id="import-dep-btn" onclick="ejecutarImportarDep()" disabled>Importar departamentos</button>
+      </div>
+    </div>
+  </div>
+
   <div class="pnl" id="pnl-licencias">
     <div class="pnl-header">
       <h2 class="pnl-title"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M14 9l2 2"/></svg></span> Licencias de Software</h2>
@@ -3326,6 +3346,10 @@ function renderTopbarBtns(p){
   }
   if(p==='departamentos'){
     if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openDepartamento(null)">+ Nuevo departamento</button>';
+    if(session.rol==='admin'){
+      btnsHTML+='<button class="btn" onclick="abrirModalImportarDep()" style="margin-left:6px" title="Importar departamentos desde CSV o Excel">⬆ Importar Excel</button>';
+      btnsHTML+='<button class="btn" onclick="descargarPlantillaDep()" style="margin-left:4px" title="Descargar plantilla de carga masiva">⬇ Plantilla</button>';
+    }
   }
   if(p==='personas'){
     if(per.edit)btnsHTML+='<button class="btn btn-p" onclick="openPersona(null)">+ Nueva persona</button>';
@@ -8208,6 +8232,221 @@ async function ejecutarImportarMob(){
   cerrarImportarMob();
   renderMobiliario();
   showToast(fail ? `⚠ ${ok} elementos importados, ${fail} fallaron (${primerError}). Revisa e intenta con los restantes.` : `✅ ${ok} elementos de mobiliario importados y confirmados`, fail ? '' : 'success');
+}
+
+// ── IMPORTAR / PLANTILLA DEPARTAMENTOS ────────────────────────────
+const _IMP_DEP_ALIAS = [
+  ['codigo',['codigo','cod']],
+  ['nombre',['nombredeldepartamento','nombre','departamento']],
+  ['desc',['descripcion','desc']],
+  ['responsable',['responsable']],
+  ['estado',['estado']]
+];
+const _IMP_DEP_ESTADO = { activo:'activo', activa:'activo', inactivo:'inactivo', inactiva:'inactivo' };
+
+function descargarPlantillaDep(){
+  cargarSheetJS(()=>{
+    const wb = XLSX.utils.book_new();
+    const inst = [
+      ['SAGAE — Plantilla de Carga Masiva de Departamentos'],
+      ['Sistema de Activos y Gestión Administrativa Educativa  ·  Desarrollado por RYE Design'],
+      [''],
+      ['PASOS PARA COMPLETAR ESTA PLANTILLA'],
+      ['PASO 1', 'Ir a la hoja "DATOS DEPARTAMENTOS" (pestaña en la parte inferior)'],
+      ['PASO 2', 'Llenar cada fila desde la fila 5 (la fila 4 es un ejemplo: reemplácela o bórrela)'],
+      ['PASO 3', 'NO modificar las filas 1, 2 y 3 (son los encabezados del sistema)'],
+      ['PASO 4', 'Guardar el archivo y subirlo con ⬆ Importar Excel en el módulo Departamentos'],
+      [''],
+      ['REGLAS IMPORTANTES'],
+      ['⚠ NO modificar', 'Las filas 1, 2 y 3 de la hoja de datos'],
+      ['⚠ NO agregar', 'Columnas nuevas ni cambiar los nombres de las columnas'],
+      ['✅ Campos con *', 'Son OBLIGATORIOS — no dejarlos vacíos'],
+      ['✅ Nombre', 'Escríbalo exactamente como debe verse en todo el sistema. Si ya existe un departamento con ese nombre, la fila se omite (no se modifica el existente)'],
+      ['✅ Columna CÓDIGO', 'Dejarla VACÍA — el sistema la asigna automáticamente (DEP-001...)'],
+      ['✅ Responsable', 'Opcional. Debe ser una persona ya registrada en el módulo Personas. Si todavía no las ha cargado, déjelo vacío y asígnelo después'],
+      ['✅ Estado', 'activo o inactivo. Si se deja vacío se toma activo'],
+      [''],
+      ['¿Dudas? Contacta a RYE Design: corpas84@hotmail.com  ·  (507) 6225-1042']
+    ];
+    const wsInst = XLSX.utils.aoa_to_sheet(inst);
+    wsInst['!cols'] = [{wch:22},{wch:75}];
+    XLSX.utils.book_append_sheet(wb, wsInst, '📋 INSTRUCCIONES');
+
+    const LABELS  = ['CÓDIGO','NOMBRE DEL DEPARTAMENTO *','DESCRIPCIÓN','RESPONSABLE','ESTADO'];
+    const HINTS   = ['Dejar VACÍO\n(auto-asignado)','Escríbalo exactamente\ncomo debe verse','Opcional','Opcional: persona ya\nregistrada en Personas','activo o inactivo\n(vacío = activo)'];
+    const EJEMPLO = ['','Informática','Tecnología e informática','','activo'];
+    const wsData = XLSX.utils.aoa_to_sheet([
+      ['SAGAE — DATOS DE DEPARTAMENTOS  ·  Complete desde la fila 5  ·  NO modificar filas 1, 2, 3 y 4'],
+      LABELS, HINTS, EJEMPLO
+    ]);
+    wsData['!cols'] = [14,32,40,28,18].map(w=>({wch:w}));
+    wsData['!rows'] = [{hpt:20},{hpt:22},{hpt:40},{hpt:18}];
+    XLSX.utils.book_append_sheet(wb, wsData, '📥 DATOS DEPARTAMENTOS');
+
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'SAGAE_Plantilla_Departamentos.xlsx';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ Plantilla de departamentos descargada. Llénala y súbela con ⬆ Importar Excel','success');
+  });
+}
+
+function abrirModalImportarDep(){
+  if(!session || session.rol !== 'admin'){ showToast('Solo un administrador puede importar departamentos',''); return; }
+  document.getElementById('mod-importar-dep').classList.add('open');
+  document.getElementById('import-dep-preview').innerHTML = '';
+  document.getElementById('import-dep-file').value = '';
+  document.getElementById('import-dep-status').textContent = 'Selecciona un archivo CSV o Excel (.xlsx) para importar.';
+  document.getElementById('import-dep-btn').disabled = true;
+  window._importDepData = [];
+}
+
+function cerrarImportarDep(){
+  document.getElementById('mod-importar-dep').classList.remove('open');
+}
+
+function leerArchivoDep(input){
+  const file = input.files[0];
+  if(!file) return;
+  _impLeerArchivo(file, procesarArchivoDep, msg=>{
+    document.getElementById('import-dep-status').textContent = msg;
+  });
+}
+
+function procesarArchivoDep(hojas){
+  const st = document.getElementById('import-dep-status');
+  const prev = document.getElementById('import-dep-preview');
+  const btn = document.getElementById('import-dep-btn');
+  const enc = _impBuscarEncabezado(hojas, _IMP_DEP_ALIAS, ['nombre']);
+  if(!enc){
+    window._importDepData = [];
+    prev.innerHTML = '';
+    btn.disabled = true;
+    st.textContent = '❌ No se encontró una fila de encabezados con la columna NOMBRE DEL DEPARTAMENTO. Descarga la plantilla con el botón ⬇ Plantilla y no cambies los nombres de las columnas.';
+    return;
+  }
+
+  const existentes = new Map();
+  (Array.isArray(departamentos) ? departamentos : []).forEach(d=>{ existentes.set(_impNorm(d.nombre), d.estado === 'eliminado'); });
+  const personasOk = new Map();
+  (Array.isArray(personas) ? personas : []).filter(p=>p.estado !== 'eliminado').forEach(p=>{ personasOk.set(_impNorm(p.nombre), p.nombre); });
+  const vistos = new Map();
+  let registros = [], errores = [];
+  const vacio = v => String(v==null?'':v).trim() === '';
+
+  enc.filas.forEach((cols, i)=>{
+    if(cols.every(vacio)) return;
+    const get = k => enc.idx[k]==null ? '' : String(cols[enc.idx[k]]==null?'':cols[enc.idx[k]]).trim();
+    if(_impNorm(get('codigo')).startsWith('dejarvacio')) return;
+
+    const obj = {};
+    Object.keys(enc.idx).forEach(k=>{ obj[k] = get(k); });
+    const filaNum = enc.filaEnc + 1 + i;
+    const errs = [];
+    Object.keys(obj).forEach(k=>{ const mot=_impCeldaPeligrosa(obj[k]); if(mot) errs.push(`${k}: ${mot}`); });
+
+    if(!obj.nombre) errs.push('nombre vacío');
+    else if(obj.nombre.length > 100) errs.push('nombre demasiado largo (máximo 100 caracteres)');
+    if(obj.desc && obj.desc.length > 300) errs.push('descripción demasiado larga (máximo 300 caracteres)');
+
+    let estado = 'activo';
+    if(obj.estado){
+      estado = _IMP_DEP_ESTADO[_impNorm(obj.estado)];
+      if(!estado) errs.push(`estado inválido: "${obj.estado}" (use activo o inactivo)`);
+    }
+
+    let responsable = '';
+    if(obj.responsable){
+      responsable = personasOk.get(_impNorm(obj.responsable)) || '';
+      if(!responsable) errs.push(`responsable "${obj.responsable}" no está registrado en Personas (déjelo vacío y asígnelo después)`);
+    }
+
+    if(obj.nombre){
+      const n = _impNorm(obj.nombre);
+      if(existentes.has(n)) errs.push(existentes.get(n) ? 'ya existe y está eliminado (restáurelo desde el sistema)' : 'ya existe en el sistema (se omite, no se modifica)');
+      else if(vistos.has(n)) errs.push(`repetido en el archivo (ya aparece en la fila ${vistos.get(n)})`);
+    }
+
+    if(errs.length){
+      errores.push({fila:filaNum, nombre:obj.nombre||'(sin nombre)', errores:errs});
+    } else {
+      vistos.set(_impNorm(obj.nombre), filaNum);
+      registros.push({ nombre:obj.nombre, desc:obj.desc||'', responsable, estado });
+    }
+  });
+
+  window._importDepData = registros;
+
+  let html = '';
+  if(errores.length){
+    html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
+    html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores u omitidas:</strong><br>`;
+    errores.slice(0,6).forEach(e=>{
+      html += `Fila ${e.fila}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
+    });
+    if(errores.length>6) html += `...y ${errores.length-6} más.`;
+    html += `</div>`;
+  }
+  if(registros.length){
+    html += `<div style="font-size:11px;margin-bottom:8px;color:var(--text2)"><strong>${registros.length} departamento(s) listos para importar</strong> — Preview de los primeros 8:</div>`;
+    html += `<div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>`;
+    ['Nombre','Descripción','Responsable','Estado'].forEach(h=>{
+      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${h}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    registros.slice(0,8).forEach((r,i)=>{
+      html += `<tr style="background:${i%2===0?'#fff':'#f8f9fa'}">`;
+      [r.nombre,r.desc||'—',r.responsable||'—',r.estado].forEach(v=>{
+        html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${_escHtml(v)}</td>`;
+      });
+      html += '</tr>';
+    });
+    if(registros.length>8) html += `<tr><td colspan="4" style="padding:4px 8px;color:var(--text3);font-size:10px">...y ${registros.length-8} más</td></tr>`;
+    html += '</tbody></table></div>';
+  }
+  prev.innerHTML = html;
+
+  if(registros.length > 0){
+    st.textContent = `✅ ${registros.length} departamento(s) válidos para importar${errores.length?` (${errores.length} omitidos)`:''}`;
+    btn.disabled = false;
+  } else {
+    st.textContent = `❌ No hay registros válidos para importar. Revisa los ${errores.length} motivos de arriba e intenta de nuevo.`;
+    btn.disabled = true;
+  }
+}
+
+async function ejecutarImportarDep(){
+  if(!session || session.rol !== 'admin'){ showToast('Solo un administrador puede importar departamentos',''); return; }
+  const registros = window._importDepData || [];
+  if(!registros.length) return;
+  const btn = document.getElementById('import-dep-btn');
+  const st = document.getElementById('import-dep-status');
+  btn.disabled = true; btn.textContent = 'Importando...';
+  let ok = 0, fail = 0, primerError = '';
+
+  for(let i=0; i<registros.length; i++){
+    const r = registros[i];
+    const obj = { codigo:'', nombre:r.nombre, desc:r.desc, responsable:r.responsable, estado:r.estado, fechaCreacion:ts() };
+    const res = await apiPostAsync('departamentos','insert',obj);
+    if(res && res.ok) ok++;
+    else { fail++; if(!primerError) primerError = _impMotivo(res); }
+    st.textContent = `Importando... ${i+1}/${registros.length} (${ok} confirmados, ${fail} errores)`;
+  }
+
+  audit('CREAR','Departamentos','MASIVO',`Importación masiva: ${ok} departamentos importados desde Excel`);
+  try{
+    const raw = await apiGet('departamentos');
+    if(Array.isArray(raw)) departamentos = raw.map(r=>({...r}));
+  }catch(e){ /* la lista se refresca al recargar */ }
+
+  btn.textContent = 'Importar departamentos';
+  cerrarImportarDep();
+  buildDataLists();
+  renderDepartamentos();
+  showToast(fail ? `⚠ ${ok} departamentos importados, ${fail} fallaron (${primerError}). Revisa e intenta con los restantes.` : `✅ ${ok} departamentos importados y confirmados`, fail ? '' : 'success');
 }
 
 function showToast(msg,tipo){
