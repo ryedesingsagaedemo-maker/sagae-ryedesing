@@ -3542,19 +3542,19 @@ function renderUsuarios(){
     const sUsername = sanitizeHTML(u.username||'');
     return `<div class="user-card" style="${u.estado==='inactivo'?'opacity:0.6;':''}">
     <div class="user-card-head">
-      <div class="sb-avatar" style="width:40px;height:40px;font-size:14px">${initials(u.nombre)}</div>
-      <div><div class="user-name">${sNombre}</div><div class="user-cargo">${sCargo}</div></div>
+      <div class="sb-avatar" style="width:40px;height:40px;font-size:14px">${_escHtml(initials(u.nombre))}</div>
+      <div><div class="user-name">${_escHtml(sNombre)}</div><div class="user-cargo">${_escHtml(sCargo)}</div></div>
     </div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="badge ${ROL_CLASS[u.rol]||''}">${ROL_LABELS[u.rol]||u.rol}</span><span class="badge ${u.estado==='activo'?'s-activo':'s-inactivo'}">${u.estado||'activo'}</span></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="badge ${_escHtml(ROL_CLASS[u.rol]||'')}">${_escHtml(ROL_LABELS[u.rol]||u.rol)}</span><span class="badge ${u.estado==='activo'?'s-activo':'s-inactivo'}">${_escHtml(u.estado||'activo')}</span></div>
     <div class="user-detail">
-      <span>✉ ${sEmail}</span><span>📞 ${sTel}</span>
-      <span>🏢 ${sDepto}</span>
-      <span style="color:var(--text3);font-size:10px">Usuario: <strong>${sUsername}</strong></span>
-      <span style="color:var(--text3);font-size:10px">Último acceso: ${u.ultimoAcceso||'Nunca'}</span>
+      <span>✉ ${_escHtml(sEmail)}</span><span>📞 ${_escHtml(sTel)}</span>
+      <span>🏢 ${_escHtml(sDepto)}</span>
+      <span style="color:var(--text3);font-size:10px">Usuario: <strong>${_escHtml(sUsername)}</strong></span>
+      <span style="color:var(--text3);font-size:10px">Último acceso: ${_escHtml(u.ultimoAcceso||'Nunca')}</span>
     </div>
     ${per.usuarios?`<div style="display:flex;gap:6px;margin-top:4px">
-      <button class="btn btn-p" style="flex:1;font-size:11px" onclick="openUsuario('${sUsername}')">✎ Editar</button>
-      ${u.username!==session.username?`<button class="btn ${u.estado==='activo'?'btn-warn':''}" style="font-size:11px" onclick="toggleUsuarioEstado('${sUsername}')">${u.estado==='activo'?'Desactivar':'Activar'}</button>`:''}
+      <button class="btn btn-p" style="flex:1;font-size:11px" onclick="openUsuario('${_jsArg(sUsername)}')">✎ Editar</button>
+      ${u.username!==session.username?`<button class="btn ${u.estado==='activo'?'btn-warn':''}" style="font-size:11px" onclick="toggleUsuarioEstado('${_jsArg(sUsername)}')">${u.estado==='activo'?'Desactivar':'Activar'}</button>`:''}
     </div>`:''}
   </div>`;}).join('');
 }
@@ -3578,15 +3578,15 @@ async function renderMiPerfil(){
   const u=(resp&&resp.ok&&resp.usuario)?resp.usuario:(usuarios.find(x=>x.username===session.username)||{username:session.username,nombre:session.nombre,rol:session.rol});
   cont.innerHTML=`<div style="max-width:500px">
     <div class="det-header">
-      <div class="sb-avatar" style="width:56px;height:56px;font-size:20px;border-radius:50%">${initials(u.nombre)}</div>
-      <div><div class="det-title">${sanitizeHTML(u.nombre||'—')}</div><div class="det-code">${sanitizeHTML(u.username||'')} · ${sanitizeHTML(u.cargo||'Sin cargo')}</div>
-      <div style="margin-top:5px"><span class="badge ${ROL_CLASS[u.rol]||''}">${ROL_LABELS[u.rol]||u.rol}</span></div></div>
+      <div class="sb-avatar" style="width:56px;height:56px;font-size:20px;border-radius:50%">${_escHtml(initials(u.nombre))}</div>
+      <div><div class="det-title">${_escHtml(u.nombre||'—')}</div><div class="det-code">${_escHtml(u.username||'')} · ${_escHtml(u.cargo||'Sin cargo')}</div>
+      <div style="margin-top:5px"><span class="badge ${_escHtml(ROL_CLASS[u.rol]||'')}">${_escHtml(ROL_LABELS[u.rol]||u.rol)}</span></div></div>
     </div>
     <div class="det-grid">
-      <div class="det-field"><div class="det-fl">Correo</div><div class="det-fv">${sanitizeHTML(u.email||'—')}</div></div>
-      <div class="det-field"><div class="det-fl">Teléfono</div><div class="det-fv">${sanitizeHTML(u.tel||'—')}</div></div>
-      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${sanitizeHTML(u.depto||'—')}</div></div>
-      <div class="det-field"><div class="det-fl">Último acceso</div><div class="det-fv">${sanitizeHTML(u.ultimoAcceso||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Correo</div><div class="det-fv">${_escHtml(u.email||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Teléfono</div><div class="det-fv">${_escHtml(u.tel||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${_escHtml(u.depto||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Último acceso</div><div class="det-fv">${_escHtml(u.ultimoAcceso||'—')}</div></div>
     </div>
     <div><div class="sec-title">Cambiar mi contraseña</div>
       <div class="f-row"><div class="f-lbl">Nueva contraseña</div>
@@ -3643,7 +3643,7 @@ async function iniciarActivacion2FA(){
     <div id="qr-2fa" style="display:flex;justify-content:center;margin-bottom:10px;background:#fff;padding:10px;border-radius:var(--r-md);border:1px solid var(--border);width:fit-content"></div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:14px;text-align:center">
       ¿No puedes escanear? Ingresa este código manualmente en tu app:<br>
-      <strong style="font-family:monospace;letter-spacing:1px;font-size:13px;color:var(--text)">${resp.secret}</strong>
+      <strong style="font-family:monospace;letter-spacing:1px;font-size:13px;color:var(--text)">${_escHtml(resp.secret)}</strong>
     </div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:8px">2. Escribe el código de 6 dígitos que te muestra la app para confirmar:</div>
     <div class="f-row"><input class="f-inp" id="confirmar-2fa-codigo" maxlength="6" inputmode="numeric" placeholder="000000" style="letter-spacing:4px;font-size:18px;text-align:center;max-width:180px"></div>
@@ -3728,21 +3728,21 @@ function openActivo(id){
   const selAsig = document.getElementById('ea-asignado');
   if(selAsig){
     selAsig.innerHTML = '<option value="">— Sin asignar —</option>' +
-      personas.filter(p=>p.estado!=='inactivo').map(p=>`<option value="${p.nombre}"
-        data-email="${p.email||''}"
-        data-cargo="${p.cargo||''}"
-        data-depto="${p.depto||''}"
-      >${p.nombre}${p.cargo?' — '+p.cargo:''}</option>`).join('');
+      personas.filter(p=>p.estado!=='inactivo').map(p=>`<option value="${_escHtml(p.nombre)}"
+        data-email="${_escHtml(p.email||'')}"
+        data-cargo="${_escHtml(p.cargo||'')}"
+        data-depto="${_escHtml(p.depto||'')}"
+      >${_escHtml(p.nombre)}${_escHtml(p.cargo?' — '+p.cargo:'')}</option>`).join('');
   }
   // Poblar select de espacios (todos inicialmente, se filtra al cambiar depto)
   const selUbic = document.getElementById('ea-ubicacion');
   if(selUbic){
     selUbic.innerHTML = '<option value="">— Sin ubicación —</option>' +
-      espacios.filter(e=>e.estado!=='inactivo').map(e=>`<option value="${e.nombre}"
-        data-responsable="${e.responsableNombre||''}"
-        data-email="${e.responsableEmail||''}"
-        data-depto="${e.depto||''}"
-      >${e.nombre}${e.depto?' ('+e.depto+')':''}</option>`).join('');
+      espacios.filter(e=>e.estado!=='inactivo').map(e=>`<option value="${_escHtml(e.nombre)}"
+        data-responsable="${_escHtml(e.responsableNombre||'')}"
+        data-email="${_escHtml(e.responsableEmail||'')}"
+        data-depto="${_escHtml(e.depto||'')}"
+      >${_escHtml(e.nombre)}${_escHtml(e.depto?' ('+e.depto+')':'')}</option>`).join('');
   }
   document.getElementById('mod-activo-title').textContent=isEdit?'Editar activo':'Nuevo activo';
   document.getElementById('ea-save-btn').textContent=isEdit?'Guardar cambios':'Guardar activo';
@@ -4140,17 +4140,17 @@ function renderTicketHistorial(t){
   list.innerHTML = hist.length ? hist.slice().reverse().map(h=>{
     const color=['red','green','amber','blue'].includes(h.color)?h.color:'navy';
     return `<div class="hist-item">
-      <div class="hist-dot ${color}"></div>
+      <div class="hist-dot ${_escHtml(color)}"></div>
       <div style="flex:1">
-        <div style="font-size:12px;font-weight:700;color:#1B3A6B">${sanitizeHTML(h.tipo||'Evento')}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:pre-wrap">${sanitizeHTML(h.desc||'')}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:3px">${sanitizeHTML(h.fecha||'')}${h.usuario?' · '+sanitizeHTML(h.usuario):''}</div>
+        <div style="font-size:12px;font-weight:700;color:#1B3A6B">${_escHtml(h.tipo||'Evento')}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:pre-wrap">${_escHtml(h.desc||'')}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${_escHtml(h.fecha||'')}${_escHtml(h.usuario?' · '+sanitizeHTML(h.usuario):'')}</div>
       </div>
     </div>`;
   }).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin eventos registrados todavía.</div>';
   if(t && t._histLigero && (t._histTotal||0) > hist.length){
     list.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:6px 0">Cargando el historial completo ('
-      + t._histTotal + ' eventos)…</div>' + list.innerHTML;
+      + _escHtml(t._histTotal) + ' eventos)…</div>' + _escHtml(list.innerHTML);
   }
   wrap.style.display='block';
 }
@@ -4281,11 +4281,11 @@ function openTicket(id,forceReadOnly){
   }
   document.getElementById('et-motivo').value='';document.getElementById('et-id').value=id||'';
   const sel=document.getElementById('et-activo');
-  sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=='eliminado').map(a=>`<option value="${a.codigo}">${a.codigo} — ${sanitizeHTML(a.nombre||'')}</option>`).join('');
+  sel.innerHTML='<option value="">— Sin activo —</option>'+activos.filter(a=>a.estado!=='eliminado').map(a=>`<option value="${_escHtml(a.codigo)}">${_escHtml(a.codigo)} — ${_escHtml(a.nombre||'')}</option>`).join('');
   // Poblar select de responsables con usuarios activos
   const respSel=document.getElementById('et-resp');
   const usuariosActivos=responsablesLista.filter(u=>u.estado==='activo'||u.estado!=='inactivo');
-  respSel.innerHTML='<option value="">— Selecciona responsable —</option>'+usuariosActivos.map(u=>`<option value="${u.nombre}">${u.nombre} (${u.rol==='admin'?'Admin':u.rol==='tecnico'?'Técnico':u.rol==='consultor'?'Consultor':'Inventario'})</option>`).join('');
+  respSel.innerHTML='<option value="">— Selecciona responsable —</option>'+usuariosActivos.map(u=>`<option value="${_escHtml(u.nombre)}">${_escHtml(u.nombre)} (${u.rol==='admin'?'Admin':u.rol==='tecnico'?'Técnico':u.rol==='consultor'?'Consultor':'Inventario'})</option>`).join('');
   if(isEdit){
     const t=tickets.find(x=>x.codigo===id);if(!t)return;
     document.getElementById('et-titulo').value=t.titulo||'';document.getElementById('et-activo').value=t.activoId||'';
@@ -4345,9 +4345,9 @@ function _renderGaleriaFotosAdmin(fotosRaw){
     const bloqueada = _fotoEstaBloqueada(f);
     return `<div style="display:flex;align-items:center;gap:8px;background:var(--blue-l);border-left:3px solid var(--navy);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--navy);">
       <div style="flex:1;min-width:0">
-        ${bloqueada?'🔒 ':'📷 '}<a href="${f.url}" target="_blank" style="color:var(--navy);font-weight:600">Ver foto ↗</a>
-        ${f.nota?' — '+sanitizeHTML(f.nota):''}
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">${sanitizeHTML(f.fecha||'')}${f.usuario?' · '+sanitizeHTML(f.usuario):''}${f.estado?' · '+sanitizeHTML(f.estado):''}</div>
+        ${bloqueada?'🔒 ':'📷 '}<a href="${_escHtml(_safeUrl(f.url))}" target="_blank" style="color:var(--navy);font-weight:600">Ver foto ↗</a>
+        ${_escHtml(f.nota?' — '+sanitizeHTML(f.nota):'')}
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${_escHtml(f.fecha||'')}${_escHtml(f.usuario?' · '+sanitizeHTML(f.usuario):'')}${_escHtml(f.estado?' · '+sanitizeHTML(f.estado):'')}</div>
       </div>
       ${(!readOnly && !bloqueada)?`<button type="button" class="btn" onclick="quitarFotoTicketAdmin(${i})" style="padding:4px 8px;font-size:11px;white-space:nowrap;">🗑</button>`:''}
     </div>`;
@@ -4429,8 +4429,8 @@ function _renderGaleriaFotosMant(){
   list.innerHTML = _mmFotosActuales.length ? _mmFotosActuales.map((f,i)=>`
     <div style="display:flex;align-items:center;gap:8px;background:#FFF9EC;border-left:3px solid #B8960C;border-radius:6px;padding:6px 10px;font-size:11px;color:#7A5C0A;">
       <div style="flex:1;min-width:0">
-        📷 <a href="${f.url}" target="_blank" style="color:#7A5C0A;font-weight:600">Ver foto ↗</a>
-        ${f.nota?' — '+sanitizeHTML(f.nota):''}
+        📷 <a href="${_escHtml(_safeUrl(f.url))}" target="_blank" style="color:#7A5C0A;font-weight:600">Ver foto ↗</a>
+        ${_escHtml(f.nota?' — '+sanitizeHTML(f.nota):'')}
       </div>
       <button type="button" class="btn" onclick="quitarFotoMantenimiento(${i})" style="padding:4px 8px;font-size:11px;white-space:nowrap;">🗑</button>
     </div>`).join('') : '<div style="font-size:11px;color:var(--text3);">Sin fotos todavía.</div>';
@@ -4503,8 +4503,8 @@ function mostrarGuardando(mensaje, submensaje){
   ov.className = 'save-overlay';
   ov.id = 'save-overlay';
   ov.innerHTML = '<div class="save-overlay-box"><div class="save-spin"></div><div>'
-    + sanitizeHTML(mensaje||'Guardando...')
-    + (submensaje?'<span class="save-overlay-sub">'+sanitizeHTML(submensaje)+'</span>':'')
+    + _escHtml(mensaje||'Guardando...')
+    + (submensaje?'<span class="save-overlay-sub">'+_escHtml(submensaje)+'</span>':'')
     + '</div></div>';
   document.body.appendChild(ov);
   _saveOverlayEl = ov;
@@ -4834,12 +4834,12 @@ function openMant(){
   const tecSel = document.getElementById('mm-tec');
   const tecnicos = responsablesLista.filter(u=>(u.estado==='activo'||!u.estado||u.estado!=='inactivo') && ['admin','tecnico'].includes(u.rol));
   tecSel.innerHTML = '<option value="">— Selecciona técnico —</option>' +
-    tecnicos.map(u=>`<option value="${u.nombre}">${u.nombre} (${u.rol==='admin'?'Admin':'Técnico'})</option>`).join('');
+    tecnicos.map(u=>`<option value="${_escHtml(u.nombre)}">${_escHtml(u.nombre)} (${u.rol==='admin'?'Admin':'Técnico'})</option>`).join('');
   // Pre-seleccionar al usuario actual si es técnico o admin
   if(['admin','tecnico'].includes(session.rol)){
     tecSel.value = session.nombre;
     if(!tecSel.value){ // si el nombre no está en la lista, agregar como opción extra
-      tecSel.innerHTML += `<option value="${session.nombre}" selected>${session.nombre} (sesión actual)</option>`;
+      tecSel.innerHTML += `<option value="${_escHtml(session.nombre)}" selected>${_escHtml(session.nombre)} (sesión actual)</option>`;
       tecSel.value = session.nombre;
     }
   }
@@ -5210,7 +5210,7 @@ function populateSuggestions(){
     // Agregar solo los que no estén ya en la lista fija
     const existing=new Set([...dlDeptos.options].map(o=>o.value));
     const nuevos=deptos.filter(d=>!existing.has(d));
-    dlDeptos.innerHTML += nuevos.map(d=>`<option value="${d}">`).join('');
+    dlDeptos.innerHTML += nuevos.map(d=>`<option value="${_escHtml(d)}">`).join('');
   }
   // Ubicaciones únicas
   const ubics=[...new Set(activos.map(a=>a.ubicacion).filter(Boolean))].sort();
@@ -5218,7 +5218,7 @@ function populateSuggestions(){
   if(dlUbics){
     const existingU=new Set([...dlUbics.options].map(o=>o.value));
     const nuevosU=ubics.filter(u=>!existingU.has(u));
-    dlUbics.innerHTML += nuevosU.map(u=>`<option value="${u}">`).join('');
+    dlUbics.innerHTML += nuevosU.map(u=>`<option value="${_escHtml(u)}">`).join('');
   }
   // Personas asignadas únicas (activos + usuarios)
   const asignados=[...new Set([
@@ -5226,7 +5226,7 @@ function populateSuggestions(){
     ...usuarios.filter(u=>u.estado==='activo').map(u=>u.nombre).filter(Boolean)
   ])].sort();
   const dlAsig=document.getElementById('dl-asignados');
-  if(dlAsig) dlAsig.innerHTML=asignados.map(a=>`<option value="${a}">`).join('');
+  if(dlAsig) dlAsig.innerHTML=asignados.map(a=>`<option value="${_escHtml(a)}">`).join('');
 }
 
 // ── AUTO-FILL EMAIL al escribir nombre del asignado ────────────────
@@ -5270,9 +5270,9 @@ function deadStyle(dead){
 function renderDead(dead){
   if(!dead || dead==='—') return '<span style="color:var(--text3)">—</span>';
   const s = deadStyle(dead);
-  return `<span style="color:${s.color};white-space:nowrap;font-size:11px">
-    ${s.icon} ${s.label}
-    ${s.badge?`<span style="background:${s.bgColor};color:${s.color};border:1px solid ${s.color};border-radius:3px;padding:0 4px;font-size:10px;font-weight:700;margin-left:3px">${s.badge}</span>`:''}
+  return `<span style="color:${_escHtml(s.color)};white-space:nowrap;font-size:11px">
+    ${_escHtml(s.icon)} ${_escHtml(s.label)}
+    ${s.badge?`<span style="background:${_escHtml(s.bgColor)};color:${_escHtml(s.color)};border:1px solid ${_escHtml(s.color)};border-radius:3px;padding:0 4px;font-size:10px;font-weight:700;margin-left:3px">${_escHtml(s.badge)}</span>`:''}
   </span>`;
 }
 
@@ -5307,33 +5307,33 @@ function showDetalle(id){
   const tks=tickets.filter(t=>t.activoId===id),vd=calcDepre(activoActual);
   document.getElementById('det-content').innerHTML=`
     <div class="det-header">
-      <div class="det-icon">${TIPO_ICON[activoActual.tipo]||'📦'}</div>
-      <div style="flex:1"><div class="det-title">${activoActual.nombre}</div>
-        <div class="det-code">${activoActual.codigo} · ${activoActual.marca||''} ${activoActual.modelo||''} · S/N: ${activoActual.serial||'—'}</div>
-        <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap"><span class="badge s-${activoActual.estado}">${activoActual.estado}</span><span class="badge" style="background:var(--bg2);color:var(--text2)">${activoActual.tipo}</span><span class="badge" style="background:var(--bg2);color:var(--text2)">${activoActual.depto||'Sin depto'}</span></div>
+      <div class="det-icon">${_escHtml(TIPO_ICON[activoActual.tipo]||'📦')}</div>
+      <div style="flex:1"><div class="det-title">${_escHtml(activoActual.nombre)}</div>
+        <div class="det-code">${_escHtml(activoActual.codigo)} · ${_escHtml(activoActual.marca||'')} ${_escHtml(activoActual.modelo||'')} · S/N: ${_escHtml(activoActual.serial||'—')}</div>
+        <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap"><span class="badge s-${_escHtml(activoActual.estado)}">${_escHtml(activoActual.estado)}</span><span class="badge" style="background:var(--bg2);color:var(--text2)">${_escHtml(activoActual.tipo)}</span><span class="badge" style="background:var(--bg2);color:var(--text2)">${_escHtml(activoActual.depto||'Sin depto')}</span></div>
       </div>
     </div>
     <div class="det-grid">
-      <div class="det-field"><div class="det-fl">Asignado a</div><div class="det-fv">${activoActual.asignado||'—'}</div></div>
-      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${activoActual.depto||'—'}</div></div>
-      <div class="det-field"><div class="det-fl">Ubicación</div><div class="det-fv">${activoActual.ubicacion||'—'}</div></div>
-      <div class="det-field"><div class="det-fl">Fecha de compra</div><div class="det-fv">${fmtFecha(activoActual.compra)}</div></div>
-      <div class="det-field"><div class="det-fl">Garantía hasta</div><div class="det-fv">${fmtFecha(activoActual.garantia)}</div></div>
-      <div class="det-field"><div class="det-fl">Valor de compra</div><div class="det-fv">$${(activoActual.valor||0).toLocaleString()}</div></div>
+      <div class="det-field"><div class="det-fl">Asignado a</div><div class="det-fv">${_escHtml(activoActual.asignado||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${_escHtml(activoActual.depto||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Ubicación</div><div class="det-fv">${_escHtml(activoActual.ubicacion||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Fecha de compra</div><div class="det-fv">${_escHtml(fmtFecha(activoActual.compra))}</div></div>
+      <div class="det-field"><div class="det-fl">Garantía hasta</div><div class="det-fv">${_escHtml(fmtFecha(activoActual.garantia))}</div></div>
+      <div class="det-field"><div class="det-fl">Valor de compra</div><div class="det-fv">$${_escHtml((activoActual.valor||0).toLocaleString())}</div></div>
       <div class="det-field">
         <div class="det-fl">Valor depreciado</div>
         <div class="det-fv" style="color:#3B6D11;font-weight:700">
-          $${vd.toLocaleString()}
-          <span style="font-size:10px;font-weight:400;color:var(--text3);margin-left:6px">al ${new Date().toLocaleDateString('es-PA')}</span>
-          ${activoActual.valor&&vd<activoActual.valor?`<div style="font-size:10px;color:var(--text3);margin-top:2px">Deprecia $${((activoActual.valor-vd)).toLocaleString()} desde la compra · Lineal ${activoActual.vida||3} años</div>`:''}
+          $${_escHtml(vd.toLocaleString())}
+          <span style="font-size:10px;font-weight:400;color:var(--text3);margin-left:6px">al ${_escHtml(new Date().toLocaleDateString('es-PA'))}</span>
+          ${activoActual.valor&&vd<activoActual.valor?`<div style="font-size:10px;color:var(--text3);margin-top:2px">Deprecia $${_escHtml(((activoActual.valor-vd)).toLocaleString())} desde la compra · Lineal ${_escHtml(activoActual.vida||3)} años</div>`:''}
         </div>
       </div>
-      <div class="det-field"><div class="det-fl">Vida útil</div><div class="det-fv">${activoActual.vida||3} años</div></div>
+      <div class="det-field"><div class="det-fl">Vida útil</div><div class="det-fv">${_escHtml(activoActual.vida||3)} años</div></div>
       ${activoActual.foto && activoActual.foto!=='—' ? `
       <div class="det-field" style="grid-column:1/-1">
         <div class="det-fl">📎 Foto / Documento</div>
         <div class="det-fv">
-          <a href="${activoActual.foto}" target="_blank"
+          <a href="${_escHtml(_safeUrl(activoActual.foto))}" target="_blank"
             style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
             background:var(--blue-l);border:1px solid var(--blue-m);border-radius:6px;
             color:var(--navy);font-size:12px;font-weight:600;text-decoration:none;">
@@ -5342,11 +5342,11 @@ function showDetalle(id){
         </div>
       </div>` : ''}
     </div>
-    ${activoActual.obs?`<div style="background:var(--bg2);border-radius:var(--r-md);padding:9px 12px;font-size:12px;color:var(--text2);margin-bottom:14px;border:1px solid var(--border)">${activoActual.obs}</div>`:''}
+    ${activoActual.obs?`<div style="background:var(--bg2);border-radius:var(--r-md);padding:9px 12px;font-size:12px;color:var(--text2);margin-bottom:14px;border:1px solid var(--border)">${_escHtml(activoActual.obs)}</div>`:''}
     <div style="margin-bottom:14px"><div class="sec-title">Tickets vinculados (${tks.length})</div>
       ${tks.length?tks.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:5px">
-        <span class="code-cell">${t.codigo}</span><span class="badge s-${t.estado}">${t.estado}</span>
-        <span style="flex:1;font-size:12px;font-weight:500">${sanitizeHTML(t.titulo)}</span><span style="font-size:11px;color:var(--text3)">${sanitizeHTML(t.resp)} · ${renderDead(t.dead)}</span>
+        <span class="code-cell">${_escHtml(t.codigo)}</span><span class="badge s-${_escHtml(t.estado)}">${_escHtml(t.estado)}</span>
+        <span style="flex:1;font-size:12px;font-weight:500">${_escHtml(t.titulo)}</span><span style="font-size:11px;color:var(--text3)">${_escHtml(t.resp)} · ${renderDead(t.dead)}</span>
       </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin tickets vinculados.</div>'}
     </div>
     <div><div class="sec-title">Historial completo (${(activoActual.historial||[]).length} eventos)</div>
@@ -5358,19 +5358,19 @@ function showDetalle(id){
               '<div style="font-size:12px;font-weight:700;color:#0C447C;margin-bottom:4px">🔄 Reasignación de equipo</div>' +
               '<div style="display:flex;align-items:center;gap:8px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:6px 10px;font-size:12px;flex-wrap:wrap;">' +
                 '<span style="color:#64748B">De:</span>' +
-                '<strong style="color:#1A1A1A">'+(h.asignadoAntes||'—')+'</strong>' +
+                '<strong style="color:#1A1A1A">'+(_escHtml(h.asignadoAntes||'—'))+'</strong>' +
                 '<span style="color:#0C447C;font-size:16px">→</span>' +
                 '<span style="color:#64748B">A:</span>' +
-                '<strong style="color:#1D9E75">'+(h.asignadoNuevo||'—')+'</strong>' +
+                '<strong style="color:#1D9E75">'+(_escHtml(h.asignadoNuevo||'—'))+'</strong>' +
               '</div>' +
-              (h.deptoAntes!==h.deptoNuevo?'<div style="font-size:11px;color:#64748B;margin-top:3px">Departamento: '+(h.deptoAntes||'—')+' → '+(h.deptoNuevo||'—')+'</div>':'') +
-              '<div style="font-size:10px;color:var(--text3);margin-top:3px">'+(h.fecha||'')+' · Registrado por: '+(h.usuario||'—')+'</div>' +
+              (h.deptoAntes!==h.deptoNuevo?'<div style="font-size:11px;color:#64748B;margin-top:3px">Departamento: '+(_escHtml(h.deptoAntes||'—'))+' → '+(_escHtml(h.deptoNuevo||'—'))+'</div>':'') +
+              '<div style="font-size:10px;color:var(--text3);margin-top:3px">'+(_escHtml(h.fecha||''))+' · Registrado por: '+(_escHtml(h.usuario||'—'))+'</div>' +
             '</div>' +
           '</div>';
         }
-        return '<div class="hist-item"><div class="hist-dot '+(h.color||'')+'"></div>' +
-          '<div><div style="font-size:12px;color:var(--text)"><strong>'+h.tipo+'</strong> — '+h.desc+'</div>' +
-          '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(h.fecha||'')+' · '+(h.usuario||'—')+(h.tec&&h.tec!==h.usuario?' · Técnico: '+h.tec:'')+(h.costo?' · $'+h.costo:'')+'</div></div>' +
+        return '<div class="hist-item"><div class="hist-dot '+(_escHtml(h.color||''))+'"></div>' +
+          '<div><div style="font-size:12px;color:var(--text)"><strong>'+_escHtml(h.tipo)+'</strong> — '+_escHtml(h.desc)+'</div>' +
+          '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(_escHtml(h.fecha||''))+' · '+(_escHtml(h.usuario||'—'))+(_escHtml(h.tec&&h.tec!==h.usuario?' · Técnico: '+h.tec:''))+(_escHtml(h.costo?' · $'+h.costo:''))+'</div></div>' +
           '</div>';
       }).join('')}
     </div>
@@ -5385,7 +5385,7 @@ function showDetalle(id){
 
       </div>
       <div style="margin-top:12px;text-align:center">
-        <button class="btn btn-p" onclick="abrirEtiqueta('${activoActual.codigo}')" style="font-size:12px;padding:6px 18px">
+        <button class="btn btn-p" onclick="abrirEtiqueta('${_jsArg(activoActual.codigo)}')" style="font-size:12px;padding:6px 18px">
           🏷️ Imprimir etiqueta
         </button>
       </div>
@@ -5408,25 +5408,25 @@ function showDetalleMob(codigo){
   document.getElementById('nav-detalle-mob').style.display='flex';
   document.getElementById('det-mob-content').innerHTML=`
     <div class="det-header">
-      <div class="det-icon">${TIPO_ICON[mobiliarioActual.tipo]||'📦'}</div>
-      <div style="flex:1"><div class="det-title">${sanitizeHTML(mobiliarioActual.nombre)}</div>
-        <div class="det-code">${mobiliarioActual.codigo} · ${sanitizeHTML(mobiliarioActual.tipo||'')} · ${(mobiliarioActual.cantidad||1)>1 ? 'Lote de '+mobiliarioActual.cantidad+' unidades' : 'Unidad individual'}</div>
-        <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap"><span class="badge" style="background:var(--bg2);color:var(--text2)">${mobiliarioActual.condicion||'—'}</span><span class="badge" style="background:var(--bg2);color:var(--text2)">${sanitizeHTML(mobiliarioActual.depto||'Sin depto')}</span></div>
+      <div class="det-icon">${_escHtml(TIPO_ICON[mobiliarioActual.tipo]||'📦')}</div>
+      <div style="flex:1"><div class="det-title">${_escHtml(mobiliarioActual.nombre)}</div>
+        <div class="det-code">${_escHtml(mobiliarioActual.codigo)} · ${_escHtml(mobiliarioActual.tipo||'')} · ${_escHtml((mobiliarioActual.cantidad||1)>1 ? 'Lote de '+mobiliarioActual.cantidad+' unidades' : 'Unidad individual')}</div>
+        <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap"><span class="badge" style="background:var(--bg2);color:var(--text2)">${_escHtml(mobiliarioActual.condicion||'—')}</span><span class="badge" style="background:var(--bg2);color:var(--text2)">${_escHtml(mobiliarioActual.depto||'Sin depto')}</span></div>
       </div>
     </div>
     <div class="det-grid">
-      <div class="det-field"><div class="det-fl">Ubicación / Aula</div><div class="det-fv">${sanitizeHTML(mobiliarioActual.ubicacion||'—')}</div></div>
-      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${sanitizeHTML(mobiliarioActual.depto||'—')}</div></div>
-      <div class="det-field"><div class="det-fl">Material</div><div class="det-fv">${sanitizeHTML(mobiliarioActual.material||'—')}</div></div>
-      <div class="det-field"><div class="det-fl">Color</div><div class="det-fv">${sanitizeHTML(mobiliarioActual.color||'—')}</div></div>
-      <div class="det-field"><div class="det-fl">Fecha de adquisición</div><div class="det-fv">${fmtFecha(mobiliarioActual.fecha)}</div></div>
-      <div class="det-field"><div class="det-fl">Valor unitario</div><div class="det-fv">$${(mobiliarioActual.valor||0).toLocaleString()}</div></div>
-      <div class="det-field"><div class="det-fl">Valor total</div><div class="det-fv" style="color:#3B6D11;font-weight:700">$${((mobiliarioActual.valor||0)*(mobiliarioActual.cantidad||1)).toLocaleString()}</div></div>
+      <div class="det-field"><div class="det-fl">Ubicación / Aula</div><div class="det-fv">${_escHtml(mobiliarioActual.ubicacion||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Departamento</div><div class="det-fv">${_escHtml(mobiliarioActual.depto||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Material</div><div class="det-fv">${_escHtml(mobiliarioActual.material||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Color</div><div class="det-fv">${_escHtml(mobiliarioActual.color||'—')}</div></div>
+      <div class="det-field"><div class="det-fl">Fecha de adquisición</div><div class="det-fv">${_escHtml(fmtFecha(mobiliarioActual.fecha))}</div></div>
+      <div class="det-field"><div class="det-fl">Valor unitario</div><div class="det-fv">$${_escHtml((mobiliarioActual.valor||0).toLocaleString())}</div></div>
+      <div class="det-field"><div class="det-fl">Valor total</div><div class="det-fv" style="color:#3B6D11;font-weight:700">$${_escHtml(((mobiliarioActual.valor||0)*(mobiliarioActual.cantidad||1)).toLocaleString())}</div></div>
       ${mobiliarioActual.foto ? `
       <div class="det-field" style="grid-column:1/-1">
         <div class="det-fl">📎 Foto / Documento</div>
         <div class="det-fv">
-          <a href="${sanitizeHTML(mobiliarioActual.foto)}" target="_blank"
+          <a href="${_escHtml(_safeUrl(sanitizeHTML(mobiliarioActual.foto)))}" target="_blank"
             style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
             background:var(--blue-l);border:1px solid var(--blue-m);border-radius:6px;
             color:var(--navy);font-size:12px;font-weight:600;text-decoration:none;">
@@ -5435,12 +5435,12 @@ function showDetalleMob(codigo){
         </div>
       </div>` : ''}
     </div>
-    ${mobiliarioActual.obs?`<div style="background:var(--bg2);border-radius:var(--r-md);padding:9px 12px;font-size:12px;color:var(--text2);margin-bottom:14px;border:1px solid var(--border)">${sanitizeHTML(mobiliarioActual.obs)}</div>`:''}
+    ${mobiliarioActual.obs?`<div style="background:var(--bg2);border-radius:var(--r-md);padding:9px 12px;font-size:12px;color:var(--text2);margin-bottom:14px;border:1px solid var(--border)">${_escHtml(mobiliarioActual.obs)}</div>`:''}
     <div><div class="sec-title">Historial completo (${(mobiliarioActual.historial||[]).length} eventos)</div>
       ${(mobiliarioActual.historial||[]).map(h=>
-        '<div class="hist-item"><div class="hist-dot '+(h.color||'')+'"></div>' +
-        '<div><div style="font-size:12px;color:var(--text)"><strong>'+sanitizeHTML(h.tipo||'')+'</strong> — '+sanitizeHTML(h.desc||'')+'</div>' +
-        '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(h.fecha||'')+' · '+sanitizeHTML(h.usuario||'—')+'</div></div>' +
+        '<div class="hist-item"><div class="hist-dot '+(_escHtml(h.color||''))+'"></div>' +
+        '<div><div style="font-size:12px;color:var(--text)"><strong>'+_escHtml(h.tipo||'')+'</strong> — '+_escHtml(h.desc||'')+'</div>' +
+        '<div style="font-size:10px;color:var(--text3);margin-top:2px">'+(_escHtml(h.fecha||''))+' · '+_escHtml(h.usuario||'—')+'</div></div>' +
         '</div>'
       ).join('') || '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin eventos registrados.</div>'}
     </div>
@@ -5454,13 +5454,13 @@ function showDetalleMob(codigo){
         </div>
       </div>
       <div style="margin-top:12px;text-align:center">
-        <button class="btn btn-p" onclick="abrirEtiqueta('${mobiliarioActual.codigo}','mobiliario')" style="font-size:12px;padding:6px 18px">
+        <button class="btn btn-p" onclick="abrirEtiqueta('${_jsArg(mobiliarioActual.codigo)}','mobiliario')" style="font-size:12px;padding:6px 18px">
           🏷️ Imprimir etiqueta
         </button>
       </div>
       ${(mobiliarioActual.cantidad||1)>1?`<div style="margin-top:12px;background:var(--amber-l);border:1px solid var(--amber-m);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--amber);line-height:1.5">
-        Este código identifica un <strong>lote de ${mobiliarioActual.cantidad} unidades</strong>: una sola etiqueta para todas.
-        ${(PERMS[session.rol]||{}).edit?`<div style="margin-top:8px;text-align:center"><button class="btn" onclick="dividirLoteMobiliario('${mobiliarioActual.codigo}')" style="font-size:12px;padding:6px 14px">✂ Dividir en registros individuales</button></div>`:''}
+        Este código identifica un <strong>lote de ${_escHtml(mobiliarioActual.cantidad)} unidades</strong>: una sola etiqueta para todas.
+        ${(PERMS[session.rol]||{}).edit?`<div style="margin-top:8px;text-align:center"><button class="btn" onclick="dividirLoteMobiliario('${_jsArg(mobiliarioActual.codigo)}')" style="font-size:12px;padding:6px 14px">✂ Dividir en registros individuales</button></div>`:''}
       </div>`:''}
     </div>`:''}`;
   go('detalle-mob',document.getElementById('nav-detalle-mob'));
@@ -5483,20 +5483,20 @@ function renderActivos(){
   // Filtrar por tipo (combinado con estado)
   if(filtroTipo!=='todos') list = list.filter(a=>a.tipo===filtroTipo);
   if(!list.length){tb.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text3);font-size:12px">Sin activos${filtroA!=='todos'?' en este estado':'. Usa "+ Nuevo activo"'}.</td></tr>`;return;}
-  tb.innerHTML=list.map(a=>`<tr class="clickable ${a.estado==='eliminado'?'del-row':''}" onclick="showDetalle('${a.codigo}')">
-    <td class="code-cell">${a.codigo}</td>
-    <td><div style="font-weight:600;font-size:12px">${sanitizeHTML(a.nombre||'')}</div><div style="font-size:10px;color:var(--text3)">${sanitizeHTML(a.marca||'')} ${sanitizeHTML(a.modelo||'')}</div></td>
-    <td>${sanitizeHTML(a.tipo||'')}</td><td><div title="${escAttr(a.asignadoEmail?'📧 '+a.asignadoEmail:'')}">${sanitizeHTML(a.asignado||'—')}${a.asignadoEmail?'<span style="font-size:9px;color:var(--navy);margin-left:3px">📧</span>':''}</div><div style="font-size:10px;color:var(--text3)">${sanitizeHTML(a.depto||'')}</div></td>
-    <td style="font-size:11px">${sanitizeHTML(a.ubicacion||'—')}</td><td><span class="badge s-${a.estado}">${a.estado}</span></td>
-    <td style="text-align:center">${a.foto && a.foto!=='—' ? `<a href="${sanitizeHTML(a.foto)}" target="_blank" title="Ver foto/doc" style="font-size:16px;text-decoration:none">📎</a>` : '<span style="color:var(--text3);font-size:11px">—</span>'}</td>
-    <td style="font-size:11px;color:var(--text3)">${fmtFecha(a.garantia)}</td><td>
-      <div style="font-size:10px;color:var(--text3)">Original: $${(a.valor||0).toLocaleString()}</div>
-      <div style="font-weight:700;color:#3B6D11;font-size:13px">$${calcDepre(a).toLocaleString()}</div>
+  tb.innerHTML=list.map(a=>`<tr class="clickable ${a.estado==='eliminado'?'del-row':''}" onclick="showDetalle('${_jsArg(a.codigo)}')">
+    <td class="code-cell">${_escHtml(a.codigo)}</td>
+    <td><div style="font-weight:600;font-size:12px">${_escHtml(a.nombre||'')}</div><div style="font-size:10px;color:var(--text3)">${_escHtml(a.marca||'')} ${_escHtml(a.modelo||'')}</div></td>
+    <td>${_escHtml(a.tipo||'')}</td><td><div title="${_escHtml(escAttr(a.asignadoEmail?'📧 '+a.asignadoEmail:''))}">${_escHtml(a.asignado||'—')}${a.asignadoEmail?'<span style="font-size:9px;color:var(--navy);margin-left:3px">📧</span>':''}</div><div style="font-size:10px;color:var(--text3)">${_escHtml(a.depto||'')}</div></td>
+    <td style="font-size:11px">${_escHtml(a.ubicacion||'—')}</td><td><span class="badge s-${_escHtml(a.estado)}">${_escHtml(a.estado)}</span></td>
+    <td style="text-align:center">${a.foto && a.foto!=='—' ? `<a href="${_escHtml(_safeUrl(sanitizeHTML(a.foto)))}" target="_blank" title="Ver foto/doc" style="font-size:16px;text-decoration:none">📎</a>` : '<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+    <td style="font-size:11px;color:var(--text3)">${_escHtml(fmtFecha(a.garantia))}</td><td>
+      <div style="font-size:10px;color:var(--text3)">Original: $${_escHtml((a.valor||0).toLocaleString())}</div>
+      <div style="font-weight:700;color:#3B6D11;font-size:13px">$${_escHtml(calcDepre(a).toLocaleString())}</div>
       <div style="font-size:9px;color:var(--text3)">depreciado</div>
     </td>
     <td onclick="event.stopPropagation()">
-      ${per.edit&&a.estado!=='eliminado'?`<button class="act-btn" onclick="openActivo('${a.codigo}')">✎</button>`:''}
-      ${per.delete&&a.estado!=='eliminado'?`<button class="act-btn" onclick="openDelete('activo','${a.codigo}')" style="color:var(--red)">×</button>`:''}
+      ${per.edit&&a.estado!=='eliminado'?`<button class="act-btn" onclick="openActivo('${_jsArg(a.codigo)}')">✎</button>`:''}
+      ${per.delete&&a.estado!=='eliminado'?`<button class="act-btn" onclick="openDelete('activo','${_jsArg(a.codigo)}')" style="color:var(--red)">×</button>`:''}
     </td></tr>`).join('');
 }
 
@@ -5511,46 +5511,46 @@ function renderTickets(){
     : tickets.filter(t=>t.estado===filtroT);
   if(!list.length){tb.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text3);font-size:12px">Sin tickets.</td></tr>`;return;}
   tb.innerHTML=list.map(t=>`<tr class="${t.estado==='eliminado'?'del-row':''}">
-    <td class="code-cell">${sanitizeHTML(t.codigo)}</td>
-    <td><div style="font-weight:600;font-size:12px">${sanitizeHTML(t.titulo)}</div><div style="font-size:10px;color:var(--text3)">${sanitizeHTML(t.tipo||'')} · ${sanitizeHTML(t.proy||'—')}</div></td>
-    <td style="font-size:11px">${sanitizeHTML(t.activoNombre||'—')}</td>
+    <td class="code-cell">${_escHtml(t.codigo)}</td>
+    <td><div style="font-weight:600;font-size:12px">${_escHtml(t.titulo)}</div><div style="font-size:10px;color:var(--text3)">${_escHtml(t.tipo||'')} · ${_escHtml(t.proy||'—')}</div></td>
+    <td style="font-size:11px">${_escHtml(t.activoNombre||'—')}</td>
     <td>
       ${t.resp&&t.resp!=='—'
-        ? `<span style="font-size:11px;font-weight:${t.resp===session.nombre?'700':'400'};color:${t.resp===session.nombre?'#1A7A4A':'var(--text)'}">${sanitizeHTML(t.resp)}</span>`
+        ? `<span style="font-size:11px;font-weight:${t.resp===session.nombre?'700':'400'};color:${t.resp===session.nombre?'#1A7A4A':'var(--text)'}">${_escHtml(t.resp)}</span>`
         : '<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:3px;font-weight:600">Sin asignar</span>'}
     </td>
-    <td><span class="badge s-${t.prior}">${t.prior}</span></td><td><span class="badge s-${t.estado}">${t.estado}</span></td>
-    <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${t.avance||0}%"></div></div><span class="prog-t">${t.avance||0}%</span></div></td>
+    <td><span class="badge s-${_escHtml(t.prior)}">${_escHtml(t.prior)}</span></td><td><span class="badge s-${_escHtml(t.estado)}">${_escHtml(t.estado)}</span></td>
+    <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${_escHtml(t.avance||0)}%"></div></div><span class="prog-t">${_escHtml(t.avance||0)}%</span></div></td>
     <td style="font-size:11px;color:var(--text3)">${renderDead(t.dead)}</td>
-    <td style="text-align:center">${t.foto && t.foto!=='—' ? `<a href="${sanitizeHTML(t.foto)}" target="_blank" title="Ver foto/doc" style="font-size:16px;text-decoration:none">📎</a>` : '<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+    <td style="text-align:center">${t.foto && t.foto!=='—' ? `<a href="${_escHtml(_safeUrl(sanitizeHTML(t.foto)))}" target="_blank" title="Ver foto/doc" style="font-size:16px;text-decoration:none">📎</a>` : '<span style="color:var(--text3);font-size:11px">—</span>'}</td>
     <td style="white-space:nowrap">
       ${(t.estado!=='cerrado'&&t.estado!=='eliminado'&&['admin','tecnico'].includes(session.rol)&&t.resp!==session.nombre)?
-        `<button class="act-btn" style="background:#1B3A6B;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600" onclick="tomarTicket('${t.codigo}')">Tomar</button>`:
+        `<button class="act-btn" style="background:#1B3A6B;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600" onclick="tomarTicket('${_jsArg(t.codigo)}')">Tomar</button>`:
         (t.resp===session.nombre&&t.estado!=='cerrado'?`<span style="font-size:9px;color:#1A7A4A;font-weight:600">✓ Tuyo</span>`:'')}
-      <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial y trazabilidad (solo lectura)">👁</button>
-      <button class="act-btn" onclick="imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo (historial + fotos, para imprimir o guardar como PDF)"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
-      ${per.edit&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openTicket('${t.codigo}')" title="Editar">✎</button>`:''}
-      ${per.delete&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openDelete('ticket','${t.codigo}')" style="color:var(--red)">×</button>`:''}
+      <button class="act-btn" onclick="openTicket('${_jsArg(t.codigo)}',true)" title="Ver historial y trazabilidad (solo lectura)">👁</button>
+      <button class="act-btn" onclick="imprimirExpedienteTicket('${_jsArg(t.codigo)}')" title="Generar expediente completo (historial + fotos, para imprimir o guardar como PDF)"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
+      ${per.edit&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openTicket('${_jsArg(t.codigo)}')" title="Editar">✎</button>`:''}
+      ${per.delete&&t.estado!=='eliminado'?`<button class="act-btn" onclick="openDelete('ticket','${_jsArg(t.codigo)}')" style="color:var(--red)">×</button>`:''}
     </td></tr>`).join('');
 }
 
 function renderKanban(){
   ['abierto','progreso','revision','cerrado'].forEach(col=>{
     const items=tickets.filter(t=>t.estado===col);document.getElementById('kc-'+col).textContent=items.length;
-    document.getElementById('k-'+col).innerHTML=items.length?items.map(t=>`<div class="k-card" style="cursor:pointer;position:relative" onclick="openTicket('${t.codigo}',true)" title="Ver historial y trazabilidad (solo lectura)">
-      ${((PERMS[session.rol]||{}).edit)?`<button onclick="event.stopPropagation();openTicket('${t.codigo}')" title="Editar" style="position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px">✎</button>`:''}
-      <button onclick="event.stopPropagation();imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo" style="position:absolute;top:6px;right:${((PERMS[session.rol]||{}).edit)?'24':'6'}px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
+    document.getElementById('k-'+col).innerHTML=items.length?items.map(t=>`<div class="k-card" style="cursor:pointer;position:relative" onclick="openTicket('${_jsArg(t.codigo)}',true)" title="Ver historial y trazabilidad (solo lectura)">
+      ${((PERMS[session.rol]||{}).edit)?`<button onclick="event.stopPropagation();openTicket('${_jsArg(t.codigo)}')" title="Editar" style="position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px">✎</button>`:''}
+      <button onclick="event.stopPropagation();imprimirExpedienteTicket('${_jsArg(t.codigo)}')" title="Generar expediente completo" style="position:absolute;top:6px;right:${((PERMS[session.rol]||{}).edit)?'24':'6'}px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
       <div class="k-card-accent ${t.prior==='urgente'?'pri-alta':t.prior==='importante'?'pri-media':'pri-baja'}"></div>
-      <div class="code-cell" style="font-size:9px;margin-bottom:3px">${t.codigo}</div>
-      <div class="k-card-t">${sanitizeHTML(t.titulo)}</div>
-      <div class="k-card-m"><span>${t.activoNombre&&t.activoNombre!=='—'?t.activoNombre:t.proy||'—'}</span><span class="badge s-${t.prior}" style="font-size:9px">${t.prior}</span></div>
+      <div class="code-cell" style="font-size:9px;margin-bottom:3px">${_escHtml(t.codigo)}</div>
+      <div class="k-card-t">${_escHtml(t.titulo)}</div>
+      <div class="k-card-m"><span>${_escHtml(t.activoNombre&&t.activoNombre!=='—'?t.activoNombre:t.proy||'—')}</span><span class="badge s-${_escHtml(t.prior)}" style="font-size:9px">${_escHtml(t.prior)}</span></div>
       <div class="k-card-m">
-        <span style="${t.resp===session.nombre?'color:#1A7A4A;font-weight:600':''}">${t.resp||'Sin asignar'}</span>
+        <span style="${t.resp===session.nombre?'color:#1A7A4A;font-weight:600':''}">${_escHtml(t.resp||'Sin asignar')}</span>
         <span>${renderDead(t.dead)}</span>
       </div>
-      <div class="k-prog"><div class="k-pf" style="width:${t.avance||0}%"></div></div>
+      <div class="k-prog"><div class="k-pf" style="width:${_escHtml(t.avance||0)}%"></div></div>
       ${(col!=='cerrado'&&col!=='eliminado'&&['admin','tecnico'].includes(session.rol)&&t.resp!==session.nombre)?
-        `<div style="margin-top:6px"><button onclick="event.stopPropagation();tomarTicket('${t.codigo}')" style="width:100%;background:#1B3A6B;color:#fff;border:none;border-radius:4px;padding:4px;font-size:10px;font-weight:600;cursor:pointer">▶ Tomar este ticket</button></div>`:
+        `<div style="margin-top:6px"><button onclick="event.stopPropagation();tomarTicket('${_jsArg(t.codigo)}')" style="width:100%;background:#1B3A6B;color:#fff;border:none;border-radius:4px;padding:4px;font-size:10px;font-weight:600;cursor:pointer">▶ Tomar este ticket</button></div>`:
         (t.resp===session.nombre&&col!=='cerrado'?`<div style="margin-top:4px;font-size:9px;color:#1A7A4A;font-weight:600;text-align:center">✓ Asignado a ti</div>`:'')}
     </div>`).join(''):'<div style="font-size:11px;color:var(--text3);text-align:center;padding:12px 0">Vacío</div>';
   });
@@ -5560,12 +5560,12 @@ function renderAudit(){
   const tb=document.getElementById('tb-audit'),list=filtroAud==='todos'?auditLog:auditLog.filter(a=>a.accion===filtroAud);
   if(!list.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3);font-size:12px">Sin registros.</td></tr>';return;}
   tb.innerHTML=list.map(a=>`<tr>
-    <td style="font-size:10px;white-space:nowrap;color:var(--text3)">${a.ts}</td>
-    <td><div style="font-size:12px;font-weight:600">${a.nombre||a.usuario}</div><div style="font-size:10px;color:var(--text3)">${a.username||a.usuario}</div></td>
-    <td><span class="badge ${ROL_CLASS[a.rol]||''}">${ROL_LABELS[a.rol]||a.rol}</span></td>
-    <td><span class="badge s-${a.accion}">${a.accion}</span></td>
-    <td style="font-size:11px">${a.tipo}</td><td class="code-cell">${a.codigo}</td>
-    <td style="font-size:11px;max-width:200px;color:var(--text2)">${a.detalle}</td></tr>`).join('');
+    <td style="font-size:10px;white-space:nowrap;color:var(--text3)">${_escHtml(a.ts)}</td>
+    <td><div style="font-size:12px;font-weight:600">${_escHtml(a.nombre||a.usuario)}</div><div style="font-size:10px;color:var(--text3)">${_escHtml(a.username||a.usuario)}</div></td>
+    <td><span class="badge ${_escHtml(ROL_CLASS[a.rol]||'')}">${_escHtml(ROL_LABELS[a.rol]||a.rol)}</span></td>
+    <td><span class="badge s-${_escHtml(a.accion)}">${_escHtml(a.accion)}</span></td>
+    <td style="font-size:11px">${_escHtml(a.tipo)}</td><td class="code-cell">${_escHtml(a.codigo)}</td>
+    <td style="font-size:11px;max-width:200px;color:var(--text2)">${_escHtml(a.detalle)}</td></tr>`).join('');
 }
 
 function renderDash(){
@@ -5611,14 +5611,14 @@ function renderDash(){
       const [x1,y1]=f(ro,a1),[x2,y2]=f(ro,a2);
       const [xi1,yi1]=f(ri,a1),[xi2,yi2]=f(ri,a2);
       const lg=sw>Math.PI?1:0;
-      p+=`<path d="M${xi1.toFixed(1)},${yi1.toFixed(1)} L${x1.toFixed(1)},${y1.toFixed(1)} A${ro},${ro} 0 ${lg},1 ${x2.toFixed(1)},${y2.toFixed(1)} L${xi2.toFixed(1)},${yi2.toFixed(1)} A${ri},${ri} 0 ${lg},0 ${xi1.toFixed(1)},${yi1.toFixed(1)} Z" fill="${C[i]}"/>`;
+      p+=`<path d="M${_escHtml(xi1.toFixed(1))},${_escHtml(yi1.toFixed(1))} L${_escHtml(x1.toFixed(1))},${_escHtml(y1.toFixed(1))} A${_escHtml(ro)},${_escHtml(ro)} 0 ${_escHtml(lg)},1 ${_escHtml(x2.toFixed(1))},${_escHtml(y2.toFixed(1))} L${_escHtml(xi2.toFixed(1))},${_escHtml(yi2.toFixed(1))} A${_escHtml(ri)},${_escHtml(ri)} 0 ${_escHtml(lg)},0 ${_escHtml(xi1.toFixed(1))},${_escHtml(yi1.toFixed(1))} Z" fill="${_escHtml(C[i])}"/>`;
       ang+=sw;
     });
-    svg.innerHTML=p+`<text x="45" y="43" text-anchor="middle" fill="#111827" font-size="14" font-weight="800">${totD}</text><text x="45" y="54" text-anchor="middle" fill="#9CA3AF" font-size="8">activos</text>`;
+    svg.innerHTML=p+`<text x="45" y="43" text-anchor="middle" fill="#111827" font-size="14" font-weight="800">${_escHtml(totD)}</text><text x="45" y="54" text-anchor="middle" fill="#9CA3AF" font-size="8">activos</text>`;
   } else if(svg) svg.innerHTML='';
   const legEl=el('pbi-leg-tipos');
   if(legEl) legEl.innerHTML=tmE.length
-    ? tmE.map(([t,v],i)=>`<div class="pbi-donut-leg-row"><div class="pbi-donut-leg-left"><div class="pbi-donut-leg-dot" style="background:${C[i]}"></div>${t}</div><div><span class="pbi-donut-leg-val">${v}</span><span class="pbi-donut-leg-pct">${Math.round(v/totD*100)}%</span></div></div>`).join('')
+    ? tmE.map(([t,v],i)=>`<div class="pbi-donut-leg-row"><div class="pbi-donut-leg-left"><div class="pbi-donut-leg-dot" style="background:${_escHtml(C[i])}"></div>${_escHtml(t)}</div><div><span class="pbi-donut-leg-val">${_escHtml(v)}</span><span class="pbi-donut-leg-pct">${_escHtml(Math.round(v/totD*100))}%</span></div></div>`).join('')
     : '<div class="pbi-empty">Sin activos</div>';
 
   // ── BARRAS H departamentos ──────────────────────────────────
@@ -5628,13 +5628,13 @@ function renderDash(){
   const dEl=el('pbi-deptos');
   if(dEl) dEl.innerHTML=dE.length
     ? dE.map(([d,v],i)=>`<div class="pbi-hbar-row">
-        <div class="pbi-hbar-label" title="${d}">${d.substring(0,14)}</div>
+        <div class="pbi-hbar-label" title="${_escHtml(d)}">${_escHtml(d.substring(0,14))}</div>
         <div class="pbi-hbar-track">
-          <div class="pbi-hbar-fill" style="width:${Math.round(v/mxD*100)}%;background:${C[i%C.length]}">
-            <span class="pbi-hbar-fill-label">${v>1?v:''}</span>
+          <div class="pbi-hbar-fill" style="width:${_escHtml(Math.round(v/mxD*100))}%;background:${_escHtml(C[i%C.length])}">
+            <span class="pbi-hbar-fill-label">${_escHtml(v>1?v:'')}</span>
           </div>
         </div>
-        <div class="pbi-hbar-val">${v}</div>
+        <div class="pbi-hbar-val">${_escHtml(v)}</div>
       </div>`).join('')
     : '<div class="pbi-empty">Sin datos</div>';
 
@@ -5652,13 +5652,13 @@ function renderDash(){
         const pct=d.total?Math.round(d.cerrados/d.total*100):0;
         const color=pct>=80?'#1A7A4A':pct>=50?'#E8A800':'#D04040';
         return`<tr>
-          <td class="bold">${n.substring(0,20)}</td>
-          <td style="text-align:center;font-weight:700">${d.total}</td>
-          <td style="text-align:center;color:#1A7A4A;font-weight:700">${d.cerrados}</td>
+          <td class="bold">${_escHtml(n.substring(0,20))}</td>
+          <td style="text-align:center;font-weight:700">${_escHtml(d.total)}</td>
+          <td style="text-align:center;color:#1A7A4A;font-weight:700">${_escHtml(d.cerrados)}</td>
           <td>
             <div class="pbi-prog">
-              <div class="pbi-prog-bg"><div class="pbi-prog-f" style="width:${pct}%;background:${color}"></div></div>
-              <span class="pbi-prog-t" style="color:${color};font-weight:700">${pct}%</span>
+              <div class="pbi-prog-bg"><div class="pbi-prog-f" style="width:${_escHtml(pct)}%;background:${_escHtml(color)}"></div></div>
+              <span class="pbi-prog-t" style="color:${_escHtml(color)};font-weight:700">${_escHtml(pct)}%</span>
             </div>
           </td>
         </tr>`;}).join('')
@@ -5697,7 +5697,7 @@ function renderDash(){
   const legendEl=el('pbi-hora-legend');
   if(legendEl) legendEl.innerHTML=
     `<div class="pbi-leg-item"><div class="pbi-leg-dot" style="background:#E5E7EB"></div>Total tickets</div>`+
-    topUsers.map((u,i)=>`<div class="pbi-leg-item"><div class="pbi-leg-dot" style="background:${userColors[i]}"></div>${u.u.split(' ')[0]}</div>`).join('');
+    topUsers.map((u,i)=>`<div class="pbi-leg-item"><div class="pbi-leg-dot" style="background:${_escHtml(userColors[i])}"></div>${_escHtml(u.u.split(' ')[0])}</div>`).join('');
   // Draw
   pbiDrawHoras('pbi-hora-canvas', hG, hL, topUsers, userColors);
 
@@ -5710,13 +5710,13 @@ function renderDash(){
     const mxU=allUsers.length?allUsers[0].total||1:1;
     topUsrEl.innerHTML=allUsers.length
       ? allUsers.map(({u,total},i)=>`<div class="pbi-hbar-row" style="margin-bottom:4px">
-          <div class="pbi-hbar-label" style="width:110px;font-size:10px">${u.substring(0,16)}</div>
+          <div class="pbi-hbar-label" style="width:110px;font-size:10px">${_escHtml(u.substring(0,16))}</div>
           <div class="pbi-hbar-track" style="height:14px">
-            <div class="pbi-hbar-fill" style="width:${Math.round(total/mxU*100)}%;background:${userColors[i]||'#9CA3AF'}">
-              <span class="pbi-hbar-fill-label">${total>1?total:''}</span>
+            <div class="pbi-hbar-fill" style="width:${_escHtml(Math.round(total/mxU*100))}%;background:${_escHtml(userColors[i]||'#9CA3AF')}">
+              <span class="pbi-hbar-fill-label">${_escHtml(total>1?total:'')}</span>
             </div>
           </div>
-          <div class="pbi-hbar-val">${total}</div>
+          <div class="pbi-hbar-val">${_escHtml(total)}</div>
         </div>`).join('')
       : '<div class="pbi-empty">Sin datos de creadores</div>';
   }
@@ -5728,15 +5728,15 @@ function renderDash(){
   const tktEl=el('pbi-tbl-tkt');
   if(tktEl) tktEl.innerHTML=tktS.length
     ? tktS.map(t=>`<tr>
-        <td class="mono">${t.codigo}</td>
-        <td class="bold" style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sanitizeHTML(t.titulo)}</td>
-        <td style="font-size:9.5px">${(t.resp||'—').split(' ')[0]}</td>
-        <td><span class="pbi-b pbi-b-${t.prior}">${t.prior}</span></td>
-        <td><span class="pbi-b pbi-b-${t.estado}">${t.estado}</span></td>
+        <td class="mono">${_escHtml(t.codigo)}</td>
+        <td class="bold" style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escHtml(t.titulo)}</td>
+        <td style="font-size:9.5px">${_escHtml((t.resp||'—').split(' ')[0])}</td>
+        <td><span class="pbi-b pbi-b-${_escHtml(t.prior)}">${_escHtml(t.prior)}</span></td>
+        <td><span class="pbi-b pbi-b-${_escHtml(t.estado)}">${_escHtml(t.estado)}</span></td>
         <td>
           <div class="pbi-prog">
-            <div class="pbi-prog-bg"><div class="pbi-prog-f" style="width:${t.avance||0}%;background:${(t.avance||0)>=80?'#1A7A4A':(t.avance||0)>=40?'#E8A800':'#00B4B4'}"></div></div>
-            <span class="pbi-prog-t">${t.avance||0}%</span>
+            <div class="pbi-prog-bg"><div class="pbi-prog-f" style="width:${_escHtml(t.avance||0)}%;background:${(t.avance||0)>=80?'#1A7A4A':(t.avance||0)>=40?'#E8A800':'#00B4B4'}"></div></div>
+            <span class="pbi-prog-t">${_escHtml(t.avance||0)}%</span>
           </div>
         </td>
       </tr>`).join('')
@@ -5749,9 +5749,9 @@ function renderDash(){
   const prios2=['urgente','importante','normal'];
   const prioColors=['#D04040','#E07B39','#00B4B4'];
   if(distLegEl) distLegEl.innerHTML=
-    catColors.map((c,i)=>`<div class="pbi-leg-item"><div class="pbi-leg-dot" style="background:${c}"></div>${cats[i]}</div>`).join('')+
+    catColors.map((c,i)=>`<div class="pbi-leg-item"><div class="pbi-leg-dot" style="background:${_escHtml(c)}"></div>${_escHtml(cats[i])}</div>`).join('')+
     '<span style="margin:0 8px;color:#E5E7EB">|</span>'+
-    prioColors.map((c,i)=>`<div class="pbi-leg-item"><div class="pbi-leg-dot" style="background:${c};border-radius:50%"></div>${prios2[i]}</div>`).join('');
+    prioColors.map((c,i)=>`<div class="pbi-leg-item"><div class="pbi-leg-dot" style="background:${_escHtml(c)};border-radius:50%"></div>${_escHtml(prios2[i])}</div>`).join('');
   pbiDrawDist('pbi-dist-canvas', cats, catColors, prios2, prioColors);
 
   // ── TABLA últimos activos ────────────────────────────────────
@@ -5759,11 +5759,11 @@ function renderDash(){
   const actEl=el('pbi-tbl-act');
   if(actEl) actEl.innerHTML=ultA.length
     ? ultA.map(a=>`<tr>
-        <td class="mono">${a.codigo}</td>
-        <td class="bold">${sanitizeHTML(a.nombre||'')}</td>
-        <td style="font-size:9.5px;color:#6B7280">${a.tipo}</td>
-        <td><span class="pbi-b pbi-b-${a.estado}">${a.estado}</span></td>
-        <td style="font-weight:700;color:#1A7A4A">$${calcDepre(a).toLocaleString()}</td>
+        <td class="mono">${_escHtml(a.codigo)}</td>
+        <td class="bold">${_escHtml(a.nombre||'')}</td>
+        <td style="font-size:9.5px;color:#6B7280">${_escHtml(a.tipo)}</td>
+        <td><span class="pbi-b pbi-b-${_escHtml(a.estado)}">${_escHtml(a.estado)}</span></td>
+        <td style="font-weight:700;color:#1A7A4A">$${_escHtml(calcDepre(a).toLocaleString())}</td>
       </tr>`).join('')
     : '<tr><td colspan="5" class="pbi-empty">Sin activos</td></tr>';
 
@@ -5793,11 +5793,11 @@ function renderDash(){
     condEl.innerHTML = barras.map(b=>{
       const pct = mobUnidades ? Math.round(b.val/mobUnidades*100) : 0;
       return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <span style="font-size:10px;color:#6B7280;width:80px;flex-shrink:0">${b.label}</span>
+        <span style="font-size:10px;color:#6B7280;width:80px;flex-shrink:0">${_escHtml(b.label)}</span>
         <div style="flex:1;background:#F3F4F6;border-radius:4px;height:10px;">
-          <div style="width:${pct}%;background:${b.color};border-radius:4px;height:10px;transition:width .4s"></div>
+          <div style="width:${_escHtml(pct)}%;background:${_escHtml(b.color)};border-radius:4px;height:10px;transition:width .4s"></div>
         </div>
-        <span style="font-size:10px;font-weight:700;color:${b.color};width:36px;text-align:right">${b.val} <span style="color:#9CA3AF;font-weight:400">(${pct}%)</span></span>
+        <span style="font-size:10px;font-weight:700;color:${_escHtml(b.color)};width:36px;text-align:right">${_escHtml(b.val)} <span style="color:#9CA3AF;font-weight:400">(${_escHtml(pct)}%)</span></span>
       </div>`;
     }).join('');
   } else if(condEl){
@@ -5815,11 +5815,11 @@ function renderDash(){
   if(tblMob){
     tblMob.innerHTML = mobAtenc.length
       ? mobAtenc.slice(0,10).map(m=>`<tr>
-          <td class="pbi-code">${m.codigo||'—'}</td>
-          <td style="font-weight:600;font-size:11px">${sanitizeHTML(m.nombre||'')}</td>
-          <td style="font-size:11px">${m.tipo||'—'}</td>
-          <td><span class="badge" style="background:${m.condicion==='deteriorado'?'#E07B3922':m.condicion==='baja'?'#9CA3AF22':'#E8A80022'};color:${m.condicion==='deteriorado'?'#E07B39':m.condicion==='baja'?'#6B7280':'#E8A800'}">${m.condicion}</span></td>
-          <td style="font-size:11px">${sanitizeHTML(m.ubicacion||'—')}</td>
+          <td class="pbi-code">${_escHtml(m.codigo||'—')}</td>
+          <td style="font-weight:600;font-size:11px">${_escHtml(m.nombre||'')}</td>
+          <td style="font-size:11px">${_escHtml(m.tipo||'—')}</td>
+          <td><span class="badge" style="background:${m.condicion==='deteriorado'?'#E07B3922':m.condicion==='baja'?'#9CA3AF22':'#E8A80022'};color:${m.condicion==='deteriorado'?'#E07B39':m.condicion==='baja'?'#6B7280':'#E8A800'}">${_escHtml(m.condicion)}</span></td>
+          <td style="font-size:11px">${_escHtml(m.ubicacion||'—')}</td>
         </tr>`).join('')
       : '<tr><td colspan="5" class="pbi-empty">Todo el mobiliario está en buen estado ✅</td></tr>';
   }
@@ -5998,11 +5998,11 @@ function cambiarReporte(tipo){
       </select>
       <select class="f-sel" id="fil-mob-rep-depto" onchange="generarReporte()" style="min-width:160px;">
         <option value="">Todos los departamentos</option>
-        ${deptosMob.map(d=>`<option value="${d}">${d}</option>`).join('')}
+        ${deptosMob.map(d=>`<option value="${_escHtml(d)}">${_escHtml(d)}</option>`).join('')}
       </select>
       <select class="f-sel" id="fil-mob-rep-ubic" onchange="generarReporte()" style="min-width:160px;">
         <option value="">Todas las ubicaciones</option>
-        ${ubicsMob.map(u=>`<option value="${u}">${u}</option>`).join('')}
+        ${ubicsMob.map(u=>`<option value="${_escHtml(u)}">${_escHtml(u)}</option>`).join('')}
       </select>`;
     document.getElementById('btn-csv').style.display='inline-flex';
     document.getElementById('btn-pdf').style.display='inline-flex';
@@ -6015,11 +6015,11 @@ function cambiarReporte(tipo){
     filtros.innerHTML=`
       <select class="f-sel" id="fil-tipo-inv" onchange="generarReporte()" style="max-width:200px">
         <option value="">Todos los tipos</option>
-        ${tiposEnUso.map(t=>`<option value="${t}">${TIPO_ICON[t]||'📦'} ${t}</option>`).join('')}
+        ${tiposEnUso.map(t=>`<option value="${_escHtml(t)}">${_escHtml(TIPO_ICON[t]||'📦')} ${_escHtml(t)}</option>`).join('')}
       </select>
       <select class="f-sel" id="fil-depto-inv" onchange="generarReporte()" style="max-width:200px">
         <option value="">Todos los departamentos</option>
-        ${[...new Set(activos.map(a=>a.depto||'Sin departamento'))].sort().map(d=>`<option>${d}</option>`).join('')}
+        ${[...new Set(activos.map(a=>a.depto||'Sin departamento'))].sort().map(d=>`<option>${_escHtml(d)}</option>`).join('')}
       </select>`;
   }
   if(tipo==='garantia'){
@@ -6032,10 +6032,10 @@ function cambiarReporte(tipo){
   }
   if(tipo==='depto'){
     const deptos=[...new Set(activos.map(a=>a.depto||'Sin departamento'))].filter(Boolean).sort();
-    filtros.innerHTML=`<select class="f-sel" id="fil-depto" onchange="generarReporte()" style="max-width:200px"><option value="">Todos los departamentos</option>${deptos.map(d=>`<option>${d}</option>`).join('')}</select>`;
+    filtros.innerHTML=`<select class="f-sel" id="fil-depto" onchange="generarReporte()" style="max-width:200px"><option value="">Todos los departamentos</option>${deptos.map(d=>`<option>${_escHtml(d)}</option>`).join('')}</select>`;
   }
   if(tipo==='hojavida'){
-    const opts=activos.filter(a=>a.estado!=='eliminado').map(a=>`<option value="${a.codigo}">${a.codigo} — ${sanitizeHTML(a.nombre||'')}</option>`).join('');
+    const opts=activos.filter(a=>a.estado!=='eliminado').map(a=>`<option value="${_escHtml(a.codigo)}">${_escHtml(a.codigo)} — ${_escHtml(a.nombre||'')}</option>`).join('');
     filtros.innerHTML=`<select class="f-sel" id="fil-activo" onchange="generarReporte()" style="max-width:280px"><option value="">— Selecciona un activo —</option>${opts}</select>`;
   }
   if(tipo==='tickets'||tipo==='tickets_supervision'){
@@ -6046,11 +6046,11 @@ function cambiarReporte(tipo){
       <input class="f-inp" type="date" id="fil-hasta" onchange="generarReporte()" style="max-width:150px" placeholder="Hasta">
       <select class="f-sel" id="fil-resp" onchange="generarReporte()" style="max-width:180px">
         <option value="">Todos los responsables</option>
-        ${[...new Set(tickets.map(t=>t.resp||'—'))].sort().map(r=>`<option>${r}</option>`).join('')}
+        ${[...new Set(tickets.map(t=>t.resp||'—'))].sort().map(r=>`<option>${_escHtml(r)}</option>`).join('')}
       </select>
       <select class="f-sel" id="fil-area" onchange="generarReporte()" style="max-width:180px">
         <option value="">Todas las áreas</option>
-        ${areasUnicas.map(a=>`<option>${a}</option>`).join('')}
+        ${areasUnicas.map(a=>`<option>${_escHtml(a)}</option>`).join('')}
       </select>
       <select class="f-sel" id="fil-tipo-tkt" onchange="generarReporte()" style="max-width:160px">
         <option value="">Todos los tipos</option>
@@ -6068,7 +6068,7 @@ function cambiarReporte(tipo){
     filtros.innerHTML=`
       <select class="f-sel" id="fil-persona" onchange="generarReporte()" style="max-width:220px">
         <option value="">— Selecciona una persona —</option>
-        ${personasUnicas.map(p=>`<option value="${p}">${p}</option>`).join('')}
+        ${personasUnicas.map(p=>`<option value="${_escHtml(p)}">${_escHtml(p)}</option>`).join('')}
       </select>`;
   }
   if(tipo==='mantenimientos'){
@@ -6078,7 +6078,7 @@ function cambiarReporte(tipo){
       <input type="date" class="f-inp" id="fil-hasta" onchange="generarReporte()" style="max-width:148px" title="Hasta">
       <select class="f-sel" id="fil-area-mant" onchange="generarReporte()" style="max-width:200px">
         <option value="">Todos los departamentos</option>
-        ${deptosMant.map(d=>`<option value="${d}">${d}</option>`).join('')}
+        ${deptosMant.map(d=>`<option value="${_escHtml(d)}">${_escHtml(d)}</option>`).join('')}
       </select>
       <select class="f-sel" id="fil-tipo-mant" onchange="generarReporte()" style="max-width:180px">
         <option value="">Todos los tipos</option>
@@ -6128,34 +6128,34 @@ function repInventarioGeneral(el, ts){
   repDatosActuales=lista;
   el.innerHTML=`
     <div class="rep-header">
-      <div><div class="rep-title">Reporte general de inventario</div><div class="rep-meta">Generado: ${ts} · Total: ${lista.length} activos</div></div>
+      <div><div class="rep-title">Reporte general de inventario</div><div class="rep-meta">Generado: ${_escHtml(ts)} · Total: ${lista.length} activos</div></div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v">${lista.length}</div><div class="rep-kpi-l">Total activos</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#3B6D11">$${valTotal.toLocaleString()}</div><div class="rep-kpi-l">Valor depreciado total</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${porEstado('mantenimiento')}</div><div class="rep-kpi-l">En mantenimiento</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">${porEstado('baja')}</div><div class="rep-kpi-l">En descarte</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#3B6D11">$${_escHtml(valTotal.toLocaleString())}</div><div class="rep-kpi-l">Valor depreciado total</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${_escHtml(porEstado('mantenimiento'))}</div><div class="rep-kpi-l">En mantenimiento</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">${_escHtml(porEstado('baja'))}</div><div class="rep-kpi-l">En descarte</div></div>
     </div>
     <div class="rep-section">
       <div class="rep-sec-title">Detalle de activos</div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Marca / Modelo</th><th>S/N</th><th>Asignado a</th><th>Departamento</th><th>Ubicación</th><th>Estado</th><th>Compra</th><th>Garantía</th><th>Valor original</th><th>Valor actual</th></tr></thead>
         <tbody>${lista.map(a=>`<tr>
-          <td class="code-cell">${a.codigo}</td>
-          <td style="font-weight:600">${sanitizeHTML(a.nombre||'')}</td>
-          <td>${a.tipo}</td>
-          <td>${sanitizeHTML(a.marca||'—')} ${sanitizeHTML(a.modelo||'')}</td>
-          <td class="code-cell">${sanitizeHTML(a.serial||'—')}</td>
-          <td>${sanitizeHTML(a.asignado||'—')}</td>
-          <td>${sanitizeHTML(a.depto||'—')}</td>
-          <td>${sanitizeHTML(a.ubicacion||'—')}</td>
-          <td><span class="badge s-${a.estado}">${a.estado}</span></td>
-          <td style="font-size:10px">${fmtFecha(a.compra)}</td>
-          <td style="font-size:10px;color:${garantiaColor(a.garantia)}">${fmtFecha(a.garantia)}</td>
-          <td style="color:var(--text2)">$${(a.valor||0).toLocaleString()}</td>
+          <td class="code-cell">${_escHtml(a.codigo)}</td>
+          <td style="font-weight:600">${_escHtml(a.nombre||'')}</td>
+          <td>${_escHtml(a.tipo)}</td>
+          <td>${_escHtml(a.marca||'—')} ${_escHtml(a.modelo||'')}</td>
+          <td class="code-cell">${_escHtml(a.serial||'—')}</td>
+          <td>${_escHtml(a.asignado||'—')}</td>
+          <td>${_escHtml(a.depto||'—')}</td>
+          <td>${_escHtml(a.ubicacion||'—')}</td>
+          <td><span class="badge s-${_escHtml(a.estado)}">${_escHtml(a.estado)}</span></td>
+          <td style="font-size:10px">${_escHtml(fmtFecha(a.compra))}</td>
+          <td style="font-size:10px;color:${_escHtml(garantiaColor(a.garantia))}">${_escHtml(fmtFecha(a.garantia))}</td>
+          <td style="color:var(--text2)">$${_escHtml((a.valor||0).toLocaleString())}</td>
           <td>
-            <span style="font-weight:700;color:#3B6D11">$${calcDepre(a).toLocaleString()}</span>
-            ${a.valor&&calcDepre(a)<a.valor?`<div style="font-size:9px;color:var(--text3)">-$${((a.valor||0)-calcDepre(a)).toLocaleString()} deprec.</div>`:''}
+            <span style="font-weight:700;color:#3B6D11">$${_escHtml(calcDepre(a).toLocaleString())}</span>
+            ${a.valor&&calcDepre(a)<a.valor?`<div style="font-size:9px;color:var(--text3)">-$${_escHtml(((a.valor||0)-calcDepre(a)).toLocaleString())} deprec.</div>`:''}
           </td>
         </tr>`).join('')}</tbody>
       </table></div>
@@ -6172,29 +6172,29 @@ function repPorDepartamento(el, ts){
   repDatosActuales=lista;
   el.innerHTML=`
     <div class="rep-header">
-      <div><div class="rep-title">Activos por departamento${filDepto?' — '+filDepto:''}</div><div class="rep-meta">Generado: ${ts} · ${lista.length} activos</div></div>
+      <div><div class="rep-title">Activos por departamento${_escHtml(filDepto?' — '+filDepto:'')}</div><div class="rep-meta">Generado: ${_escHtml(ts)} · ${lista.length} activos</div></div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v">${Object.keys(deptos).length}</div><div class="rep-kpi-l">Departamentos</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v">${lista.length}</div><div class="rep-kpi-l">Total activos</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#3B6D11">$${lista.reduce((s,a)=>s+calcDepre(a),0).toLocaleString()}</div><div class="rep-kpi-l">Valor total</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#3B6D11">$${_escHtml(lista.reduce((s,a)=>s+calcDepre(a),0).toLocaleString())}</div><div class="rep-kpi-l">Valor total</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v">${lista.filter(a=>a.estado==='mantenimiento').length}</div><div class="rep-kpi-l">En mantenimiento</div></div>
     </div>
     ${Object.entries(deptos).map(([dept,items])=>`
       <div class="rep-section">
-        <div class="rep-sec-title">${dept} (${items.length} activos · $${items.reduce((s,a)=>s+calcDepre(a),0).toLocaleString()} valor actual)</div>
+        <div class="rep-sec-title">${_escHtml(dept)} (${items.length} activos · $${_escHtml(items.reduce((s,a)=>s+calcDepre(a),0).toLocaleString())} valor actual)</div>
         <div class="tbl-wrap"><table>
           <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Asignado a</th><th>Estado</th><th>Garantía</th><th>Valor actual</th></tr></thead>
           <tbody>${items.map(a=>`<tr>
-            <td class="code-cell">${a.codigo}</td>
-            <td style="font-weight:600">${sanitizeHTML(a.nombre||'')}</td>
-            <td>${a.tipo}</td>
-            <td>${sanitizeHTML(a.asignado||'—')}</td>
-            <td><span class="badge s-${a.estado}">${a.estado}</span></td>
-            <td style="color:${garantiaColor(a.garantia)};font-size:10px">${fmtFecha(a.garantia)}</td>
+            <td class="code-cell">${_escHtml(a.codigo)}</td>
+            <td style="font-weight:600">${_escHtml(a.nombre||'')}</td>
+            <td>${_escHtml(a.tipo)}</td>
+            <td>${_escHtml(a.asignado||'—')}</td>
+            <td><span class="badge s-${_escHtml(a.estado)}">${_escHtml(a.estado)}</span></td>
+            <td style="color:${_escHtml(garantiaColor(a.garantia))};font-size:10px">${_escHtml(fmtFecha(a.garantia))}</td>
             <td>
-              <span style="font-weight:700;color:#3B6D11">$${calcDepre(a).toLocaleString()}</span>
-              <div style="font-size:9px;color:var(--text3)">orig: $${(a.valor||0).toLocaleString()}</div>
+              <span style="font-weight:700;color:#3B6D11">$${_escHtml(calcDepre(a).toLocaleString())}</span>
+              <div style="font-size:9px;color:var(--text3)">orig: $${_escHtml((a.valor||0).toLocaleString())}</div>
             </td>
           </tr>`).join('')}</tbody>
         </table></div>
@@ -6223,14 +6223,14 @@ function repGarantias(el, ts){
   repDatosActuales=[...vencidas,...lista];
   el.innerHTML=`
     <div class="rep-header">
-      <div><div class="rep-title">${tituloRep} — ${dias} días</div><div class="rep-meta">Generado: ${ts} · 📧 Alertas automáticas activas si el administrador activó el envío diario en Configuración</div></div>
+      <div><div class="rep-title">${_escHtml(tituloRep)} — ${_escHtml(dias)} días</div><div class="rep-meta">Generado: ${_escHtml(ts)} · 📧 Alertas automáticas activas si el administrador activó el envío diario en Configuración</div></div>
     </div>
     <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:8px 12px;font-size:11px;color:#92400E;margin-bottom:12px;">
       💡 Este reporte muestra garantías de equipos. Si compraste licencias <b>por paquete</b> (una licencia instalada en varios equipos), regístralas y consulta sus vencimientos en <span style="cursor:pointer;text-decoration:underline;font-weight:600" onclick="go('licencias',document.getElementById('nav-licencias'))">🔑 Licencias</span> — ese módulo también envía las alertas automáticas por correo.
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">${vencidas.length}</div><div class="rep-kpi-l">Ya vencidas</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${lista.length}</div><div class="rep-kpi-l">Vencen en ${dias} días</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${lista.length}</div><div class="rep-kpi-l">Vencen en ${_escHtml(dias)} días</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v">${activos.filter(a=>filtroCat(a)&&a.garantia&&a.garantia!=='—'&&new Date(a.garantia)>limite&&a.estado!=='eliminado').length}</div><div class="rep-kpi-l">Vigentes</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v">${activos.filter(a=>filtroCat(a)&&(!a.garantia||a.garantia==='—')&&a.estado!=='eliminado').length}</div><div class="rep-kpi-l">Sin fecha registrada</div></div>
     </div>
@@ -6239,22 +6239,22 @@ function repGarantias(el, ts){
       <div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Asignado a</th><th>Depto</th><th>Garantía venció</th><th>Días vencida</th></tr></thead>
         <tbody>${vencidas.map(a=>{const dias=Math.floor((hoy-new Date(a.garantia))/(24*3600*1000));return`<tr>
-          <td class="code-cell">${a.codigo}</td><td style="font-weight:600">${sanitizeHTML(a.nombre||'')}</td><td>${a.tipo}</td>
-          <td>${sanitizeHTML(a.asignado||'—')}</td><td>${sanitizeHTML(a.depto||'—')}</td>
-          <td style="color:#791F1F;font-weight:600">${fmtFecha(a.garantia)}</td>
-          <td style="color:#791F1F">Hace ${dias} días</td>
+          <td class="code-cell">${_escHtml(a.codigo)}</td><td style="font-weight:600">${_escHtml(a.nombre||'')}</td><td>${_escHtml(a.tipo)}</td>
+          <td>${_escHtml(a.asignado||'—')}</td><td>${_escHtml(a.depto||'—')}</td>
+          <td style="color:#791F1F;font-weight:600">${_escHtml(fmtFecha(a.garantia))}</td>
+          <td style="color:#791F1F">Hace ${_escHtml(dias)} días</td>
         </tr>`;}).join('')}</tbody>
       </table></div>
     </div>`:''}
     <div class="rep-section">
-      <div class="rep-sec-title">Vencen en los próximos ${dias} días (${lista.length})</div>
+      <div class="rep-sec-title">Vencen en los próximos ${_escHtml(dias)} días (${lista.length})</div>
       ${lista.length?`<div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Asignado a</th><th>Depto</th><th>Garantía hasta</th><th>Días restantes</th></tr></thead>
         <tbody>${lista.map(a=>{const dr=Math.floor((new Date(a.garantia)-hoy)/(24*3600*1000));return`<tr>
-          <td class="code-cell">${a.codigo}</td><td style="font-weight:600">${sanitizeHTML(a.nombre||'')}</td><td>${a.tipo}</td>
-          <td>${sanitizeHTML(a.asignado||'—')}</td><td>${sanitizeHTML(a.depto||'—')}</td>
-          <td style="color:#BA7517;font-weight:600">${fmtFecha(a.garantia)}</td>
-          <td style="color:${dr<=30?'#791F1F':'#BA7517'};font-weight:600">${dr} días</td>
+          <td class="code-cell">${_escHtml(a.codigo)}</td><td style="font-weight:600">${_escHtml(a.nombre||'')}</td><td>${_escHtml(a.tipo)}</td>
+          <td>${_escHtml(a.asignado||'—')}</td><td>${_escHtml(a.depto||'—')}</td>
+          <td style="color:#BA7517;font-weight:600">${_escHtml(fmtFecha(a.garantia))}</td>
+          <td style="color:${dr<=30?'#791F1F':'#BA7517'};font-weight:600">${_escHtml(dr)} días</td>
         </tr>`;}).join('')}</tbody>
       </table></div>`:'<div class="empty-c">No hay garantías próximas a vencer en este período.</div>'}
     </div>`;
@@ -6272,15 +6272,15 @@ function repHojaVida(el, ts){
   repDatosActuales=[a];
   el.innerHTML=`
     <div class="rep-header">
-      <div><div class="rep-title">Hoja de vida — ${a.codigo}: ${sanitizeHTML(a.nombre||'')}</div><div class="rep-meta">Generado: ${ts} · ${a.tipo} · ${a.marca||''} ${sanitizeHTML(a.modelo||'')}</div></div>
-      <span class="badge s-${a.estado}" style="font-size:12px;padding:4px 12px">${a.estado}</span>
+      <div><div class="rep-title">Hoja de vida — ${_escHtml(a.codigo)}: ${_escHtml(a.nombre||'')}</div><div class="rep-meta">Generado: ${_escHtml(ts)} · ${_escHtml(a.tipo)} · ${_escHtml(a.marca||'')} ${_escHtml(a.modelo||'')}</div></div>
+      <span class="badge s-${_escHtml(a.estado)}" style="font-size:12px;padding:4px 12px">${_escHtml(a.estado)}</span>
     </div>
     <div class="rep-kpi">
-      <div class="rep-kpi-card"><div class="rep-kpi-v">$${(a.valor||0).toLocaleString()}</div><div class="rep-kpi-l">Valor de compra</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#3B6D11">$${calcDepre(a).toLocaleString()}</div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">$${_escHtml((a.valor||0).toLocaleString())}</div><div class="rep-kpi-l">Valor de compra</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#3B6D11">$${_escHtml(calcDepre(a).toLocaleString())}</div>
           <div class="rep-kpi-l">Valor actual</div>
-          <div style="font-size:9px;color:var(--text3);margin-top:2px">Dep. lineal · ${a.vida||3} años</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">$${costTotal.toLocaleString()}</div><div class="rep-kpi-l">Costo mantenimientos</div></div>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">Dep. lineal · ${_escHtml(a.vida||3)} años</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">$${_escHtml(costTotal.toLocaleString())}</div><div class="rep-kpi-l">Costo mantenimientos</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v">${tks.length}</div><div class="rep-kpi-l">Tickets generados</div></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
@@ -6288,20 +6288,20 @@ function repHojaVida(el, ts){
         <div class="rep-sec-title">Información del activo</div>
         ${[['Código',a.codigo],['Tipo',a.tipo],['Marca / Modelo',(a.marca||'—')+' '+(a.modelo||'')],['Número de serie',a.serial||'—'],['Ubicación física',a.ubicacion||'—'],['Asignado a',(a.asignado||'—')+(a.asignadoEmail?' — 📧 '+a.asignadoEmail:'')+(a.asignadoCargo?' ('+a.asignadoCargo+')':'')],['Departamento',a.depto||'—'],['Fecha de compra',a.compra||'—'],['Garantía hasta',fmtFecha(a.garantia)],['Vida útil',(a.vida||3)+' años'],['Observaciones',a.obs||'—']].map(([k,v])=>`
           <div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
-            <span style="color:var(--text3);width:140px;flex-shrink:0">${k}</span>
-            <span style="font-weight:500;color:var(--text)">${v}</span>
+            <span style="color:var(--text3);width:140px;flex-shrink:0">${_escHtml(k)}</span>
+            <span style="font-weight:500;color:var(--text)">${_escHtml(v)}</span>
           </div>`).join('')}
       </div>
       <div class="rep-section">
         <div class="rep-sec-title">Tickets vinculados (${tks.length})</div>
         ${tks.length?tks.map(t=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:3px">
-            <span class="code-cell">${t.codigo}</span>
-            <span class="badge s-${t.estado}">${t.estado}</span>
-            <span class="badge s-${t.prior}">${t.prior}</span>
+            <span class="code-cell">${_escHtml(t.codigo)}</span>
+            <span class="badge s-${_escHtml(t.estado)}">${_escHtml(t.estado)}</span>
+            <span class="badge s-${_escHtml(t.prior)}">${_escHtml(t.prior)}</span>
           </div>
-          <div style="font-weight:500">${sanitizeHTML(t.titulo)}</div>
-          <div style="color:var(--text3);font-size:10px">${t.resp||'—'} · ${renderDead(t.dead)} · Avance: ${t.avance||0}%</div>
+          <div style="font-weight:500">${_escHtml(t.titulo)}</div>
+          <div style="color:var(--text3);font-size:10px">${_escHtml(t.resp||'—')} · ${renderDead(t.dead)} · Avance: ${_escHtml(t.avance||0)}%</div>
         </div>`).join(''):'<div class="empty-c">Sin tickets vinculados</div>'}
       </div>
     </div>
@@ -6316,11 +6316,11 @@ function repHojaVida(el, ts){
             const vc = l.estado==='cancelada'?'cancelada':_licVencComputado(l);
             const vcLabel = {activo:'Vigente',vencida:'⛔ Vencida',sin_fecha:'Sin fecha',cancelada:'Cancelada'}[vc];
             return `<tr>
-              <td class="code-cell">${l.codigo}</td>
-              <td style="font-weight:600">${sanitizeHTML(l.nombre||'')}</td>
-              <td>${sanitizeHTML(l.proveedor||'—')}</td>
-              <td style="font-size:11px">${l.fechaVencimiento||'—'}</td>
-              <td><span class="badge">${vcLabel}</span></td>
+              <td class="code-cell">${_escHtml(l.codigo)}</td>
+              <td style="font-weight:600">${_escHtml(l.nombre||'')}</td>
+              <td>${_escHtml(l.proveedor||'—')}</td>
+              <td style="font-size:11px">${_escHtml(l.fechaVencimiento||'—')}</td>
+              <td><span class="badge">${_escHtml(vcLabel)}</span></td>
             </tr>`;
           }).join('')}</tbody>
         </table></div>`;
@@ -6330,11 +6330,11 @@ function repHojaVida(el, ts){
       <div class="rep-sec-title">Historial completo del activo (${(a.historial||[]).length} eventos)</div>
       <div class="vida-timeline">
         ${(a.historial||[]).map(h=>`<div class="vida-event">
-          <div class="vida-dot ${h.color||'purple'}"></div>
+          <div class="vida-dot ${_escHtml(h.color||'purple')}"></div>
           <div style="flex:1">
-            <div style="font-size:12px;font-weight:600;color:var(--text)">${sanitizeHTML(h.tipo||"")}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:2px">${sanitizeHTML(h.desc||"")}</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">${h.fecha||''} · ${h.usuario||'—'}${h.tec&&h.tec!==h.usuario?' · Técnico: '+h.tec:''}${h.costo?' · Costo: $'+h.costo:''}</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text)">${_escHtml(h.tipo||"")}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">${_escHtml(h.desc||"")}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">${_escHtml(h.fecha||'')} · ${_escHtml(h.usuario||'—')}${_escHtml(h.tec&&h.tec!==h.usuario?' · Técnico: '+h.tec:'')}${_escHtml(h.costo?' · Costo: $'+h.costo:'')}</div>
           </div>
         </div>`).join('')}
       </div>
@@ -6369,13 +6369,13 @@ function repTickets(el, ts){
   repDatosActuales=lista;
   el.innerHTML=`
     <div class="rep-header">
-      <div><div class="rep-title">Reporte de tickets${resp?' — '+resp:''}</div><div class="rep-meta">Generado: ${ts}${desde?' · Desde: '+desde:''}${hasta?' · Hasta: '+hasta:''}</div></div>
+      <div><div class="rep-title">Reporte de tickets${_escHtml(resp?' — '+resp:'')}</div><div class="rep-meta">Generado: ${_escHtml(ts)}${_escHtml(desde?' · Desde: '+desde:'')}${_escHtml(hasta?' · Hasta: '+hasta:'')}</div></div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v">${lista.length}</div><div class="rep-kpi-l">Total tickets</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#3B6D11">${cerrados}</div><div class="rep-kpi-l">Cerrados</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${abiertos}</div><div class="rep-kpi-l">Pendientes</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v">${lista.length?Math.round(lista.reduce((s,t)=>s+(t.avance||0),0)/lista.length):0}%</div><div class="rep-kpi-l">Avance promedio</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#3B6D11">${_escHtml(cerrados)}</div><div class="rep-kpi-l">Cerrados</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${_escHtml(abiertos)}</div><div class="rep-kpi-l">Pendientes</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">${_escHtml(lista.length?Math.round(lista.reduce((s,t)=>s+(t.avance||0),0)/lista.length):0)}%</div><div class="rep-kpi-l">Avance promedio</div></div>
     </div>
     <div class="rep-section" style="margin-bottom:12px">
       <div class="rep-sec-title">Resumen por responsable</div>
@@ -6384,9 +6384,9 @@ function repTickets(el, ts){
         <tbody>${Object.entries(porResp).sort((a,b)=>b[1].total-a[1].total).map(([r,d])=>{
           const pct=Math.round(d.avance/d.total);
           const cum=Math.round(d.cerrado/d.total*100);
-          return`<tr><td style="font-weight:600">${r}</td><td>${d.total}</td><td style="color:#3B6D11">${d.cerrado}</td><td style="color:#BA7517">${d.total-d.cerrado}</td>
-          <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${pct}%"></div></div><span class="prog-t">${pct}%</span></div></td>
-          <td><span class="badge ${cum>=80?'s-activo':cum>=50?'s-importante':'s-urgente'}">${cum}%</span></td></tr>`;}).join('')}
+          return`<tr><td style="font-weight:600">${_escHtml(r)}</td><td>${_escHtml(d.total)}</td><td style="color:#3B6D11">${_escHtml(d.cerrado)}</td><td style="color:#BA7517">${d.total-d.cerrado}</td>
+          <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${_escHtml(pct)}%"></div></div><span class="prog-t">${_escHtml(pct)}%</span></div></td>
+          <td><span class="badge ${cum>=80?'s-activo':cum>=50?'s-importante':'s-urgente'}">${_escHtml(cum)}%</span></td></tr>`;}).join('')}
         </tbody>
       </table></div>
     </div>
@@ -6395,20 +6395,20 @@ function repTickets(el, ts){
       <div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Título</th><th>Activo</th><th>Responsable</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Avance</th><th>Deadline</th><th>Trazabilidad</th></tr></thead>
         <tbody>${lista.map(t=>`<tr>
-          <td class="code-cell">${t.codigo}</td>
-          <td style="font-weight:600;max-width:160px">${sanitizeHTML(t.titulo)}</td>
-          <td style="font-size:10px">${t.activoNombre||'—'}</td>
-          <td>${t.resp||'—'}</td>
-          <td>${t.tipo||'—'}</td>
-          <td><span class="badge s-${t.prior}">${t.prior}</span></td>
-          <td><span class="badge s-${t.estado}">${t.estado}</span></td>
-          <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${t.avance||0}%"></div></div><span class="prog-t">${t.avance||0}%</span></div></td>
+          <td class="code-cell">${_escHtml(t.codigo)}</td>
+          <td style="font-weight:600;max-width:160px">${_escHtml(t.titulo)}</td>
+          <td style="font-size:10px">${_escHtml(t.activoNombre||'—')}</td>
+          <td>${_escHtml(t.resp||'—')}</td>
+          <td>${_escHtml(t.tipo||'—')}</td>
+          <td><span class="badge s-${_escHtml(t.prior)}">${_escHtml(t.prior)}</span></td>
+          <td><span class="badge s-${_escHtml(t.estado)}">${_escHtml(t.estado)}</span></td>
+          <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${_escHtml(t.avance||0)}%"></div></div><span class="prog-t">${_escHtml(t.avance||0)}%</span></div></td>
           <td style="font-size:10px;color:var(--text3)">${renderDead(t.dead)}</td>
           <td style="text-align:center;white-space:nowrap">
-            <button class="act-btn" onclick="openTicket('${t.codigo}',true)" title="Ver historial completo (${t._histTotal||(t.historial||[]).length} eventos)">
-              👁 ${t._histTotal||(t.historial||[]).length}
+            <button class="act-btn" onclick="openTicket('${_jsArg(t.codigo)}',true)" title="Ver historial completo (${_escHtml(t._histTotal||(t.historial||[]).length)} eventos)">
+              👁 ${_escHtml(t._histTotal||(t.historial||[]).length)}
             </button>
-            <button class="act-btn" onclick="imprimirExpedienteTicket('${t.codigo}')" title="Generar expediente completo (historial + fotos)"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
+            <button class="act-btn" onclick="imprimirExpedienteTicket('${_jsArg(t.codigo)}')" title="Generar expediente completo (historial + fotos)"><span class="nav-ico" style="width:12px;height:12px;display:inline-flex;vertical-align:middle"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span></button>
           </td>
         </tr>`).join('')}</tbody>
       </table></div>
@@ -6455,25 +6455,25 @@ function repTicketsSupervision(el, ts){
   repDatosActuales=lista;
   el.innerHTML=`
     <div class="rep-header">
-      <div><div class="rep-title">Tickets — Reporte de supervisión${resp?' — '+resp:''}</div>
-      <div class="rep-meta">Generado: ${ts}${desde?' · Desde: '+desde:''}${hasta?' · Hasta: '+hasta:''}${area?' · Área: '+area:''}${tipoTkt?' · Tipo: '+tipoTkt:''} · Total: ${lista.length} tickets</div></div>
+      <div><div class="rep-title">Tickets — Reporte de supervisión${_escHtml(resp?' — '+resp:'')}</div>
+      <div class="rep-meta">Generado: ${_escHtml(ts)}${_escHtml(desde?' · Desde: '+desde:'')}${_escHtml(hasta?' · Hasta: '+hasta:'')}${_escHtml(area?' · Área: '+area:'')}${_escHtml(tipoTkt?' · Tipo: '+tipoTkt:'')} · Total: ${lista.length} tickets</div></div>
     </div>
     <div class="rep-section">
       <div class="rep-sec-title">Detalle de tickets atendidos (${lista.length})</div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Título</th><th>Responsable</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Avance</th><th>Proyecto / Responsable</th><th>Descripción</th><th>Foto</th><th>Fecha de creación</th></tr></thead>
         <tbody>${lista.map(t=>`<tr>
-          <td class="code-cell">${t.codigo}</td>
-          <td style="font-weight:600;max-width:160px">${sanitizeHTML(t.titulo||'')}</td>
-          <td>${t.resp||'—'}</td>
-          <td>${t.tipo||'—'}</td>
-          <td><span class="badge s-${t.prior}">${t.prior}</span></td>
-          <td><span class="badge s-${t.estado}">${t.estado}</span></td>
-          <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${t.avance||0}%"></div></div><span class="prog-t">${t.avance||0}%</span></div></td>
-          <td style="font-size:11px">${t.proy||'—'}</td>
-          <td style="font-size:11px;max-width:260px;white-space:pre-wrap">${sanitizeHTML(limpiarDescTicket(t.desc))}</td>
-          <td>${t.foto&&t.foto!=='—'?`<a href="${sanitizeHTML(t.foto)}" target="_blank" title="Ver foto/doc" style="text-decoration:none">📎</a>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
-          <td style="font-size:10px;color:var(--text3);white-space:nowrap">${t.fechaCreacion||'—'}</td>
+          <td class="code-cell">${_escHtml(t.codigo)}</td>
+          <td style="font-weight:600;max-width:160px">${_escHtml(t.titulo||'')}</td>
+          <td>${_escHtml(t.resp||'—')}</td>
+          <td>${_escHtml(t.tipo||'—')}</td>
+          <td><span class="badge s-${_escHtml(t.prior)}">${_escHtml(t.prior)}</span></td>
+          <td><span class="badge s-${_escHtml(t.estado)}">${_escHtml(t.estado)}</span></td>
+          <td><div class="prog-wrap"><div class="prog-bg"><div class="prog-f" style="width:${_escHtml(t.avance||0)}%"></div></div><span class="prog-t">${_escHtml(t.avance||0)}%</span></div></td>
+          <td style="font-size:11px">${_escHtml(t.proy||'—')}</td>
+          <td style="font-size:11px;max-width:260px;white-space:pre-wrap">${_escHtml(limpiarDescTicket(t.desc))}</td>
+          <td>${t.foto&&t.foto!=='—'?`<a href="${_escHtml(_safeUrl(sanitizeHTML(t.foto)))}" target="_blank" title="Ver foto/doc" style="text-decoration:none">📎</a>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+          <td style="font-size:10px;color:var(--text3);white-space:nowrap">${_escHtml(t.fechaCreacion||'—')}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </div>`;
@@ -6602,16 +6602,16 @@ function repTrazabilidad(el, ts){
     // Período en que estuvo con esta persona
     const reasigPersona = reasig.filter(h=>h.asignadoAntes===persona||h.asignadoNuevo===persona);
     const periodoHTML = reasigPersona.length > 0
-      ? reasigPersona.map(r=>`<span style="font-size:10px;color:var(--text3)">${r.fecha||''}: ${r.asignadoAntes}→${r.asignadoNuevo}</span>`).join('<br>')
+      ? reasigPersona.map(r=>`<span style="font-size:10px;color:var(--text3)">${_escHtml(r.fecha||'')}: ${_escHtml(r.asignadoAntes)}→${_escHtml(r.asignadoNuevo)}</span>`).join('<br>')
       : (esActual?'<span style="font-size:10px;color:#1D9E75">Actualmente asignado</span>':'<span style="font-size:10px;color:var(--text3)">Sin datos de período</span>');
 
     return `<tr style="${esActual?'background:#F0FDF4':''}">
-      <td class="code-cell">${a.codigo}</td>
-      <td style="font-weight:600">${sanitizeHTML(a.nombre||'')}<div style="font-size:10px;color:var(--text3)">${a.marca||''} ${sanitizeHTML(a.modelo||'')}</div></td>
-      <td>${TIPO_ICON[a.tipo]||'📦'} ${a.tipo}</td>
-      <td>${sanitizeHTML(a.depto||'—')}</td>
+      <td class="code-cell">${_escHtml(a.codigo)}</td>
+      <td style="font-weight:600">${_escHtml(a.nombre||'')}<div style="font-size:10px;color:var(--text3)">${_escHtml(a.marca||'')} ${_escHtml(a.modelo||'')}</div></td>
+      <td>${_escHtml(TIPO_ICON[a.tipo]||'📦')} ${_escHtml(a.tipo)}</td>
+      <td>${_escHtml(a.depto||'—')}</td>
       <td style="text-align:center">
-        <span class="badge s-${a.estado}">${a.estado}</span>
+        <span class="badge s-${_escHtml(a.estado)}">${_escHtml(a.estado)}</span>
         ${esActual?'<div style="font-size:9px;color:#1D9E75;margin-top:2px">✓ Actual</div>':'<div style="font-size:9px;color:var(--text3);margin-top:2px">Histórico</div>'}
       </td>
       <td style="text-align:center">
@@ -6620,7 +6620,7 @@ function repTrazabilidad(el, ts){
       </td>
       <td style="text-align:center">
         <span style="font-weight:700;font-size:14px;color:#1D9E75">${cerrados.length}</span>
-        <div style="font-size:10px;color:var(--text3)">${tksVinculados.length>0?Math.round(cerrados.length/tksVinculados.length*100)+'%':'—'}</div>
+        <div style="font-size:10px;color:var(--text3)">${_escHtml(tksVinculados.length>0?Math.round(cerrados.length/tksVinculados.length*100)+'%':'—')}</div>
       </td>
       <td style="font-size:10px">${periodoHTML}</td>
     </tr>
@@ -6628,7 +6628,7 @@ function repTrazabilidad(el, ts){
       <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">Tickets vinculados a este activo:</div>
       <div style="display:flex;flex-wrap:wrap;gap:4px">
         ${tksVinculados.map(t=>`<span style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:10px;color:var(--text2)">
-          ${t.codigo} · ${t.titulo.substring(0,40)}${t.titulo.length>40?'...':''} · <span class="badge s-${t.estado}" style="font-size:9px">${t.estado}</span>
+          ${_escHtml(t.codigo)} · ${_escHtml(t.titulo.substring(0,40))}${t.titulo.length>40?'...':''} · <span class="badge s-${_escHtml(t.estado)}" style="font-size:9px">${_escHtml(t.estado)}</span>
         </span>`).join('')}
       </div>
     </td></tr>`:''}`;
@@ -6637,19 +6637,19 @@ function repTrazabilidad(el, ts){
   el.innerHTML=`
     <div class="rep-header">
       <div>
-        <div class="rep-title">👤 Trazabilidad — ${persona}</div>
-        <div class="rep-meta">Generado: ${ts} · ${activosActuales.length} activos actuales · ${activosHistoricos.length} activos históricos${(()=>{const p=Array.isArray(personas)?personas.find(x=>x.nombre===persona):null;return p?.email?' · 📧 '+p.email+(p.cargo?' · '+p.cargo:''):'';})()}</div>
+        <div class="rep-title">👤 Trazabilidad — ${_escHtml(persona)}</div>
+        <div class="rep-meta">Generado: ${_escHtml(ts)} · ${activosActuales.length} activos actuales · ${activosHistoricos.length} activos históricos${_escHtml((()=>{const p=Array.isArray(personas)?personas.find(x=>x.nombre===persona):null;return p?.email?' · 📧 '+p.email+(p.cargo?' · '+p.cargo:''):'';})())}</div>
       </div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${activosActuales.length}</div><div class="rep-kpi-l">Activos actuales</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#64748B">${activosHistoricos.length}</div><div class="rep-kpi-l">Activos históricos</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#D85A30">${[...activosActuales,...activosHistoricos].reduce((s,a)=>s+getTicketsActivo(a.codigo).length,0)}</div><div class="rep-kpi-l">Total incidencias</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${[...activosActuales,...activosHistoricos].reduce((s,a)=>s+getTicketsActivo(a.codigo).filter(t=>t.estado==='cerrado').length,0)}</div><div class="rep-kpi-l">Resueltas</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#D85A30">${_escHtml([...activosActuales,...activosHistoricos].reduce((s,a)=>s+getTicketsActivo(a.codigo).length,0))}</div><div class="rep-kpi-l">Total incidencias</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${_escHtml([...activosActuales,...activosHistoricos].reduce((s,a)=>s+getTicketsActivo(a.codigo).filter(t=>t.estado==='cerrado').length,0))}</div><div class="rep-kpi-l">Resueltas</div></div>
     </div>
     ${activosActuales.length>0?`
     <div class="rep-section">
-      <div class="rep-sec-title">✅ Activos actualmente asignados a ${persona}</div>
+      <div class="rep-sec-title">✅ Activos actualmente asignados a ${_escHtml(persona)}</div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Departamento</th><th>Estado</th><th>Tickets</th><th>Resueltos</th><th>Período</th></tr></thead>
         <tbody>${activosActuales.map(a=>renderActivoCard(a,true)).join('')}</tbody>
@@ -6657,7 +6657,7 @@ function repTrazabilidad(el, ts){
     </div>`:''}
     ${activosHistoricos.length>0?`
     <div class="rep-section">
-      <div class="rep-sec-title">📋 Activos que estuvieron asignados a ${persona} (historial)</div>
+      <div class="rep-sec-title">📋 Activos que estuvieron asignados a ${_escHtml(persona)} (historial)</div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Departamento</th><th>Estado</th><th>Tickets</th><th>Resueltos</th><th>Período</th></tr></thead>
         <tbody>${activosHistoricos.map(a=>renderActivoCard(a,false)).join('')}</tbody>
@@ -6665,7 +6665,7 @@ function repTrazabilidad(el, ts){
     </div>`:''}
     ${totalActivos===0?`<div style="text-align:center;padding:40px;color:var(--text3)">
       <div style="font-size:30px;margin-bottom:8px">🔍</div>
-      <div>No se encontraron activos asignados a <strong>${persona}</strong></div>
+      <div>No se encontraron activos asignados a <strong>${_escHtml(persona)}</strong></div>
     </div>`:''}`;
 }
 
@@ -6690,22 +6690,22 @@ function repMantenimientos(el, ts){
   repDatosActuales=todos;
   el.innerHTML=`
     <div class="rep-header">
-      <div><div class="rep-title">Reporte de mantenimientos y costos</div><div class="rep-meta">Generado: ${ts}${desde?' · Desde: '+desde:''}${hasta?' · Hasta: '+hasta:''}</div></div>
+      <div><div class="rep-title">Reporte de mantenimientos y costos</div><div class="rep-meta">Generado: ${_escHtml(ts)}${_escHtml(desde?' · Desde: '+desde:'')}${_escHtml(hasta?' · Hasta: '+hasta:'')}</div></div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v">${todos.length}</div><div class="rep-kpi-l">Total mantenimientos</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">$${costTotal.toLocaleString()}</div><div class="rep-kpi-l">Costo total</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v">${todos.length?Math.round(costTotal/todos.length).toLocaleString():0}</div><div class="rep-kpi-l">Costo promedio ($)</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v">${porTipo['Correctivo']||0}</div><div class="rep-kpi-l">Correctivos</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">$${_escHtml(costTotal.toLocaleString())}</div><div class="rep-kpi-l">Costo total</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">${_escHtml(todos.length?Math.round(costTotal/todos.length).toLocaleString():0)}</div><div class="rep-kpi-l">Costo promedio ($)</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">${_escHtml(porTipo['Correctivo']||0)}</div><div class="rep-kpi-l">Correctivos</div></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="rep-section">
         <div class="rep-sec-title">Por tipo de mantenimiento</div>
-        ${Object.entries(porTipo).map(([t,c])=>`<div class="bar-row"><span class="bar-lbl">${t}</span><div class="bar-bg"><div class="bar-f" style="width:${Math.round(c/todos.length*100)}%;background:#1B3A6B"></div></div><span class="bar-v">${c}</span></div>`).join('')}
+        ${Object.entries(porTipo).map(([t,c])=>`<div class="bar-row"><span class="bar-lbl">${_escHtml(t)}</span><div class="bar-bg"><div class="bar-f" style="width:${_escHtml(Math.round(c/todos.length*100))}%;background:#1B3A6B"></div></div><span class="bar-v">${_escHtml(c)}</span></div>`).join('')}
       </div>
       <div class="rep-section">
         <div class="rep-sec-title">Activos con más mantenimientos</div>
-        ${(()=>{const m={};todos.forEach(x=>{if(!m[x.activoCodigo])m[x.activoCodigo]={n:x.activoNombre,c:0,cost:0};m[x.activoCodigo].c++;m[x.activoCodigo].cost+=parseFloat(x.costo)||0;});return Object.entries(m).sort((a,b)=>b[1].c-a[1].c).slice(0,5).map(([cod,d])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="code-cell">${cod} ${d.n.substring(0,18)}</span><span style="font-weight:600">${d.c} · $${d.cost.toLocaleString()}</span></div>`).join('')||'<div class="empty-c">Sin datos</div>';})()}
+        ${(()=>{const m={};todos.forEach(x=>{if(!m[x.activoCodigo])m[x.activoCodigo]={n:x.activoNombre,c:0,cost:0};m[x.activoCodigo].c++;m[x.activoCodigo].cost+=parseFloat(x.costo)||0;});return Object.entries(m).sort((a,b)=>b[1].c-a[1].c).slice(0,5).map(([cod,d])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="code-cell">${_escHtml(cod)} ${_escHtml(d.n.substring(0,18))}</span><span style="font-weight:600">${_escHtml(d.c)} · $${_escHtml(d.cost.toLocaleString())}</span></div>`).join('')||'<div class="empty-c">Sin datos</div>';})()}
       </div>
     </div>
     <div class="rep-section">
@@ -6713,14 +6713,14 @@ function repMantenimientos(el, ts){
       <div class="tbl-wrap"><table>
         <thead><tr><th>Fecha</th><th>Activo</th><th>Tipo activo</th><th>Depto</th><th>Tipo mant.</th><th>Descripción</th><th>Técnico</th><th>Costo</th></tr></thead>
         <tbody>${todos.map(m=>`<tr>
-          <td style="font-size:10px;white-space:nowrap">${m.fecha||'—'}</td>
-          <td><div class="code-cell">${m.activoCodigo}</div><div style="font-size:11px;font-weight:600">${m.activoNombre}</div></td>
-          <td style="font-size:10px">${m.activoTipo}</td>
-          <td style="font-size:10px">${m.activoDepto}</td>
-          <td><span class="badge" style="background:#E8F0FB;color:#1B3A6B">${m.tipo}</span></td>
-          <td style="font-size:11px;max-width:180px">${m.desc}</td>
-          <td style="font-size:11px">${m.tec||'—'}</td>
-          <td style="font-weight:600;color:#791F1F">${m.costo?'$'+parseFloat(m.costo).toLocaleString():'—'}</td>
+          <td style="font-size:10px;white-space:nowrap">${_escHtml(m.fecha||'—')}</td>
+          <td><div class="code-cell">${_escHtml(m.activoCodigo)}</div><div style="font-size:11px;font-weight:600">${_escHtml(m.activoNombre)}</div></td>
+          <td style="font-size:10px">${_escHtml(m.activoTipo)}</td>
+          <td style="font-size:10px">${_escHtml(m.activoDepto)}</td>
+          <td><span class="badge" style="background:#E8F0FB;color:#1B3A6B">${_escHtml(m.tipo)}</span></td>
+          <td style="font-size:11px;max-width:180px">${_escHtml(m.desc)}</td>
+          <td style="font-size:11px">${_escHtml(m.tec||'—')}</td>
+          <td style="font-weight:600;color:#791F1F">${_escHtml(m.costo?'$'+parseFloat(m.costo).toLocaleString():'—')}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </div>`;
@@ -6733,13 +6733,13 @@ function repDanos(el, ts){
   repDatosActuales=danos;
   el.innerHTML=`
     <div class="rep-header">
-      <div><div class="rep-title">Reporte de daños y descartes</div><div class="rep-meta">Generado: ${ts}</div></div>
+      <div><div class="rep-title">Reporte de daños y descartes</div><div class="rep-meta">Generado: ${_escHtml(ts)}</div></div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">${activos.filter(a=>a.estado==='descarte').length}</div><div class="rep-kpi-l">Activos en descarte</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#5F5E5A">${activos.filter(a=>a.estado==='eliminado').length}</div><div class="rep-kpi-l">Activos eliminados</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${ticketsDano.length}</div><div class="rep-kpi-l">Incidencias registradas</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">$${danos.reduce((s,a)=>s+(a.valor||0),0).toLocaleString()}</div><div class="rep-kpi-l">Valor original perdido</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">$${_escHtml(danos.reduce((s,a)=>s+(a.valor||0),0).toLocaleString())}</div><div class="rep-kpi-l">Valor original perdido</div></div>
     </div>
     <div class="rep-section" style="margin-bottom:12px">
       <div class="rep-sec-title">Activos en descarte o eliminados (${danos.length})</div>
@@ -6748,13 +6748,13 @@ function repDanos(el, ts){
         <tbody>${danos.map(a=>{
           const ult=(a.historial||[]).slice(-1)[0];
           return`<tr>
-            <td class="code-cell">${a.codigo}</td>
-            <td style="font-weight:600">${sanitizeHTML(a.nombre||'')}</td>
-            <td>${a.tipo}</td>
-            <td>${sanitizeHTML(a.depto||'—')}</td>
-            <td><span class="badge s-${a.estado}">${a.estado}</span></td>
-            <td style="font-weight:600;color:#791F1F">$${(a.valor||0).toLocaleString()}</td>
-            <td style="font-size:11px;max-width:200px">${ult?ult.desc:'—'}</td>
+            <td class="code-cell">${_escHtml(a.codigo)}</td>
+            <td style="font-weight:600">${_escHtml(a.nombre||'')}</td>
+            <td>${_escHtml(a.tipo)}</td>
+            <td>${_escHtml(a.depto||'—')}</td>
+            <td><span class="badge s-${_escHtml(a.estado)}">${_escHtml(a.estado)}</span></td>
+            <td style="font-weight:600;color:#791F1F">$${_escHtml((a.valor||0).toLocaleString())}</td>
+            <td style="font-size:11px;max-width:200px">${_escHtml(ult?ult.desc:'—')}</td>
           </tr>`;}).join('')}</tbody>
       </table></div>`:'<div class="empty-c">No hay activos en descarte o eliminados.</div>'}
     </div>
@@ -6763,12 +6763,12 @@ function repDanos(el, ts){
       ${ticketsDano.length?`<div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Título</th><th>Activo afectado</th><th>Responsable</th><th>Prioridad</th><th>Estado</th><th>Deadline</th></tr></thead>
         <tbody>${ticketsDano.map(t=>`<tr>
-          <td class="code-cell">${t.codigo}</td>
-          <td style="font-weight:600">${sanitizeHTML(t.titulo)}</td>
-          <td style="font-size:11px">${t.activoNombre||'—'}</td>
-          <td>${t.resp||'—'}</td>
-          <td><span class="badge s-${t.prior}">${t.prior}</span></td>
-          <td><span class="badge s-${t.estado}">${t.estado}</span></td>
+          <td class="code-cell">${_escHtml(t.codigo)}</td>
+          <td style="font-weight:600">${_escHtml(t.titulo)}</td>
+          <td style="font-size:11px">${_escHtml(t.activoNombre||'—')}</td>
+          <td>${_escHtml(t.resp||'—')}</td>
+          <td><span class="badge s-${_escHtml(t.prior)}">${_escHtml(t.prior)}</span></td>
+          <td><span class="badge s-${_escHtml(t.estado)}">${_escHtml(t.estado)}</span></td>
           <td style="font-size:10px;color:var(--text3)">${renderDead(t.dead)}</td>
         </tr>`).join('')}</tbody>
       </table></div>`:'<div class="empty-c">No hay incidencias registradas.</div>'}
@@ -6882,31 +6882,31 @@ async function imprimirExpedienteTicket(codigo){
 
   const itemsHTML = eventos.length ? eventos.map(e=>`
     <div class="exp-item">
-      <div class="exp-item-dot" style="background:${e.color}"></div>
+      <div class="exp-item-dot" style="background:${_escHtml(e.color)}"></div>
       <div class="exp-item-body">
-        <div class="exp-item-tipo">${sanitizeHTML(e.tipo)}</div>
-        <div class="exp-item-meta">${sanitizeHTML(e.fecha)} · ${sanitizeHTML(e.usuario)}</div>
-        ${e.desc?`<div class="exp-item-desc">${sanitizeHTML(e.desc)}</div>`:''}
-        ${e.foto?`<img class="exp-item-foto" src="${e.foto}" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"><div style="display:none;font-size:8pt;color:#B91C1C;">⚠ La foto no se pudo cargar. Ábrela directamente: <a href="${e.fotoOriginal}">${e.fotoOriginal}</a></div>`:''}
+        <div class="exp-item-tipo">${_escHtml(e.tipo)}</div>
+        <div class="exp-item-meta">${_escHtml(e.fecha)} · ${_escHtml(e.usuario)}</div>
+        ${e.desc?`<div class="exp-item-desc">${_escHtml(e.desc)}</div>`:''}
+        ${e.foto?`<img class="exp-item-foto" src="${_escHtml(_safeUrl(e.foto))}" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"><div style="display:none;font-size:8pt;color:#B91C1C;">⚠ La foto no se pudo cargar. Ábrela directamente: <a href="${_escHtml(_safeUrl(e.fotoOriginal))}">${_escHtml(e.fotoOriginal)}</a></div>`:''}
       </div>
     </div>`).join('') : '<div style="padding:6mm 0;color:#888;font-size:9pt">Sin eventos registrados.</div>';
 
   document.getElementById('print-expediente-area').innerHTML = `
     <div class="exp-header">
-      <div class="exp-title">Expediente de ticket — ${sanitizeHTML(t.codigo)}</div>
+      <div class="exp-title">Expediente de ticket — ${_escHtml(t.codigo)}</div>
       <div class="exp-meta-grid">
-        <div><b>Título:</b> ${sanitizeHTML(t.titulo||'—')}</div>
-        <div><b>Activo:</b> ${sanitizeHTML(t.activoNombre||'—')}</div>
-        <div><b>Responsable:</b> ${sanitizeHTML(t.resp||'—')}</div>
-        <div><b>Tipo:</b> ${sanitizeHTML(t.tipo||'—')}</div>
-        <div><b>Prioridad:</b> ${sanitizeHTML(t.prior||'—')}</div>
-        <div><b>Estado:</b> ${sanitizeHTML(t.estado||'—')}</div>
-        <div><b>Creado:</b> ${sanitizeHTML(t.fechaCreacion||'—')}</div>
-        <div><b>Deadline:</b> ${sanitizeHTML(t.dead||'—')}</div>
+        <div><b>Título:</b> ${_escHtml(t.titulo||'—')}</div>
+        <div><b>Activo:</b> ${_escHtml(t.activoNombre||'—')}</div>
+        <div><b>Responsable:</b> ${_escHtml(t.resp||'—')}</div>
+        <div><b>Tipo:</b> ${_escHtml(t.tipo||'—')}</div>
+        <div><b>Prioridad:</b> ${_escHtml(t.prior||'—')}</div>
+        <div><b>Estado:</b> ${_escHtml(t.estado||'—')}</div>
+        <div><b>Creado:</b> ${_escHtml(t.fechaCreacion||'—')}</div>
+        <div><b>Deadline:</b> ${_escHtml(t.dead||'—')}</div>
       </div>
     </div>
     <div class="exp-timeline">${itemsHTML}</div>
-    <div class="exp-footer">Expediente generado el ${ts()} por ${sanitizeHTML(session.nombre)} desde SAGAE. Documento de uso interno.</div>
+    <div class="exp-footer">Expediente generado el ${_escHtml(ts())} por ${_escHtml(session.nombre)} desde SAGAE. Documento de uso interno.</div>
   `;
 
   const orig = document.title;
@@ -6977,35 +6977,35 @@ async function imprimirExpedienteActivo(codigo){
 
   const itemsHTML = eventosConFotos.length ? eventosConFotos.map(h=>`
     <div class="exp-item">
-      <div class="exp-item-dot" style="background:${COLOR_DOT[h.color]||COLOR_DOT.gray}"></div>
+      <div class="exp-item-dot" style="background:${_escHtml(COLOR_DOT[h.color]||COLOR_DOT.gray)}"></div>
       <div class="exp-item-body">
-        <div class="exp-item-tipo">${sanitizeHTML(h.tipo||'Evento')}</div>
-        <div class="exp-item-meta">${sanitizeHTML(h.fecha||'')} · ${sanitizeHTML(h.usuario||h.tec||'—')}</div>
-        ${h.desc?`<div class="exp-item-desc">${sanitizeHTML(h.desc)}</div>`:''}
+        <div class="exp-item-tipo">${_escHtml(h.tipo||'Evento')}</div>
+        <div class="exp-item-meta">${_escHtml(h.fecha||'')} · ${_escHtml(h.usuario||h.tec||'—')}</div>
+        ${h.desc?`<div class="exp-item-desc">${_escHtml(h.desc)}</div>`:''}
         ${(h._fotosConDatos||[]).map(f=>
           f.dataUrl
-            ? `<img class="exp-item-foto" src="${f.dataUrl}">${f.nota?`<div style="font-size:8pt;color:#666;margin-top:1mm">${sanitizeHTML(f.nota)}</div>`:''}`
-            : `<div style="font-size:8pt;color:#B91C1C;">⚠ Una foto de este evento no se pudo cargar. Ábrela directamente: <a href="${f.url}">${f.url}</a></div>`
+            ? `<img class="exp-item-foto" src="${_escHtml(_safeUrl(f.dataUrl))}">${f.nota?`<div style="font-size:8pt;color:#666;margin-top:1mm">${_escHtml(f.nota)}</div>`:''}`
+            : `<div style="font-size:8pt;color:#B91C1C;">⚠ Una foto de este evento no se pudo cargar. Ábrela directamente: <a href="${_escHtml(_safeUrl(f.url))}">${_escHtml(f.url)}</a></div>`
         ).join('')}
       </div>
     </div>`).join('') : '<div style="padding:6mm 0;color:#888;font-size:9pt">Sin eventos registrados.</div>';
 
   document.getElementById('print-expediente-area').innerHTML = `
     <div class="exp-header">
-      <div class="exp-title">Expediente de activo — ${sanitizeHTML(a.codigo)}</div>
+      <div class="exp-title">Expediente de activo — ${_escHtml(a.codigo)}</div>
       <div class="exp-meta-grid">
-        <div><b>Nombre:</b> ${sanitizeHTML(a.nombre||'—')}</div>
-        <div><b>Tipo:</b> ${sanitizeHTML(a.tipo||'—')}</div>
-        <div><b>Marca / Modelo:</b> ${sanitizeHTML((a.marca||'—')+' '+(a.modelo||''))}</div>
-        <div><b>Serial:</b> ${sanitizeHTML(a.serial||'—')}</div>
-        <div><b>Asignado a:</b> ${sanitizeHTML(a.asignado||'Sin asignar')}</div>
-        <div><b>Ubicación:</b> ${sanitizeHTML(a.ubicacion||'—')}</div>
-        <div><b>Estado actual:</b> ${sanitizeHTML(a.estado||'—')}</div>
-        <div><b>Departamento:</b> ${sanitizeHTML(a.depto||'—')}</div>
+        <div><b>Nombre:</b> ${_escHtml(a.nombre||'—')}</div>
+        <div><b>Tipo:</b> ${_escHtml(a.tipo||'—')}</div>
+        <div><b>Marca / Modelo:</b> ${_escHtml((a.marca||'—')+' '+(a.modelo||''))}</div>
+        <div><b>Serial:</b> ${_escHtml(a.serial||'—')}</div>
+        <div><b>Asignado a:</b> ${_escHtml(a.asignado||'Sin asignar')}</div>
+        <div><b>Ubicación:</b> ${_escHtml(a.ubicacion||'—')}</div>
+        <div><b>Estado actual:</b> ${_escHtml(a.estado||'—')}</div>
+        <div><b>Departamento:</b> ${_escHtml(a.depto||'—')}</div>
       </div>
     </div>
     <div class="exp-timeline">${itemsHTML}</div>
-    <div class="exp-footer">Expediente generado el ${ts()} por ${sanitizeHTML(session.nombre)} desde SAGAE. Documento de uso interno.</div>
+    <div class="exp-footer">Expediente generado el ${_escHtml(ts())} por ${_escHtml(session.nombre)} desde SAGAE. Documento de uso interno.</div>
   `;
 
   const origA = document.title;
@@ -7080,7 +7080,7 @@ function globalSearch(q) {
   ).slice(0, 3);
 
   if (!matchActivos.length && !matchTickets.length && !matchAudit.length) {
-    res.innerHTML = '<div class="sr-empty">Sin resultados para "' + q + '"</div>';
+    res.innerHTML = '<div class="sr-empty">Sin resultados para "' + _escHtml(q) + '"</div>';
     res.classList.add('open');
     return;
   }
@@ -7090,31 +7090,31 @@ function globalSearch(q) {
   if (matchTickets.length) {
     html += '<div class="sr-group">🎫 Tickets</div>';
     html += matchTickets.map(t => `
-      <div class="sr-item" onclick="searchGoTicket('${t.codigo}')">
-        <span class="sr-code">${t.codigo}</span>
-        <span class="sr-name">${sanitizeHTML(t.titulo)}</span>
-        <span class="sr-badge s-${t.estado}">${t.estado}</span>
-        <span class="sr-badge s-${t.prior}" style="margin-left:3px">${t.prior}</span>
+      <div class="sr-item" onclick="searchGoTicket('${_jsArg(t.codigo)}')">
+        <span class="sr-code">${_escHtml(t.codigo)}</span>
+        <span class="sr-name">${_escHtml(t.titulo)}</span>
+        <span class="sr-badge s-${_escHtml(t.estado)}">${_escHtml(t.estado)}</span>
+        <span class="sr-badge s-${_escHtml(t.prior)}" style="margin-left:3px">${_escHtml(t.prior)}</span>
       </div>`).join('');
   }
 
   if (matchActivos.length) {
     html += '<div class="sr-group">📦 Activos</div>';
     html += matchActivos.map(a => `
-      <div class="sr-item" onclick="searchGoActivo('${a.codigo}')">
-        <span class="sr-code">${a.codigo}</span>
-        <span class="sr-name">${sanitizeHTML(a.nombre||'')}</span>
-        <span class="sr-badge s-${a.estado}">${a.estado}</span>
+      <div class="sr-item" onclick="searchGoActivo('${_jsArg(a.codigo)}')">
+        <span class="sr-code">${_escHtml(a.codigo)}</span>
+        <span class="sr-name">${_escHtml(a.nombre||'')}</span>
+        <span class="sr-badge s-${_escHtml(a.estado)}">${_escHtml(a.estado)}</span>
       </div>`).join('');
   }
 
   if (matchAudit.length) {
     html += '<div class="sr-group">📋 Auditoría</div>';
     html += matchAudit.map(a => `
-      <div class="sr-item" onclick="searchGoAudit('${a.codigo}')">
-        <span class="sr-code">${a.codigo}</span>
-        <span class="sr-name">${a.detalle}</span>
-        <span style="font-size:10px;color:var(--text3);flex-shrink:0">${a.ts}</span>
+      <div class="sr-item" onclick="searchGoAudit('${_jsArg(a.codigo)}')">
+        <span class="sr-code">${_escHtml(a.codigo)}</span>
+        <span class="sr-name">${_escHtml(a.detalle)}</span>
+        <span style="font-size:10px;color:var(--text3);flex-shrink:0">${_escHtml(a.ts)}</span>
       </div>`).join('');
   }
 
@@ -7280,7 +7280,7 @@ function abrirModalEtiquetasGrupo(tipo, codigosForzados){
     src.filter(x=>x.estado!=='eliminado').map(x=>x.tipo||'Otro')
   )].sort();
   tiposSel.innerHTML = '<option value="">— Selecciona un tipo —</option>' +
-    tiposEnUso.map(t=>`<option value="${t}">${TIPO_ICON[t]||'📦'} ${t}</option>`).join('');
+    tiposEnUso.map(t=>`<option value="${_escHtml(t)}">${_escHtml(TIPO_ICON[t]||'📦')} ${_escHtml(t)}</option>`).join('');
 
   // Modo inicial: vista actual (o la lista concreta recién creada)
   document.getElementById('eg-modo').value = _etiqListaForzada ? 'lista' : 'filtro';
@@ -7355,13 +7355,13 @@ function actualizarPreviewEtiq(){
     const desc = modo==='filtro'
       ? (esMob
           ? `Vista actual del inventario de Mobiliario`
-          : `Vista actual: Estado "<strong>${filtroA}</strong>" · Tipo "<strong>${filtroTipo==='todos'?'Todos':filtroTipo}</strong>"`)
+          : `Vista actual: Estado "<strong>${_escHtml(filtroA)}</strong>" · Tipo "<strong>${_escHtml(filtroTipo==='todos'?'Todos':filtroTipo)}</strong>"`)
       : modo==='tipo'
-      ? `Tipo: <strong>${document.getElementById('eg-tipo-sel').value}</strong>`
+      ? `Tipo: <strong>${_escHtml(document.getElementById('eg-tipo-sel').value)}</strong>`
       : modo==='rango'
       ? `Rango ${pref}-${String(document.getElementById('eg-desde').value||'?').padStart(4,'0')} → ${pref}-${String(document.getElementById('eg-hasta').value||'?').padStart(4,'0')}`
       : modo==='lista'
-      ? `Registros recién creados: <strong>${_etiqCodigosActuales.join(', ')}</strong>`
+      ? `Registros recién creados: <strong>${_escHtml(_etiqCodigosActuales.join(', '))}</strong>`
       : `Todos los ${esMob?'elementos de mobiliario':'activos'} activos`;
     res.innerHTML = `${desc}<br><span style="color:var(--green);font-weight:700">${_etiqCodigosActuales.length} etiqueta${_etiqCodigosActuales.length!==1?'s':''}</span> listas para imprimir`;
     btn.disabled = false;
@@ -7409,7 +7409,7 @@ function imprimirGrupoEtiquetas(){
     div.className = 'etiq-multi';
     const dNom = document.createElement('div'); dNom.className = 'etiq-multi-nom'; dNom.textContent = nom;
     const dBc  = document.createElement('div'); dBc.className  = 'etiq-multi-bc';
-    dBc.innerHTML = '<svg id="'+svgId+'" xmlns="http://www.w3.org/2000/svg"></svg>';
+    dBc.innerHTML = '<svg id="'+_escHtml(svgId)+'" xmlns="http://www.w3.org/2000/svg"></svg>';
     const dCod = document.createElement('div'); dCod.className = 'etiq-multi-cod'; dCod.textContent = cod2;
     div.appendChild(dNom); div.appendChild(dBc); div.appendChild(dCod);
     area.appendChild(div);
@@ -7590,6 +7590,18 @@ function cerrarImportarActivos(){
 
 // ── LECTOR GENÉRICO DE PLANTILLAS (xlsx/csv) ─────────────────────
 // Escapa texto para insertarlo en HTML o en atributos (&, <, >, comillas).
+// Valor seguro dentro de un manejador onclick="fn('${...}')": escapa todo lo que no sea alfanumérico a \uXXXX
+// (sin comillas, ni <, >, & en el HTML; el navegador lo vuelve a decodificar en el texto de JavaScript).
+function _jsArg(v){
+  return String(v==null?'':v).replace(/[^A-Za-z0-9 _.\-]/g,c=>'\\u'+('0000'+c.charCodeAt(0).toString(16)).slice(-4));
+}
+
+// Solo deja pasar direcciones http(s), data:image y blob: para href/src; cualquier otra cosa (javascript:, etc.) queda vacía.
+function _safeUrl(u){
+  const s=String(u==null?'':u).trim();
+  return /^(https?:\/\/|data:image\/|blob:)/i.test(s)?s:'';
+}
+
 function _escHtml(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
@@ -7806,7 +7818,7 @@ function procesarArchivoActivos(hojas){
     html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
     html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores (serán omitidas):</strong><br>`;
     errores.slice(0,5).forEach(e=>{
-      html += `Fila ${e.fila}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
+      html += `Fila ${_escHtml(e.fila)}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
     });
     if(errores.length>5) html += `...y ${errores.length-5} más.`;
     html += `</div>`;
@@ -7817,12 +7829,12 @@ function procesarArchivoActivos(hojas){
     html += `<div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">`;
     html += `<thead><tr>`;
     ['Nombre','Tipo','Estado','Marca','Modelo','Ubicación'].forEach(h=>{
-      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${h}</th>`;
+      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${_escHtml(h)}</th>`;
     });
     html += '</tr></thead><tbody>';
     registros.slice(0,5).forEach((r,i)=>{
       const bg = i%2===0 ? '#fff' : '#f8f9fa';
-      html += `<tr style="background:${bg}">`;
+      html += `<tr style="background:${_escHtml(bg)}">`;
       [r.nombre,r.tipo,r.estado,r.marca||'—',r.modelo||'—',r.ubicacion||'—'].forEach(v=>{
         html += `<td style="padding:4px 8px;border-bottom:1px solid #eee">${_escHtml(v)}</td>`;
       });
@@ -7988,13 +8000,13 @@ function procesarArchivoUsuarios(hojas){
   let html='';
   if(errores.length){
     html+=`<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;"><strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores:</strong><br>`;
-    errores.slice(0,5).forEach(e=>{html+=`Fila ${e.fila}: ${_escHtml(e.nombre)} — ${_escHtml(e.errores.join(', '))}<br>`;});
+    errores.slice(0,5).forEach(e=>{html+=`Fila ${_escHtml(e.fila)}: ${_escHtml(e.nombre)} — ${_escHtml(e.errores.join(', '))}<br>`;});
     html+='</div>';
   }
   if(registros.length){
     html+=`<div style="font-size:11px;margin-bottom:8px;color:var(--text2)"><strong>${registros.length} usuario(s) listos para importar</strong></div>`;
     html+=`<table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>`;
-    ['Usuario','Rol','Nombre','Email','Estado'].forEach(h=>{html+=`<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${h}</th>`;});
+    ['Usuario','Rol','Nombre','Email','Estado'].forEach(h=>{html+=`<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${_escHtml(h)}</th>`;});
     html+='</tr></thead><tbody>';
     registros.slice(0,5).forEach((r,i)=>{
       html+=`<tr style="background:${i%2===0?'#fff':'#f8f9fa'}">`;
@@ -8213,17 +8225,17 @@ function procesarArchivoMob(hojas){
     html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
     html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores (serán omitidas):</strong><br>`;
     errores.slice(0,5).forEach(e=>{
-      html += `Fila ${e.fila}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
+      html += `Fila ${_escHtml(e.fila)}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
     });
     if(errores.length>5) html += `...y ${errores.length-5} más.`;
     html += `</div>`;
   }
   if(registros.length){
     const totalUnid = registros.reduce((s,r)=>s+r.cantidad,0);
-    html += `<div style="font-size:11px;margin-bottom:8px;color:var(--text2)"><strong>${registros.length} elemento(s) listos para importar</strong> (${totalUnid} unidades) — Preview de los primeros 5:</div>`;
+    html += `<div style="font-size:11px;margin-bottom:8px;color:var(--text2)"><strong>${registros.length} elemento(s) listos para importar</strong> (${_escHtml(totalUnid)} unidades) — Preview de los primeros 5:</div>`;
     html += `<div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>`;
     ['Descripción','Tipo','Cant.','Condición','Ubicación','Valor'].forEach(h=>{
-      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${h}</th>`;
+      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${_escHtml(h)}</th>`;
     });
     html += '</tr></thead><tbody>';
     registros.slice(0,5).forEach((r,i)=>{
@@ -8436,7 +8448,7 @@ function procesarArchivoDep(hojas){
     html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
     html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores u omitidas:</strong><br>`;
     errores.slice(0,6).forEach(e=>{
-      html += `Fila ${e.fila}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
+      html += `Fila ${_escHtml(e.fila)}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
     });
     if(errores.length>6) html += `...y ${errores.length-6} más.`;
     html += `</div>`;
@@ -8445,7 +8457,7 @@ function procesarArchivoDep(hojas){
     html += `<div style="font-size:11px;margin-bottom:8px;color:var(--text2)"><strong>${registros.length} departamento(s) listos para importar</strong> — Preview de los primeros 8:</div>`;
     html += `<div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>`;
     ['Nombre','Descripción','Responsable','Estado'].forEach(h=>{
-      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${h}</th>`;
+      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${_escHtml(h)}</th>`;
     });
     html += '</tr></thead><tbody>';
     registros.slice(0,8).forEach((r,i)=>{
@@ -8677,7 +8689,7 @@ function procesarArchivoPer(hojas){
     html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
     html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores u omitidas:</strong><br>`;
     errores.slice(0,6).forEach(e=>{
-      html += `Fila ${e.fila}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
+      html += `Fila ${_escHtml(e.fila)}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
     });
     if(errores.length>6) html += `...y ${errores.length-6} más.`;
     html += `</div>`;
@@ -8686,7 +8698,7 @@ function procesarArchivoPer(hojas){
     html += `<div style="font-size:11px;margin-bottom:8px;color:var(--text2)"><strong>${registros.length} persona(s) listas para importar</strong> — Preview de las primeras 8:</div>`;
     html += `<div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>`;
     ['Nombre','Cargo','Departamento','Correo','Estado'].forEach(h=>{
-      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${h}</th>`;
+      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${_escHtml(h)}</th>`;
     });
     html += '</tr></thead><tbody>';
     registros.slice(0,8).forEach((r,i)=>{
@@ -8945,7 +8957,7 @@ function procesarArchivoEsp(hojas){
     html += `<div style="background:var(--red-l);border:1px solid var(--red-m);border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;">`;
     html += `<strong style="color:var(--red)">⚠ ${errores.length} fila(s) con errores u omitidas:</strong><br>`;
     errores.slice(0,6).forEach(e=>{
-      html += `Fila ${e.fila}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
+      html += `Fila ${_escHtml(e.fila)}: <em>${_escHtml(e.nombre)}</em> — ${_escHtml(e.errores.join(', '))}<br>`;
     });
     if(errores.length>6) html += `...y ${errores.length-6} más.`;
     html += `</div>`;
@@ -8954,7 +8966,7 @@ function procesarArchivoEsp(hojas){
     html += `<div style="font-size:11px;margin-bottom:8px;color:var(--text2)"><strong>${registros.length} espacio(s) listos para importar</strong> — Preview de los primeros 8:</div>`;
     html += `<div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>`;
     ['Nombre','Tipo','Departamento','Responsable','Capac.','Estado'].forEach(h=>{
-      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${h}</th>`;
+      html += `<th style="background:var(--navy);color:#fff;padding:4px 8px;text-align:left">${_escHtml(h)}</th>`;
     });
     html += '</tr></thead><tbody>';
     registros.slice(0,8).forEach((r,i)=>{
@@ -9245,12 +9257,12 @@ function renderMobiliario(){
   const baja    = _mobUnidades(total,'baja');
   const valTotal = total.reduce((s,m)=>(s+(m.valor||0)*(m.cantidad||1)),0);
   kpi.innerHTML=`
-    <div class="rep-kpi-card"><div class="rep-kpi-v">${uTotal}</div><div class="rep-kpi-l">Total unidades · ${total.length} registro${total.length!==1?'s':''}</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${buenos}</div><div class="rep-kpi-l">En buen estado</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${regular}</div><div class="rep-kpi-l">Estado regular</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#D85A30">${deterio}</div><div class="rep-kpi-l">Deteriorado</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#888">${baja}</div><div class="rep-kpi-l">Dado de baja</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v">$${valTotal.toLocaleString()}</div><div class="rep-kpi-l">Valor total inventario</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v">${_escHtml(uTotal)}</div><div class="rep-kpi-l">Total unidades · ${total.length} registro${total.length!==1?'s':''}</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${_escHtml(buenos)}</div><div class="rep-kpi-l">En buen estado</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${_escHtml(regular)}</div><div class="rep-kpi-l">Estado regular</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#D85A30">${_escHtml(deterio)}</div><div class="rep-kpi-l">Deteriorado</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#888">${_escHtml(baja)}</div><div class="rep-kpi-l">Dado de baja</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v">$${_escHtml(valTotal.toLocaleString())}</div><div class="rep-kpi-l">Valor total inventario</div></div>
   `;
 
   if(!list.length){
@@ -9261,29 +9273,29 @@ function renderMobiliario(){
 
   const condColor = {bueno:'#1D9E75',regular:'#BA7517',deteriorado:'#D85A30',baja:'#888'};
   tb.innerHTML = list.map(m=>`
-    <tr class="clickable" onclick="showDetalleMob('${m.codigo}')">
-      <td class="code-cell">${m.codigo||'—'}</td>
+    <tr class="clickable" onclick="showDetalleMob('${_jsArg(m.codigo)}')">
+      <td class="code-cell">${_escHtml(m.codigo||'—')}</td>
       <td>
-        <div style="font-weight:600;font-size:12px">${sanitizeHTML(m.nombre||'')}</div>
-        <div style="font-size:10px;color:var(--text3)">${sanitizeHTML((m.material||'')+' '+(m.color?'· '+m.color:''))}</div>
+        <div style="font-weight:600;font-size:12px">${_escHtml(m.nombre||'')}</div>
+        <div style="font-size:10px;color:var(--text3)">${_escHtml((m.material||'')+' '+(m.color?'· '+m.color:''))}</div>
       </td>
-      <td>${sanitizeHTML(m.tipo||'—')}</td>
-      <td style="text-align:center;font-weight:700">${m.cantidad||1}${(m.cantidad||1)>1?'<div style="font-size:9px;font-weight:600;color:var(--amber)" title="Un solo código para varias unidades">LOTE</div>':''}</td>
+      <td>${_escHtml(m.tipo||'—')}</td>
+      <td style="text-align:center;font-weight:700">${_escHtml(m.cantidad||1)}${(m.cantidad||1)>1?'<div style="font-size:9px;font-weight:600;color:var(--amber)" title="Un solo código para varias unidades">LOTE</div>':''}</td>
       <td>
-        <div style="font-size:11px">${sanitizeHTML(m.ubicacion||'—')}</div>
-        <div style="font-size:10px;color:var(--text3)">${sanitizeHTML(m.depto||'')}</div>
+        <div style="font-size:11px">${_escHtml(m.ubicacion||'—')}</div>
+        <div style="font-size:10px;color:var(--text3)">${_escHtml(m.depto||'')}</div>
       </td>
-      <td><span class="badge" style="background:${condColor[m.condicion]||'#888'}22;color:${condColor[m.condicion]||'#888'};border:1px solid ${condColor[m.condicion]||'#888'}44">${m.condicion||'—'}</span></td>
+      <td><span class="badge" style="background:${_escHtml(condColor[m.condicion]||'#888')}22;color:${_escHtml(condColor[m.condicion]||'#888')};border:1px solid ${_escHtml(condColor[m.condicion]||'#888')}44">${_escHtml(m.condicion||'—')}</span></td>
       <td style="text-align:center">
-        ${m.foto ? `<a href="${sanitizeHTML(m.foto)}" target="_blank" style="color:var(--navy);font-size:11px">🔗 Ver</a>` : '<span style="color:var(--text3);font-size:11px">—</span>'}
+        ${m.foto ? `<a href="${_escHtml(_safeUrl(sanitizeHTML(m.foto)))}" target="_blank" style="color:var(--navy);font-size:11px">🔗 Ver</a>` : '<span style="color:var(--text3);font-size:11px">—</span>'}
       </td>
       <td style="font-size:11px">
-        <div style="color:var(--text3)">Unit: $${(m.valor||0).toLocaleString()}</div>
-        <div style="font-weight:700;color:#3B6D11">Total: $${((m.valor||0)*(m.cantidad||1)).toLocaleString()}</div>
+        <div style="color:var(--text3)">Unit: $${_escHtml((m.valor||0).toLocaleString())}</div>
+        <div style="font-weight:700;color:#3B6D11">Total: $${_escHtml(((m.valor||0)*(m.cantidad||1)).toLocaleString())}</div>
       </td>
       <td onclick="event.stopPropagation()">
-        ${per.edit?`<button class="act-btn" onclick="openMob('${m.codigo}')">✎</button>`:''}
-        ${per.delete?`<button class="act-btn" onclick="eliminarMob('${m.codigo}')" style="color:var(--red)">×</button>`:''}
+        ${per.edit?`<button class="act-btn" onclick="openMob('${_jsArg(m.codigo)}')">✎</button>`:''}
+        ${per.delete?`<button class="act-btn" onclick="eliminarMob('${_jsArg(m.codigo)}')" style="color:var(--red)">×</button>`:''}
       </td>
     </tr>`).join('');
 }
@@ -9590,10 +9602,10 @@ function renderLicencias(){
   const equiposCubiertos = new Set(total.flatMap(l=>(l.instalaciones||[]).map(i=>i.activoCodigo))).size;
   kpi.innerHTML=`
     <div class="rep-kpi-card"><div class="rep-kpi-v">${total.length}</div><div class="rep-kpi-l">Paquetes activos</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">${vencidas}</div><div class="rep-kpi-l">Vencidas</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${proximas30}</div><div class="rep-kpi-l">Vencen en 30 días</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v">${equiposCubiertos}</div><div class="rep-kpi-l">Equipos con licencia instalada</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v">$${costoTotal.toLocaleString()}</div><div class="rep-kpi-l">Costo anual total</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#791F1F">${_escHtml(vencidas)}</div><div class="rep-kpi-l">Vencidas</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${_escHtml(proximas30)}</div><div class="rep-kpi-l">Vencen en 30 días</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v">${_escHtml(equiposCubiertos)}</div><div class="rep-kpi-l">Equipos con licencia instalada</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v">$${_escHtml(costoTotal.toLocaleString())}</div><div class="rep-kpi-l">Costo anual total</div></div>
   `;
 
   if(!list.length){
@@ -9610,23 +9622,23 @@ function renderLicencias(){
     const cupoColor = l.cantidadTotal && usadas>l.cantidadTotal ? '#791F1F' : (l.cantidadTotal && usadas===l.cantidadTotal ? '#BA7517' : 'var(--text2)');
     return `
     <tr>
-      <td class="code-cell">${l.codigo||'—'}</td>
+      <td class="code-cell">${_escHtml(l.codigo||'—')}</td>
       <td>
-        <div style="font-weight:600;font-size:12px">${sanitizeHTML(l.nombre||'')}</div>
-        <div style="font-size:10px;color:var(--text3)">${sanitizeHTML(l.planVersion||'')}</div>
+        <div style="font-weight:600;font-size:12px">${_escHtml(l.nombre||'')}</div>
+        <div style="font-size:10px;color:var(--text3)">${_escHtml(l.planVersion||'')}</div>
       </td>
-      <td>${sanitizeHTML(l.proveedor||'—')}</td>
-      <td style="text-align:center;cursor:pointer;color:var(--navy);font-weight:700" onclick="abrirDetalleLicencia('${l.codigo}')" title="Ver / asignar equipos">
-        ${usadas}${l.cantidadTotal?' / '+l.cantidadTotal:''} 🖥️
-        <div style="font-size:9px;font-weight:400;color:${cupoColor}">${l.cantidadTotal && usadas>l.cantidadTotal ? '⚠ excede cupos' : 'Ver equipos'}</div>
+      <td>${_escHtml(l.proveedor||'—')}</td>
+      <td style="text-align:center;cursor:pointer;color:var(--navy);font-weight:700" onclick="abrirDetalleLicencia('${_jsArg(l.codigo)}')" title="Ver / asignar equipos">
+        ${_escHtml(usadas)}${_escHtml(l.cantidadTotal?' / '+l.cantidadTotal:'')} 🖥️
+        <div style="font-size:9px;font-weight:400;color:${_escHtml(cupoColor)}">${l.cantidadTotal && usadas>l.cantidadTotal ? '⚠ excede cupos' : 'Ver equipos'}</div>
       </td>
-      <td style="font-size:11px">${fmtFecha ? fmtFecha(l.fechaVencimiento) : (l.fechaVencimiento||'—')}</td>
-      <td style="font-weight:600;color:#3B6D11">${l.costoAnual?'$'+l.costoAnual.toLocaleString():'—'}</td>
-      <td><span class="badge" style="background:${estColor[vc]||'#888'}22;color:${estColor[vc]||'#888'};border:1px solid ${estColor[vc]||'#888'}44">${vcLabel}</span></td>
+      <td style="font-size:11px">${_escHtml(fmtFecha ? fmtFecha(l.fechaVencimiento) : (l.fechaVencimiento||'—'))}</td>
+      <td style="font-weight:600;color:#3B6D11">${_escHtml(l.costoAnual?'$'+l.costoAnual.toLocaleString():'—')}</td>
+      <td><span class="badge" style="background:${_escHtml(estColor[vc]||'#888')}22;color:${_escHtml(estColor[vc]||'#888')};border:1px solid ${_escHtml(estColor[vc]||'#888')}44">${_escHtml(vcLabel)}</span></td>
       <td onclick="event.stopPropagation()">
-        <button class="act-btn" onclick="abrirDetalleLicencia('${l.codigo}')" title="Ver equipos">👁</button>
-        ${per.edit?`<button class="act-btn" onclick="openLicencia('${l.codigo}')">✎</button>`:''}
-        ${per.delete?`<button class="act-btn" onclick="eliminarLicencia('${l.codigo}')" style="color:var(--red)">×</button>`:''}
+        <button class="act-btn" onclick="abrirDetalleLicencia('${_jsArg(l.codigo)}')" title="Ver equipos">👁</button>
+        ${per.edit?`<button class="act-btn" onclick="openLicencia('${_jsArg(l.codigo)}')">✎</button>`:''}
+        ${per.delete?`<button class="act-btn" onclick="eliminarLicencia('${_jsArg(l.codigo)}')" style="color:var(--red)">×</button>`:''}
       </td>
     </tr>`;
   }).join('');
@@ -9651,7 +9663,7 @@ function openLicencia(codigo){
   const dl = document.getElementById('dl-lic-proveedores');
   if(dl){
     const provs = [...new Set(licencias.map(x=>x.proveedor).filter(Boolean))];
-    dl.innerHTML = provs.map(p=>`<option value="${sanitizeHTML(p)}">`).join('');
+    dl.innerHTML = provs.map(p=>`<option value="${_escHtml(p)}">`).join('');
   }
   document.getElementById('mod-licencia')._editCodigo = isEdit ? codigo : null;
   document.getElementById('mod-licencia').classList.add('open');
@@ -9732,8 +9744,8 @@ function abrirDetalleLicencia(codigo){
   document.getElementById('mod-lic-det-title').textContent = `${l.nombre} — Equipos con licencia instalada`;
   const usadas = (l.instalaciones||[]).length;
   document.getElementById('lic-det-info').innerHTML =
-    `Código: <b>${l.codigo}</b> · Proveedor: <b>${sanitizeHTML(l.proveedor||'—')}</b> · Vence: <b>${l.fechaVencimiento||'—'}</b> · ` +
-    `Cupos usados: <b style="color:${l.cantidadTotal && usadas>l.cantidadTotal?'#791F1F':'inherit'}">${usadas}${l.cantidadTotal?' / '+l.cantidadTotal:''}</b>`;
+    `Código: <b>${_escHtml(l.codigo)}</b> · Proveedor: <b>${_escHtml(l.proveedor||'—')}</b> · Vence: <b>${_escHtml(l.fechaVencimiento||'—')}</b> · ` +
+    `Cupos usados: <b style="color:${l.cantidadTotal && usadas>l.cantidadTotal?'#791F1F':'inherit'}">${_escHtml(usadas)}${_escHtml(l.cantidadTotal?' / '+l.cantidadTotal:'')}</b>`;
 
   // Selector de activos que AÚN NO tienen esta licencia instalada
   const yaInstalados = new Set((l.instalaciones||[]).map(i=>i.activoCodigo));
@@ -9741,17 +9753,17 @@ function abrirDetalleLicencia(codigo){
   sel.innerHTML = '<option value="">— Seleccionar activo —</option>' +
     activos.filter(a=>a.estado!=='eliminado' && !yaInstalados.has(a.codigo))
       .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''))
-      .map(a=>`<option value="${a.codigo}">${a.codigo} — ${sanitizeHTML(a.nombre||'')}</option>`).join('');
+      .map(a=>`<option value="${_escHtml(a.codigo)}">${_escHtml(a.codigo)} — ${_escHtml(a.nombre||'')}</option>`).join('');
 
   const tb = document.getElementById('tb-lic-instalaciones');
   const instalaciones = l.instalaciones||[];
   tb.innerHTML = instalaciones.length ? instalaciones.map((i,idx)=>`
     <tr>
-      <td class="code-cell">${i.activoCodigo||'—'}</td>
-      <td>${sanitizeHTML(i.activoNombre||'—')}</td>
-      <td style="font-size:11px">${i.fecha||'—'}</td>
-      <td style="font-size:11px">${sanitizeHTML(i.usuario||'—')}</td>
-      <td><button class="act-btn" onclick="quitarInstalacionLicencia('${l.codigo}',${idx})" style="color:var(--red)" title="Quitar de este equipo">×</button></td>
+      <td class="code-cell">${_escHtml(i.activoCodigo||'—')}</td>
+      <td>${_escHtml(i.activoNombre||'—')}</td>
+      <td style="font-size:11px">${_escHtml(i.fecha||'—')}</td>
+      <td style="font-size:11px">${_escHtml(i.usuario||'—')}</td>
+      <td><button class="act-btn" onclick="quitarInstalacionLicencia('${_jsArg(l.codigo)}',${idx})" style="color:var(--red)" title="Quitar de este equipo">×</button></td>
     </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Aún no está instalada en ningún equipo registrado</td></tr>`;
 
   document.getElementById('mod-licencia-detalle')._codigo = codigo;
@@ -9861,7 +9873,7 @@ function buildDataLists(){
     if(!el) return;
     const cur = el.value;
     const first = el.options[0]?.textContent || 'Todos';
-    el.innerHTML = `<option value="">${first}</option>` +
+    el.innerHTML = `<option value="">${_escHtml(first)}</option>` +
       deptos.map(d=>`<option value="${_escHtml(d)}">${_escHtml(d)}</option>`).join('');
     if(cur) el.value = cur;
   });
@@ -9872,7 +9884,7 @@ function buildDataLists(){
     const el = document.getElementById(id);
     if(!el) return;
     const cur = el.value;
-    el.innerHTML = `<option value="">${placeholder}</option>` +
+    el.innerHTML = `<option value="">${_escHtml(placeholder)}</option>` +
       espActivos.map(e=>`<option value="${_escHtml(e.nombre)}"
         data-responsable="${_escHtml(e.responsableNombre||'')}"
         data-email="${_escHtml(e.responsableEmail||'')}"
@@ -9887,7 +9899,7 @@ function buildDataLists(){
     const el = document.getElementById(id);
     if(!el) return;
     const cur = el.value;
-    el.innerHTML = `<option value="">${placeholder}</option>` +
+    el.innerHTML = `<option value="">${_escHtml(placeholder)}</option>` +
       persActivas.map(p=>`<option value="${_escHtml(p.nombre)}"
         data-email="${_escHtml(p.email||'')}"
         data-cargo="${_escHtml(p.cargo||'')}"
@@ -10046,8 +10058,8 @@ async function _subirArchivoADrive(file, targetInputId, modulo){
         const isImg = file.type.startsWith('image/');
         prev.style.display = 'block';
         prev.innerHTML = isImg
-          ? `📷 <strong>${sanitizeHTML(file.name)}</strong> — <a href="${result.url}" target="_blank" style="color:var(--navy)">Ver imagen ↗</a>`
-          : `📄 <strong>${sanitizeHTML(file.name)}</strong> — <a href="${result.url}" target="_blank" style="color:var(--navy)">Abrir documento ↗</a>`;
+          ? `📷 <strong>${_escHtml(file.name)}</strong> — <a href="${_escHtml(_safeUrl(result.url))}" target="_blank" style="color:var(--navy)">Ver imagen ↗</a>`
+          : `📄 <strong>${_escHtml(file.name)}</strong> — <a href="${_escHtml(_safeUrl(result.url))}" target="_blank" style="color:var(--navy)">Abrir documento ↗</a>`;
       }
       showToast('✅ Archivo subido correctamente','success');
     } else {
@@ -10080,7 +10092,7 @@ function onChangeDeptoActivo(depto){
     : espArr.filter(e=>e.estado!=='eliminado');
   const cur = selUbic.value;
   selUbic.innerHTML = '<option value="">— Sin ubicación —</option>' +
-    filtered.map(e=>`<option value="${e.nombre}">${e.nombre}</option>`).join('');
+    filtered.map(e=>`<option value="${_escHtml(e.nombre)}">${_escHtml(e.nombre)}</option>`).join('');
   // Restaurar valor si sigue siendo válido
   if(cur && filtered.find(e=>e.nombre===cur)) selUbic.value = cur;
   else onChangeUbicacion(''); // limpiar info de espacio
@@ -10138,9 +10150,9 @@ function renderPersonas(){
   const sinEmail   = total.filter(p=>!p.email).length;
   if(kpi) kpi.innerHTML = `
     <div class="rep-kpi-card"><div class="rep-kpi-v">${total.length}</div><div class="rep-kpi-l">Total personas</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${activos_p}</div><div class="rep-kpi-l">Activas</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#185FA5">${conEspacio}</div><div class="rep-kpi-l">Responsables de espacio</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:${sinEmail>0?'#D85A30':'#1D9E75'}">${sinEmail}</div><div class="rep-kpi-l">${sinEmail>0?'Sin correo ⚠':'Todos con correo ✅'}</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${_escHtml(activos_p)}</div><div class="rep-kpi-l">Activas</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#185FA5">${_escHtml(conEspacio)}</div><div class="rep-kpi-l">Responsables de espacio</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:${sinEmail>0?'#D85A30':'#1D9E75'}">${_escHtml(sinEmail)}</div><div class="rep-kpi-l">${sinEmail>0?'Sin correo ⚠':'Todos con correo ✅'}</div></div>
   `;
 
   if(!list.length){
@@ -10157,25 +10169,25 @@ function renderPersonas(){
     const equiposEspacio = espNombre
       ? activos.filter(a=>a.ubicacion===espNombre && a.estado!=='eliminado').length
       : 0;
-    return `<tr class="clickable" onclick="verPersona('${p.codigo}')">
-      <td><div style="font-weight:600;font-size:12px">${sanitizeHTML(p.nombre||'')}</div>
-          <div style="font-size:10px;color:var(--text3)">${p.cargo||''}</div></td>
-      <td style="font-size:11px">${p.cargo||'—'}</td>
-      <td style="font-size:11px">${p.depto||'—'}</td>
+    return `<tr class="clickable" onclick="verPersona('${_jsArg(p.codigo)}')">
+      <td><div style="font-weight:600;font-size:12px">${_escHtml(p.nombre||'')}</div>
+          <div style="font-size:10px;color:var(--text3)">${_escHtml(p.cargo||'')}</div></td>
+      <td style="font-size:11px">${_escHtml(p.cargo||'—')}</td>
+      <td style="font-size:11px">${_escHtml(p.depto||'—')}</td>
       <td style="font-size:11px">${p.email
-        ? `<a href="mailto:${p.email}" onclick="event.stopPropagation()" style="color:var(--navy)">${p.email}</a>`
+        ? `<a href="mailto:${_escHtml(p.email)}" onclick="event.stopPropagation()" style="color:var(--navy)">${_escHtml(p.email)}</a>`
         : '<span style="color:var(--red);font-size:10px">⚠ Sin correo</span>'}</td>
       <td style="font-size:11px">${espNombre
-        ? `<span style="color:var(--navy);font-weight:600">${espNombre}</span><div style="font-size:10px;color:var(--text3)">${equiposEspacio} equipos en el espacio</div>`
+        ? `<span style="color:var(--navy);font-weight:600">${_escHtml(espNombre)}</span><div style="font-size:10px;color:var(--text3)">${_escHtml(equiposEspacio)} equipos en el espacio</div>`
         : '—'}</td>
       <td style="text-align:center">
         <span style="font-weight:700;color:var(--navy)">${equipos.length}</span>
-        ${equipos.length?`<div style="font-size:9px;color:var(--text3)">${equipos.slice(0,2).map(a=>a.codigo).join(', ')}${equipos.length>2?'...':''}</div>`:''}
+        ${equipos.length?`<div style="font-size:9px;color:var(--text3)">${_escHtml(equipos.slice(0,2).map(a=>a.codigo).join(', '))}${equipos.length>2?'...':''}</div>`:''}
       </td>
-      <td><span class="badge s-${p.estado||'activo'}">${p.estado||'activo'}</span></td>
+      <td><span class="badge s-${_escHtml(p.estado||'activo')}">${_escHtml(p.estado||'activo')}</span></td>
       <td onclick="event.stopPropagation()">
-        ${per.edit?`<button class="act-btn" onclick="openPersona('${p.codigo}')">✎</button>`:''}
-        ${per.delete?`<button class="act-btn" onclick="eliminarPersona('${p.codigo}')" style="color:var(--red)">×</button>`:''}
+        ${per.edit?`<button class="act-btn" onclick="openPersona('${_jsArg(p.codigo)}')">✎</button>`:''}
+        ${per.delete?`<button class="act-btn" onclick="eliminarPersona('${_jsArg(p.codigo)}')" style="color:var(--red)">×</button>`:''}
       </td>
     </tr>`;
   }).join('');
@@ -10198,7 +10210,7 @@ function openPersona(codigo){
   const selEsp = document.getElementById('per-espacio');
   selEsp.innerHTML = '<option value="">— No es responsable de ningún espacio —</option>' +
     espacios.filter(e=>e.estado!=='inactivo').map(e=>
-      `<option value="${e.nombre}">${e.nombre} (${e.tipo||'Espacio'})</option>`
+      `<option value="${_escHtml(e.nombre)}">${_escHtml(e.nombre)} (${_escHtml(e.tipo||'Espacio')})</option>`
     ).join('');
   selEsp.value = p.espacioResponsable||'';
   document.getElementById('mod-persona')._editCodigo = isEdit ? codigo : null;
@@ -10324,9 +10336,9 @@ function renderEspacios(){
     s + activos.filter(a=>a.ubicacion===e.nombre && a.estado!=='eliminado').length, 0);
   if(kpi) kpi.innerHTML = `
     <div class="rep-kpi-card"><div class="rep-kpi-v">${total.length}</div><div class="rep-kpi-l">Total espacios</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${conResp}</div><div class="rep-kpi-l">Con responsable</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:${sinResp>0?'#D85A30':'#1D9E75'}">${sinResp}</div><div class="rep-kpi-l">${sinResp>0?'Sin responsable ⚠':'Todos cubiertos ✅'}</div></div>
-    <div class="rep-kpi-card"><div class="rep-kpi-v">${totalEquipos}</div><div class="rep-kpi-l">Equipos en espacios</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${_escHtml(conResp)}</div><div class="rep-kpi-l">Con responsable</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:${sinResp>0?'#D85A30':'#1D9E75'}">${_escHtml(sinResp)}</div><div class="rep-kpi-l">${sinResp>0?'Sin responsable ⚠':'Todos cubiertos ✅'}</div></div>
+    <div class="rep-kpi-card"><div class="rep-kpi-v">${_escHtml(totalEquipos)}</div><div class="rep-kpi-l">Equipos en espacios</div></div>
   `;
 
   if(!list.length){
@@ -10338,24 +10350,24 @@ function renderEspacios(){
   tb.innerHTML = list.map(e=>{
     const equipos = activos.filter(a=>a.ubicacion===e.nombre && a.estado!=='eliminado');
     return `<tr>
-      <td class="code-cell">${e.codigo||'—'}</td>
-      <td><div style="font-weight:600;font-size:12px">${sanitizeHTML(e.nombre||'')}</div></td>
-      <td style="font-size:11px"><span class="badge s-activo" style="font-size:10px">${e.depto||'—'}</span></td>
-      <td style="font-size:11px">${e.tipo||'—'}</td>
+      <td class="code-cell">${_escHtml(e.codigo||'—')}</td>
+      <td><div style="font-weight:600;font-size:12px">${_escHtml(e.nombre||'')}</div></td>
+      <td style="font-size:11px"><span class="badge s-activo" style="font-size:10px">${_escHtml(e.depto||'—')}</span></td>
+      <td style="font-size:11px">${_escHtml(e.tipo||'—')}</td>
       <td style="font-size:11px">${e.responsableNombre
-        ? `<span style="font-weight:600">${e.responsableNombre}</span>`
+        ? `<span style="font-weight:600">${_escHtml(e.responsableNombre)}</span>`
         : '<span style="color:var(--red);font-size:10px">⚠ Sin responsable</span>'}</td>
       <td style="font-size:11px">${e.responsableEmail
-        ? `<a href="mailto:${e.responsableEmail}" style="color:var(--navy)">${e.responsableEmail}</a>`
+        ? `<a href="mailto:${_escHtml(e.responsableEmail)}" style="color:var(--navy)">${_escHtml(e.responsableEmail)}</a>`
         : '—'}</td>
       <td style="text-align:center">
         <span style="font-weight:700;color:var(--navy)">${equipos.length}</span>
-        ${e.capacidad?`<div style="font-size:9px;color:var(--text3)">Capacidad: ${e.capacidad}</div>`:''}
+        ${e.capacidad?`<div style="font-size:9px;color:var(--text3)">Capacidad: ${_escHtml(e.capacidad)}</div>`:''}
       </td>
-      <td style="font-size:11px">${e.ubicacion||'—'}</td>
+      <td style="font-size:11px">${_escHtml(e.ubicacion||'—')}</td>
       <td onclick="event.stopPropagation()">
-        ${per.edit?`<button class="act-btn" onclick="openEspacio('${e.codigo}')">✎</button>`:''}
-        ${per.delete?`<button class="act-btn" onclick="eliminarEspacio('${e.codigo}')" style="color:var(--red)">×</button>`:''}
+        ${per.edit?`<button class="act-btn" onclick="openEspacio('${_jsArg(e.codigo)}')">✎</button>`:''}
+        ${per.delete?`<button class="act-btn" onclick="eliminarEspacio('${_jsArg(e.codigo)}')" style="color:var(--red)">×</button>`:''}
       </td>
     </tr>`;
   }).join('');
@@ -10377,14 +10389,14 @@ function openEspacio(codigo){
   const selDep = document.getElementById('esp-depto');
   selDep.innerHTML = '<option value="">— Seleccionar departamento —</option>' +
     departamentos.filter(d=>d.estado!=='eliminado').map(d=>
-      `<option value="${d.nombre}">${d.nombre}</option>`
+      `<option value="${_escHtml(d.nombre)}">${_escHtml(d.nombre)}</option>`
     ).join('');
   selDep.value = e.depto||'';
   // Poblar select de responsables (personas activas)
   const selResp = document.getElementById('esp-responsable');
   selResp.innerHTML = '<option value="">— Sin responsable asignado —</option>' +
     personas.filter(p=>p.estado==='activo').map(p=>
-      `<option value="${p.nombre}" data-email="${p.email||''}">${p.nombre}${p.cargo?' — '+p.cargo:''}</option>`
+      `<option value="${_escHtml(p.nombre)}" data-email="${_escHtml(p.email||'')}">${_escHtml(p.nombre)}${_escHtml(p.cargo?' — '+p.cargo:'')}</option>`
     ).join('');
   selResp.value = e.responsableNombre||'';
   document.getElementById('mod-espacio')._editCodigo = isEdit ? codigo : null;
@@ -10500,15 +10512,15 @@ function renderDepartamentos(){
     const personas_d = Array.isArray(personas) ? personas.filter(p=>p.depto===d.nombre && p.estado!=='inactivo').length : 0;
     const espacios_d = Array.isArray(espacios) ? espacios.filter(e=>e.depto===d.nombre && e.estado!=='eliminado').length : 0;
     return `<tr>
-      <td class="code-cell">${d.codigo||'—'}</td>
-      <td><strong>${sanitizeHTML(d.nombre||'')}</strong></td>
-      <td style="font-size:11px;color:var(--text3)">${d.desc||'—'}</td>
-      <td style="font-size:11px">${d.responsable||'—'}</td>
-      <td><span class="badge s-${d.estado||'activo'}">${d.estado||'activo'}</span>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">${activos_d} activos · ${espacios_d} espacios · ${personas_d} personas</div></td>
+      <td class="code-cell">${_escHtml(d.codigo||'—')}</td>
+      <td><strong>${_escHtml(d.nombre||'')}</strong></td>
+      <td style="font-size:11px;color:var(--text3)">${_escHtml(d.desc||'—')}</td>
+      <td style="font-size:11px">${_escHtml(d.responsable||'—')}</td>
+      <td><span class="badge s-${_escHtml(d.estado||'activo')}">${_escHtml(d.estado||'activo')}</span>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${_escHtml(activos_d)} activos · ${_escHtml(espacios_d)} espacios · ${_escHtml(personas_d)} personas</div></td>
       <td onclick="event.stopPropagation()">
-        ${per.edit?`<button class="act-btn" onclick="openDepartamento('${d.codigo}')">✎</button>`:''}
-        ${per.delete?`<button class="act-btn" onclick="eliminarDepartamento('${d.codigo}')" style="color:var(--red)">×</button>`:''}
+        ${per.edit?`<button class="act-btn" onclick="openDepartamento('${_jsArg(d.codigo)}')">✎</button>`:''}
+        ${per.delete?`<button class="act-btn" onclick="eliminarDepartamento('${_jsArg(d.codigo)}')" style="color:var(--red)">×</button>`:''}
       </td>
     </tr>`;
   }).join('');
@@ -10679,23 +10691,23 @@ function repMobiliarioInventario(el, tsStr){
     <div class="rep-header">
       <div>
         <div class="rep-title">Inventario de Mobiliario${filCondicion||filTipo||filDepto||filUbic?' — Filtrado':''}</div>
-        <div class="rep-meta">Generado: ${tsStr} · ${list.length} elemento(s) · ${cantTotal} unidad(es) en total${filtrosActivos?' · Filtros: '+filtrosActivos:''}</div>
+        <div class="rep-meta">Generado: ${_escHtml(tsStr)} · ${list.length} elemento(s) · ${_escHtml(cantTotal)} unidad(es) en total${_escHtml(filtrosActivos?' · Filtros: '+filtrosActivos:'')}</div>
       </div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v">${list.length}</div><div class="rep-kpi-l">Elementos</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v">${cantTotal}</div><div class="rep-kpi-l">Unidades totales</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${buenos}</div><div class="rep-kpi-l">Bueno</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${regulares}</div><div class="rep-kpi-l">Regular</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#D85A30">${deteriorados}</div><div class="rep-kpi-l">Deteriorado</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#888">${baja}</div><div class="rep-kpi-l">Dado de baja</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v">$${valTotal.toLocaleString()}</div><div class="rep-kpi-l">Valor total</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">${_escHtml(cantTotal)}</div><div class="rep-kpi-l">Unidades totales</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${_escHtml(buenos)}</div><div class="rep-kpi-l">Bueno</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#BA7517">${_escHtml(regulares)}</div><div class="rep-kpi-l">Regular</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#D85A30">${_escHtml(deteriorados)}</div><div class="rep-kpi-l">Deteriorado</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#888">${_escHtml(baja)}</div><div class="rep-kpi-l">Dado de baja</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">$${_escHtml(valTotal.toLocaleString())}</div><div class="rep-kpi-l">Valor total</div></div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v">${list.length}</div><div class="rep-kpi-l">Total elementos</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${buenos}</div><div class="rep-kpi-l">En buen estado</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#D85A30">${deteriorados}</div><div class="rep-kpi-l">Deteriorados</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v">$${valTotal.toLocaleString()}</div><div class="rep-kpi-l">Valor total</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#1D9E75">${_escHtml(buenos)}</div><div class="rep-kpi-l">En buen estado</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v" style="color:#D85A30">${_escHtml(deteriorados)}</div><div class="rep-kpi-l">Deteriorados</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">$${_escHtml(valTotal.toLocaleString())}</div><div class="rep-kpi-l">Valor total</div></div>
     </div>
     <div class="rep-section">
       <div class="rep-sec-title">Detalle de mobiliario</div>
@@ -10706,15 +10718,15 @@ function repMobiliarioInventario(el, tsStr){
           <th>Valor unit.</th><th>Valor total</th>
         </tr></thead>
         <tbody>${list.map(m=>`<tr>
-          <td class="code-cell">${m.codigo||'—'}</td>
-          <td style="font-weight:600">${sanitizeHTML(m.nombre||'')}</td>
-          <td>${m.tipo||'—'}</td>
-          <td style="text-align:center;font-weight:700">${m.cantidad||1}</td>
-          <td><span class="badge" style="background:${m.condicion==='bueno'?'#1D9E7522':m.condicion==='deteriorado'?'#D85A3022':'#BA751722'};color:${m.condicion==='bueno'?'#1D9E75':m.condicion==='deteriorado'?'#D85A30':'#BA7517'}">${m.condicion||'—'}</span></td>
-          <td style="font-size:11px">${sanitizeHTML(m.ubicacion||'—')}</td>
-          <td style="font-size:11px">${sanitizeHTML(m.depto||'—')}</td>
-          <td style="font-size:11px">$${(m.valor||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:#3B6D11">$${((m.valor||0)*(m.cantidad||1)).toLocaleString()}</td>
+          <td class="code-cell">${_escHtml(m.codigo||'—')}</td>
+          <td style="font-weight:600">${_escHtml(m.nombre||'')}</td>
+          <td>${_escHtml(m.tipo||'—')}</td>
+          <td style="text-align:center;font-weight:700">${_escHtml(m.cantidad||1)}</td>
+          <td><span class="badge" style="background:${m.condicion==='bueno'?'#1D9E7522':m.condicion==='deteriorado'?'#D85A3022':'#BA751722'};color:${m.condicion==='bueno'?'#1D9E75':m.condicion==='deteriorado'?'#D85A30':'#BA7517'}">${_escHtml(m.condicion||'—')}</span></td>
+          <td style="font-size:11px">${_escHtml(m.ubicacion||'—')}</td>
+          <td style="font-size:11px">${_escHtml(m.depto||'—')}</td>
+          <td style="font-size:11px">$${_escHtml((m.valor||0).toLocaleString())}</td>
+          <td style="font-weight:700;color:#3B6D11">$${_escHtml(((m.valor||0)*(m.cantidad||1)).toLocaleString())}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </div>`;
@@ -10733,30 +10745,30 @@ function repActivosPorEspacio(el, tsStr){
   let html = `
     <div class="rep-header">
       <div><div class="rep-title">Activos por Espacio</div>
-      <div class="rep-meta">Generado: ${tsStr} · ${Object.keys(espMap).length} espacios · ${lista.length} activos</div></div>
+      <div class="rep-meta">Generado: ${_escHtml(tsStr)} · ${Object.keys(espMap).length} espacios · ${lista.length} activos</div></div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v">${Object.keys(espMap).length}</div><div class="rep-kpi-l">Espacios con equipos</div></div>
       <div class="rep-kpi-card"><div class="rep-kpi-v">${lista.length}</div><div class="rep-kpi-l">Total activos</div></div>
-      <div class="rep-kpi-card"><div class="rep-kpi-v">$${lista.reduce((s,a)=>s+calcDepre(a),0).toLocaleString()}</div><div class="rep-kpi-l">Valor depreciado total</div></div>
+      <div class="rep-kpi-card"><div class="rep-kpi-v">$${_escHtml(lista.reduce((s,a)=>s+calcDepre(a),0).toLocaleString())}</div><div class="rep-kpi-l">Valor depreciado total</div></div>
     </div>`;
   Object.entries(espMap).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([espNom, items])=>{
     const espObj = Array.isArray(espacios) ? espacios.find(e=>e.nombre===espNom) : null;
     const valEsp = items.reduce((s,a)=>s+calcDepre(a),0);
     html += `<div class="rep-section">
-      <div class="rep-sec-title">${espNom}
-        ${espObj?.responsableNombre?` — Responsable: ${espObj.responsableNombre}`:''}
-        <span style="float:right;font-weight:400">${items.length} equipos · $${valEsp.toLocaleString()}</span>
+      <div class="rep-sec-title">${_escHtml(espNom)}
+        ${_escHtml(espObj?.responsableNombre?` — Responsable: ${espObj.responsableNombre}`:'')}
+        <span style="float:right;font-weight:400">${items.length} equipos · $${_escHtml(valEsp.toLocaleString())}</span>
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Asignado a</th><th>Estado</th><th>Valor dep.</th></tr></thead>
         <tbody>${items.map(a=>`<tr>
-          <td class="code-cell">${a.codigo}</td>
-          <td style="font-weight:600">${sanitizeHTML(a.nombre||'')}</td>
-          <td>${a.tipo||'—'}</td>
-          <td style="font-size:11px">${sanitizeHTML(a.asignado||'—')}</td>
-          <td><span class="badge s-${a.estado}">${a.estado}</span></td>
-          <td style="font-weight:700;color:#3B6D11">$${calcDepre(a).toLocaleString()}</td>
+          <td class="code-cell">${_escHtml(a.codigo)}</td>
+          <td style="font-weight:600">${_escHtml(a.nombre||'')}</td>
+          <td>${_escHtml(a.tipo||'—')}</td>
+          <td style="font-size:11px">${_escHtml(a.asignado||'—')}</td>
+          <td><span class="badge s-${_escHtml(a.estado)}">${_escHtml(a.estado)}</span></td>
+          <td style="font-weight:700;color:#3B6D11">$${_escHtml(calcDepre(a).toLocaleString())}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </div>`;
@@ -10777,7 +10789,7 @@ function repActivosPorPersona(el, tsStr){
   let html = `
     <div class="rep-header">
       <div><div class="rep-title">Activos por Persona</div>
-      <div class="rep-meta">Generado: ${tsStr} · ${Object.keys(perMap).length} personas con equipos asignados</div></div>
+      <div class="rep-meta">Generado: ${_escHtml(tsStr)} · ${Object.keys(perMap).length} personas con equipos asignados</div></div>
     </div>
     <div class="rep-kpi">
       <div class="rep-kpi-card"><div class="rep-kpi-v">${Object.keys(perMap).length}</div><div class="rep-kpi-l">Personas con equipos</div></div>
@@ -10787,20 +10799,20 @@ function repActivosPorPersona(el, tsStr){
   Object.entries(perMap).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([perNom, items])=>{
     const perObj = Array.isArray(personas) ? personas.find(p=>p.nombre===perNom) : null;
     html += `<div class="rep-section">
-      <div class="rep-sec-title">${perNom}
-        ${perObj?.cargo?' — '+perObj.cargo:''}
-        ${perObj?.email?` · 📧 ${perObj.email}`:''}
+      <div class="rep-sec-title">${_escHtml(perNom)}
+        ${_escHtml(perObj?.cargo?' — '+perObj.cargo:'')}
+        ${_escHtml(perObj?.email?` · 📧 ${perObj.email}`:'')}
         <span style="float:right;font-weight:400">${items.length} equipo(s)</span>
       </div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Ubicación</th><th>Estado</th><th>Garantía</th></tr></thead>
         <tbody>${items.map(a=>`<tr>
-          <td class="code-cell">${a.codigo}</td>
-          <td style="font-weight:600">${sanitizeHTML(a.nombre||'')}</td>
-          <td>${a.tipo||'—'}</td>
-          <td style="font-size:11px">${sanitizeHTML(a.ubicacion||'—')}</td>
-          <td><span class="badge s-${a.estado}">${a.estado}</span></td>
-          <td style="font-size:11px;color:${garantiaColor(a.garantia)}">${fmtFecha(a.garantia)}</td>
+          <td class="code-cell">${_escHtml(a.codigo)}</td>
+          <td style="font-weight:600">${_escHtml(a.nombre||'')}</td>
+          <td>${_escHtml(a.tipo||'—')}</td>
+          <td style="font-size:11px">${_escHtml(a.ubicacion||'—')}</td>
+          <td><span class="badge s-${_escHtml(a.estado)}">${_escHtml(a.estado)}</span></td>
+          <td style="font-size:11px;color:${_escHtml(garantiaColor(a.garantia))}">${_escHtml(fmtFecha(a.garantia))}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </div>`;

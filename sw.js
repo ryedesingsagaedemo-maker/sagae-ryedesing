@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v3.2
+// SAGAE — Service Worker v3.3
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v3.2';
-const CACHE_STATIC = 'sagae-static-v3.2';
+const CACHE_NAME   = 'sagae-mobile-v3.3';
+const CACHE_STATIC = 'sagae-static-v3.3';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -102,6 +102,10 @@ const CACHE_STATIC = 'sagae-static-v3.2';
 //   y el inicio de sesion muestra la titularidad del software (RYE Design, uso
 //   licenciado). Se sube el numero de cache para que todos los telefonos reciban
 //   la version nueva automaticamente.
+// v3.3: ESCAPADO DE DATOS EN PANTALLA — todos los datos guardados (nombres, observaciones,
+//   descripciones, codigos, enlaces de fotos) se escapan antes de dibujarse, para que un texto
+//   malicioso no pueda ejecutarse en la sesion del tecnico. Se sube el numero de cache para que
+//   todos los telefonos reciban la version nueva automaticamente.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -252,4 +256,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v3.2 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v3.3 cargado correctamente');
