@@ -7619,6 +7619,16 @@ function _impMotivo(res){
   return res.message||res.error||'error desconocido';
 }
 
+// Guardado de formularios con confirmación real del servidor. Sin conexión usa la cola
+// de siempre (apiPost); con conexión espera la respuesta y, si el servidor rechaza el
+// registro, lanza un Error con su mensaje para que el formulario no diga "guardado".
+async function _guardarConfirmado(sheet, action, obj){
+  if(!_isOnline) return apiPost(sheet, action, obj);
+  const res = await apiPostAsync(sheet, action, obj);
+  if(!res || !res.ok) throw new Error(_impMotivo(res));
+  return res;
+}
+
 // Celdas de un archivo cargado que no deben entrar al sistema: fórmulas de
 // hoja de cálculo (= + - @) y etiquetas HTML. Devuelve el motivo o ''.
 function _impCeldaPeligrosa(v){
@@ -10249,7 +10259,7 @@ async function guardarPersona(){
   const btn = document.querySelector('#mod-persona .btn-p');
   btn.disabled=true; btn.textContent='Guardando...';
   try{
-    await apiPost('personas', isEdit?'update':'insert', obj);
+    await _guardarConfirmado('personas', isEdit?'update':'insert', obj);
     if(isEdit){
       const idx = personas.findIndex(p=>p.codigo===editCod);
       if(idx>=0) personas[idx]={...obj};
@@ -10437,7 +10447,7 @@ async function guardarEspacio(){
   btn.disabled=true; btn.textContent='Guardando...';
   try{
     const _antesEsp = new Set(espacios.map(e=>e.codigo));
-    await apiPost('espacios', isEdit?'update':'insert', obj);
+    await _guardarConfirmado('espacios', isEdit?'update':'insert', obj);
     if(isEdit){
       const idx = espacios.findIndex(e=>e.codigo===editCod);
       const nombreAnterior = (idx>=0 && espacios[idx].nombre && espacios[idx].nombre!==nombre) ? espacios[idx].nombre : null;
@@ -10576,7 +10586,7 @@ async function guardarDepartamento(){
   btn.disabled=true; btn.textContent='Guardando...';
   try{
     const _antesDep = new Set(departamentos.map(d=>d.codigo));
-    await apiPost('departamentos', isEdit?'update':'insert', obj);
+    await _guardarConfirmado('departamentos', isEdit?'update':'insert', obj);
     if(isEdit){
       const idx = departamentos.findIndex(d=>d.codigo===editCod);
       if(idx>=0) departamentos[idx]={...obj};
