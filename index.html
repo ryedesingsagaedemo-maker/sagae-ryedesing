@@ -3471,7 +3471,7 @@ async function adminResetear2FA(){
   const username = document.getElementById('eu-username').value.trim();
   if(!username) return;
   if(!confirm(`¿Restablecer la verificación en dos pasos de "${username}"? La próxima vez que active esta opción, tendrá que escanear un código nuevo.`)) return;
-  await apiPost('usuarios','update',{username, totpEnabled:false, totpSecret:''});
+  try{ await _guardarConfirmado('usuarios','update',{username, totpEnabled:false, totpSecret:''}); }catch(e){ showToast('⚠ No se pudo restablecer: '+e.message,'error'); return; }
   const idx = usuarios.findIndex(x=>x.username===username);
   if(idx>=0) usuarios[idx].totpEnabled=false;
   audit('EDITAR','Usuario',username,`Verificación en dos pasos restablecida por ${session.nombre}`);
@@ -3493,13 +3493,14 @@ async function saveUsuario(){
   // La contraseña viaja en texto plano solo por HTTPS y se hashea en el
   // servidor (procesarLogin/doPost) — el cliente nunca calcula passHash.
   if(pass)u.passwordPlano=pass;
+  const _usrAntes=usuarios.slice().map(x=>({...x}));
   if(isEdit){
     const idx=usuarios.findIndex(x=>x.username===username);
     if(idx>=0){u.fechaCreacion=usuarios[idx].fechaCreacion;u.ultimoAcceso=usuarios[idx].ultimoAcceso;usuarios[idx]={...usuarios[idx],...u,passHash:usuarios[idx].passHash};delete usuarios[idx].passwordPlano;}
-    await apiPost('usuarios','update',u);audit('EDITAR','Usuario',username,`Editado por ${session.nombre}`);
+    try{await _guardarConfirmado('usuarios','update',u);}catch(e){usuarios=_usrAntes;alert('No se pudo guardar el usuario: '+e.message);return;}audit('EDITAR','Usuario',username,`Editado por ${session.nombre}`);
   }else{
     u.fechaCreacion=ts();u.ultimoAcceso='Nunca';usuarios.push(u);
-    await apiPost('usuarios','insert',u);audit('CREAR','Usuario',username,`Creado por ${session.nombre}. Rol: ${u.rol}`);
+    try{await _guardarConfirmado('usuarios','insert',u);}catch(e){usuarios=_usrAntes;alert('No se pudo crear el usuario: '+e.message);return;}audit('CREAR','Usuario',username,`Creado por ${session.nombre}. Rol: ${u.rol}`);
   }
   closeModals();renderUsuarios();
 }
@@ -3563,7 +3564,7 @@ async function toggleUsuarioEstado(username){
   const u=usuarios.find(x=>x.username===username);if(!u)return;
   const nuevo=u.estado==='activo'?'inactivo':'activo';
   if(!confirm(`¿${nuevo==='inactivo'?'Desactivar':'Activar'} al usuario "${username}"?`))return;
-  u.estado=nuevo;await apiPost('usuarios','update',u);
+  const _estUsrAntes=u.estado;u.estado=nuevo;try{await _guardarConfirmado('usuarios','update',u);}catch(e){u.estado=_estUsrAntes;showToast('⚠ No se pudo cambiar el estado: '+e.message,'error');renderUsuarios();return;}
   audit('EDITAR','Usuario',username,`Estado cambiado a ${nuevo} por ${session.nombre}`);renderUsuarios();
 }
 
@@ -3689,7 +3690,7 @@ async function cambiarMiPass(){
   const p1=document.getElementById('perfil-pass').value,p2=document.getElementById('perfil-pass2').value;
   if(!p1||p1.length<6){alert('Mínimo 6 caracteres.');return;}
   if(p1!==p2){alert('Las contraseñas no coinciden.');return;}
-  await apiPost('usuarios','update',{username:session.username,passwordPlano:p1});
+  try{await _guardarConfirmado('usuarios','update',{username:session.username,passwordPlano:p1});}catch(e){alert('No se pudo cambiar la contraseña: '+e.message);return;}
   audit('EDITAR','Usuario',session.username,'Cambio de contraseña propio');
   alert('Contraseña actualizada.');document.getElementById('perfil-pass').value='';document.getElementById('perfil-pass2').value='';
 }
@@ -4809,8 +4810,8 @@ async function confirmDelete(){
   const{type,id}=pendingDelete;
   if(type==='activo'){
     const a=activos.find(x=>x.codigo===id);if(!a)return;
-    a.estado='eliminado';a.historial=a.historial||[];a.historial.push({tipo:'Eliminación lógica',desc:`Eliminado por ${session.nombre}. Motivo: ${motivo}`,fecha:ts(),usuario:session.nombre,color:'red'});
-    await apiPost('activos','update',a);audit('ELIMINAR','Activo',a.codigo,`Por ${session.nombre}. Motivo: ${motivo}`);
+    const _estPrevA=a.estado;a.estado='eliminado';a.historial=a.historial||[];a.historial.push({tipo:'Eliminación lógica',desc:`Eliminado por ${session.nombre}. Motivo: ${motivo}`,fecha:ts(),usuario:session.nombre,color:'red'});
+    try{await _guardarConfirmado('activos','update',a);}catch(e){a.estado=_estPrevA;a.historial.pop();showToast('⚠ No se pudo eliminar: '+e.message,'error');return;}audit('ELIMINAR','Activo',a.codigo,`Por ${session.nombre}. Motivo: ${motivo}`);
   }else if(type==='mobiliario'){
     const m=mobiliario.find(x=>x.codigo===id);if(!m)return;
     const hist=[...parseHist(m.historial),{tipo:'Eliminación lógica',desc:`Eliminado por ${session.nombre}. Motivo: ${motivo}`,fecha:ts(),usuario:session.nombre,color:'red'}];
@@ -4823,8 +4824,8 @@ async function confirmDelete(){
     return;
   }else{
     const t=tickets.find(x=>x.codigo===id);if(!t)return;
-    t.estado='eliminado';t.historial=t.historial||[];t.historial.push({tipo:'Eliminación lógica',desc:`Eliminado por ${session.nombre}. Motivo: ${motivo}`,fecha:ts(),usuario:session.nombre,color:'red'});
-    await apiPost('tickets','update',t);audit('ELIMINAR','Ticket',t.codigo,`Por ${session.nombre}. Motivo: ${motivo}`);
+    const _estPrevT=t.estado;t.estado='eliminado';t.historial=t.historial||[];t.historial.push({tipo:'Eliminación lógica',desc:`Eliminado por ${session.nombre}. Motivo: ${motivo}`,fecha:ts(),usuario:session.nombre,color:'red'});
+    try{await _guardarConfirmado('tickets','update',t);}catch(e){t.estado=_estPrevT;t.historial.pop();showToast('⚠ No se pudo eliminar: '+e.message,'error');return;}audit('ELIMINAR','Ticket',t.codigo,`Por ${session.nombre}. Motivo: ${motivo}`);
   }
   closeModals();renderAll();if(type==='activo')go('activos',document.getElementById('nav-activos'));
 }
@@ -9720,7 +9721,7 @@ async function guardarLicencia(){
   btn.disabled = true; btn.textContent = 'Guardando...';
   try{
     const _antesLic = new Set(licencias.map(l=>l.codigo));
-    await apiPost('licencias', isEdit?'update':'insert', obj);
+    await _guardarConfirmado('licencias', isEdit?'update':'insert', obj);
     if(isEdit){
       const idx = licencias.findIndex(l=>l.codigo===editCodigo);
       if(idx>=0) licencias[idx] = {...obj, costoAnual:parseFloat(obj.costoAnual)||0, cantidadTotal:parseInt(obj.cantidadTotal)||0, instalaciones:existente?.instalaciones||[], historial:parseHist(obj.historial)};
@@ -9745,7 +9746,7 @@ async function eliminarLicencia(codigo){
   const l = licencias.find(x=>x.codigo===codigo);
   if(!l) return;
   try{
-    await apiPost('licencias','update',{...l, estado:'eliminado', instalaciones:JSON.stringify(l.instalaciones||[]), historial:JSON.stringify(l.historial||[])});
+    await _guardarConfirmado('licencias','update',{...l, estado:'eliminado', instalaciones:JSON.stringify(l.instalaciones||[]), historial:JSON.stringify(l.historial||[])});
     l.estado='eliminado';
     audit('ELIMINAR','Licencia',codigo,`Eliminado: ${l.nombre}`);
     renderLicencias();
@@ -9801,7 +9802,7 @@ async function asignarLicenciaAEquipo(){
   }
 
   try{
-    await apiPost('licencias','update',{
+    await _guardarConfirmado('licencias','update',{
       ...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[]),
       costoAnual:l.costoAnual, cantidadTotal:l.cantidadTotal
     });
@@ -9819,7 +9820,7 @@ async function quitarInstalacionLicencia(codigo, idx){
   if(!confirm('¿Quitar este equipo de la lista de instalaciones de la licencia?')) return;
   const instalacionesNuevas = (l.instalaciones||[]).filter((_,i)=>i!==idx);
   try{
-    await apiPost('licencias','update',{...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[])});
+    await _guardarConfirmado('licencias','update',{...l, instalaciones: JSON.stringify(instalacionesNuevas), historial: JSON.stringify(l.historial||[])});
     l.instalaciones = instalacionesNuevas;
     audit('EDITAR','Licencia',codigo,`Instalación removida por ${session.nombre}`);
     abrirDetalleLicencia(codigo);
@@ -10297,7 +10298,7 @@ async function eliminarPersona(codigo){
   const p = personas.find(x=>x.codigo===codigo);
   if(!p) return;
   try{
-    await apiPost('personas','update',{...p,estado:'eliminado'});
+    await _guardarConfirmado('personas','update',{...p,estado:'eliminado'});
     p.estado='eliminado';
     audit('ELIMINAR','Personas',codigo,`Eliminada: ${p.nombre}`);
     renderPersonas();
@@ -10501,7 +10502,7 @@ async function eliminarEspacio(codigo){
   const e = espacios.find(x=>x.codigo===codigo);
   if(!e) return;
   try{
-    await apiPost('espacios','update',{...e,estado:'eliminado'});
+    await _guardarConfirmado('espacios','update',{...e,estado:'eliminado'});
     e.estado='eliminado';
     audit('ELIMINAR','Espacios',codigo,`Eliminado: ${e.nombre}`);
     renderEspacios();
@@ -10658,7 +10659,7 @@ async function eliminarDepartamento(codigo){
   }
   if(!confirm('¿Eliminar el departamento "'+d.nombre+'"?')) return;
   try{
-    await apiPost('departamentos','update',{...d,estado:'eliminado'});
+    await _guardarConfirmado('departamentos','update',{...d,estado:'eliminado'});
     d.estado='eliminado';
     audit('ELIMINAR','Departamentos',codigo,`Eliminado: ${d.nombre}`);
     renderDepartamentos();
