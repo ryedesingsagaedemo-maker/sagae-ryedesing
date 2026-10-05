@@ -689,7 +689,7 @@ function _intentarCerrarModalMobile_(modalSheetId, fnCerrar){
   fnCerrar();
 }
 const API = "https://script.google.com/macros/s/AKfycbxSA74xU_zCdMuS6GFwbwWcYwW0JxyzlPgb08TWaJPyu8AxthZVzuY9tYbwK6oXxFPU/exec";
-const API_TOKEN = "SAGAE-7F2A9C41E8B6D053A1C4F9082EB37A65"; // gate mínimo — la autorización real es la sesión
+const API_TOKEN = "SAGAE-24BCE47DEA73689A36EA3971CA31A1FC"; // gate mínimo — la autorización real es la sesión
 const CACHE_KEY = "sagae_mobile_cache";
 const TIPO_ICON = {
   Computadora:"🖥️", Laptop:"💻", Tablet:"📱", Móvil:"📱", Monitor:"🖥️",
@@ -2876,8 +2876,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=3.2").then(reg=>{
-    console.log("[SAGAE] SW registrado v3.2:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=3.4").then(reg=>{
+    console.log("[SAGAE] SW registrado v3.4:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;

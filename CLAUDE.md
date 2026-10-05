@@ -10,7 +10,7 @@
 ## 🧭 Notas operativas para futuras sesiones (actualizado 2026-10-01)
 
 - **GitHub Pages publica SOLO `main`.** Lo que esté en la rama de trabajo no se ve en la web: "publicar" = dejar el cambio en `main`. Antes de empezar, traer `origin/main` (otra sesión o el usuario pueden haber subido commits) y partir de ahí.
-- **Portal web y móvil son casi uno** (técnico en campo / puesto de trabajo): todo cambio de lógica va en `index.html` **y** `SAGAE_index_mobile.html`, y si toca la app instalada se sube la versión de `sw.js` (hoy **v3.0**) y el `?v=` del registro en el móvil.
+- **Portal web y móvil son casi uno** (técnico en campo / puesto de trabajo): todo cambio de lógica va en `index.html` **y** `SAGAE_index_mobile.html`, y si toca la app instalada se sube la versión de `sw.js` (hoy **v3.4**) y el `?v=` del registro en el móvil.
 - **El backend (Apps Script) NO está en el repo**; vive en el proyecto de Apps Script del usuario. Parches en `docs/backend/`. El respaldo automático del programa a Drive es `BackupPrograma.gs` (se instala a mano).
 - **Método de verificación usado**: Playwright + Chromium con un servidor simulado que imita el Apps Script (el `update` real sobrescribe toda columna enviada, así que un historial parcial borra el completo). Reproducir el fallo ANTES de corregir y repetir después. El proxy bloquea los CDN: las librerías (DOMPurify, JsBarcode, etc.) se sirven localmente desde `npm pack`.
 - **Convenciones de datos**: el historial viaja siempre como **arreglo** y se **acumula** (`[...parseHist(prev.historial), evento]`); nunca como texto ni solo con el evento nuevo. El backend mira solo el **último** evento del historial para decidir si manda correo, y solo al **actualizar**, no al insertar.
@@ -391,3 +391,4 @@ git diff main...claude/frontend-design-skill-3vykdl
 
 *Generado por Claude Code - Security Hardening Phase B*  
 *Documento de referencia para futuras sesiones y memory del proyecto*
+

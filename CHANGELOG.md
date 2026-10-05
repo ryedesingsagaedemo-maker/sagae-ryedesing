@@ -1,5 +1,12 @@
 # CHANGELOG - SAGAE Hardening
 
+## [2026-10-05] Renovación del token de API (web, móvil y portal público)
+
+- El token que acompaña cada petición al servidor se renueva (web, móvil y portal público). **Es un filtro de tráfico ajeno, no un secreto**: al estar en pantallas públicas siempre es visible; la protección real es la sesión del servidor. Se renueva por higiene (el anterior quedó en el historial de GitHub y en copias del script).
+- Transición sin cortes: el servidor acepta **dos** valores (`SAGAE_API_TOKEN` anterior y `SAGAE_API_TOKEN_NUEVO`). Parche en `docs/backend/PARCHE-TOKEN-2026-10-05.gs`. Orden: 1) servidor, 2) publicar pantallas, 3) una semana después borrar la propiedad anterior.
+- Service Worker **v3.4** (la app instalada se actualiza sola); el registro del móvil pasa a `sw.js?v=3.4`.
+- Pruebas: 33/33 del servidor, 11 nuevas del validador (transición, solo-nuevo, fail-closed, token débil), 86/86 de navegador, actualización de la app instalada v3.3→v3.4.
+
 ## [2026-10-01] Auditoría de lógica: mobiliario, cierre de tickets y trazabilidad
 
 Revisión completa de la lógica de mobiliario y de los procesos que cruzan módulos, en **portal web y app móvil**.

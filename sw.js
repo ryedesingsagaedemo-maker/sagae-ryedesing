@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v3.3
+// SAGAE — Service Worker v3.4
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v3.3';
-const CACHE_STATIC = 'sagae-static-v3.3';
+const CACHE_NAME   = 'sagae-mobile-v3.4';
+const CACHE_STATIC = 'sagae-static-v3.4';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -106,6 +106,10 @@ const CACHE_STATIC = 'sagae-static-v3.3';
 //   descripciones, codigos, enlaces de fotos) se escapan antes de dibujarse, para que un texto
 //   malicioso no pueda ejecutarse en la sesion del tecnico. Se sube el numero de cache para que
 //   todos los telefonos reciban la version nueva automaticamente.
+// v3.4: CAMBIO DEL TOKEN DE API — se renueva el token que acompana a cada peticion al servidor.
+//   (Ese token siempre viaja en el codigo publico: es un filtro de trafico ajeno, no un secreto;
+//   la autorizacion real es la sesion.) Se sube el numero de cache para que todos los telefonos
+//   reciban la version nueva automaticamente y dejen de usar el token anterior.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -118,7 +122,7 @@ const STATIC_ASSETS = [
 
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v3.2...');
+  console.log('[SAGAE SW] Instalando v3.4...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -133,7 +137,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v3.2...');
+  console.log('[SAGAE SW] Activando v3.4...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -256,4 +260,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v3.3 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v3.4 cargado correctamente');

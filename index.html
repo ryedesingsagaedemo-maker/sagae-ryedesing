@@ -2386,9 +2386,10 @@ tbody tr.clickable{cursor:pointer;}
 </div>
 <script>
 const API="https://script.google.com/macros/s/AKfycbxSA74xU_zCdMuS6GFwbwWcYwW0JxyzlPgb08TWaJPyu8AxthZVzuY9tYbwK6oXxFPU/exec"
-// ── TOKEN DE API — debe coincidir con SAGAE_API_TOKEN en Script Properties ──
-// Cambiar este valor y configurar el mismo en Apps Script > Propiedades del proyecto
-const API_TOKEN = "SAGAE-7F2A9C41E8B6D053A1C4F9082EB37A65"; // gate mínimo — la autorización real es la sesión (ver nota en el backend)
+// ── TOKEN DE API — filtro de trafico ajeno, NO un secreto (viaja en el codigo publico) ──
+// Debe coincidir con SAGAE_API_TOKEN_NUEVO (o SAGAE_API_TOKEN) en las Propiedades del script de Apps Script.
+// La proteccion real de los datos es la sesion que valida el servidor.
+const API_TOKEN = "SAGAE-24BCE47DEA73689A36EA3971CA31A1FC"; // gate mínimo — la autorización real es la sesión (ver nota en el backend)
 
 const ROL_LABELS={admin:'Administrador',tecnico:'Técnico',consultor:'Consultor',inventario:'Inventario'};
 const ROL_CLASS={admin:'s-admin',tecnico:'s-tecnico',consultor:'s-consultor',inventario:'s-inventario'};
