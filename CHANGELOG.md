@@ -1,5 +1,11 @@
 # CHANGELOG - SAGAE Hardening
 
+## [2026-10-05] Renovación del token de API (web, móvil y portal público) — PENDIENTE DE PUBLICAR
+
+- El token que acompaña cada petición al servidor se renueva (web, móvil y portal público). **Es un filtro de tráfico ajeno, no un secreto**: al estar en pantallas públicas siempre es visible; la protección real es la sesión del servidor. Se renueva por higiene.
+- Transición sin cortes: el servidor acepta **dos** valores (`SAGAE_API_TOKEN` anterior y `SAGAE_API_TOKEN_NUEVO`). Parche en `docs/backend/PARCHE-TOKEN-2026-10-05.gs`. Orden: 1) servidor, 2) publicar pantallas, 3) una semana después borrar la propiedad anterior.
+- Service Worker **v3.5**.
+
 ## [2026-10-13] Parche de seguridad, punto 4: portal público
 
 Parche en `docs/backend/PARCHE-SEGURIDAD-PUNTO4-2026-10-13.gs` (Apps Script, instalación manual):
