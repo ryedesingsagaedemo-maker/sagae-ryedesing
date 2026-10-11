@@ -1,5 +1,14 @@
 # CHANGELOG - SAGAE Hardening
 
+## [2026-10-12] Parche de seguridad del servidor (revisión de seguridad)
+
+Hallazgos de la revisión, con parche en `docs/backend/PARCHE-SEGURIDAD-2026-10-12.gs` (Apps Script, instalación manual):
+- **Inyección de fórmulas** (alto): lo que se escribe en la hoja, incluido el reporte anónimo del portal público, podía ejecutarse como fórmula (`=IMAGE(...)`, `=IMPORTDATA(...)`) y sacar datos de la hoja. Ahora los textos que empiezan por `= + - @` se guardan como texto.
+- **Catálogos públicos** (medio): `?sheet=espacios` y `?sheet=departamentos` sin sesión devolvían responsables y correos. Sin sesión ahora solo salen código, nombre, depto y estado.
+- **Claves de licencias** (medio): el rol consultor ya no las recibe.
+- Pruebas del servidor: 33/33 anteriores + 29 nuevas (11 fallaban con el código anterior), 11 del validador de token.
+- Pendiente (no incluido): límites de largo y validación de enlaces de foto del reporte público; contraseñas largas / 2FA para administradores.
+
 ## [2026-10-11] Revisión: guardado de tickets sin confirmar, caché del aviso, función duplicada
 
 - **Crear ticket con confirmación tardía (web y móvil):** si el servidor guardaba pero la confirmación no llegaba en 60 s, el formulario quedaba abierto y volver a pulsar "Guardar" duplicaba el ticket. Ahora la pantalla recarga la lista y **busca** el ticket entre los códigos que no existían antes (mismo título y responsable); si lo encuentra lo trata como creado con su código real y cierra el formulario; si no, avisa de revisar la lista antes de repetir. Probado en ambos casos (guardado y no guardado) en web y móvil.
