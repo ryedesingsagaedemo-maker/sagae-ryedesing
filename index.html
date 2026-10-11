@@ -4660,18 +4660,28 @@ async function saveTicket(){
     const aId=document.getElementById('et-activo').value;
     const aNom=aId?(activos.find(a=>a.codigo===aId)||{nombre:'—'}).nombre:'—';
     const t={id:code,codigo:code,titulo,activoId:aId||'',activoNombre:aNom,resp:document.getElementById('et-resp').value||'—',tipo:document.getElementById('et-tipo').value,prior:document.getElementById('et-prior').value,estado:document.getElementById('et-estado').value,avance:Math.min(100,Math.max(0,parseInt(document.getElementById('et-avance').value)||0)),dead:document.getElementById('et-dead').value||'—',proy:document.getElementById('et-proy').value.trim()||'—',desc:document.getElementById('et-desc').value.trim(),fotos:JSON.stringify(_etFotosActuales),foto:_etFotosActuales.length?_etFotosActuales[0].url:'—',historial:[{tipo:'Creación',desc:'Creado por '+session.nombre,fecha:ts(),usuario:session.nombre,color:'green'}],fechaCreacion:ts()};
+    const codigosAntes = new Set(tickets.map(x=>x.codigo));
     tickets.push(t);
 
-    const res = await apiPostAsync('tickets','insert',t,60000);
+    let res = await apiPostAsync('tickets','insert',t,60000);
 
     if(res && res.ok===false && res.error==='TIMEOUT'){
-      // No se pudo confirmar. NO se reintenta a ciegas: se recarga la lista
-      // desde el servidor para que el usuario vea si el ticket entró o no.
-      // Reintentar aquí sin confirmar es justamente lo que duplicaba filas.
+      // No se pudo confirmar. NO se reintenta a ciegas (eso duplicaba filas):
+      // se recarga la lista desde el servidor y se BUSCA el ticket, entre los
+      // códigos que no existían antes. Si aparece, se trata como creado (con
+      // su código real) y el formulario se cierra; si no, el formulario queda
+      // abierto y se avisa de revisar la lista ANTES de repetir.
       tickets = tickets.filter(x=>x.codigo!==code);
-      showToast('⏱ El servidor tardó en confirmar. Actualizando la lista para verificar si el ticket se creó...','error');
-      await recargarTickets();
-      return;
+      showToast('⏱ El servidor tardó en confirmar. Verificando si el ticket se creó...','error');
+      let hallado = await _buscarTicketCreado(codigosAntes, t);
+      if(!hallado){ await new Promise(r=>setTimeout(r,5000)); hallado = await _buscarTicketCreado(codigosAntes, t); }
+      if(!hallado){
+        showToast('⚠ No se pudo confirmar si el ticket se creó. Revise la lista ANTES de volver a guardar, para no duplicarlo.','error');
+        return;
+      }
+      tickets = tickets.filter(x=>x.codigo!==hallado.codigo);
+      tickets.push(t);
+      res = {ok:true, codigo:hallado.codigo};
     }
     if(res && res.ok===false){
       tickets = tickets.filter(x=>x.codigo!==code);
@@ -4779,6 +4789,13 @@ async function saveTicket(){
 // Recarga la lista de tickets desde el servidor. Se usa cuando una
 // operación no pudo confirmarse, para que el usuario vea el estado real
 // en vez de tener que adivinar si guardó o no.
+// Busca en la lista recién descargada un ticket que NO existía antes de guardar
+// y que coincide con el que se acaba de enviar (mismo título y responsable).
+async function _buscarTicketCreado(codigosAntes, t){
+  await recargarTickets();
+  return tickets.find(x=>x && x.codigo && !codigosAntes.has(x.codigo)
+                          && x.titulo===t.titulo && (x.resp||'—')===(t.resp||'—')) || null;
+}
 async function recargarTickets(){
   try{
     const raw = await apiGet('tickets');

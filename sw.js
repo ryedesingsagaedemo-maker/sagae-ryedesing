@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// SAGAE — Service Worker v3.3
+// SAGAE — Service Worker v3.4
 // Sistema de Activos y Gestión Administrativa Educativa
 // Desarrollado por RYE Design
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME   = 'sagae-mobile-v3.3';
-const CACHE_STATIC = 'sagae-static-v3.3';
+const CACHE_NAME   = 'sagae-mobile-v3.4';
+const CACHE_STATIC = 'sagae-static-v3.4';
 
 // Recursos a cachear para funcionamiento offline
 // (Corrección histórica v1.7: antes apuntaba a index.html —panel de
@@ -106,6 +106,9 @@ const CACHE_STATIC = 'sagae-static-v3.3';
 //   descripciones, codigos, enlaces de fotos) se escapan antes de dibujarse, para que un texto
 //   malicioso no pueda ejecutarse en la sesion del tecnico. Se sube el numero de cache para que
 //   todos los telefonos reciban la version nueva automaticamente.
+// v3.4: ARREGLOS DE REVISION — al crear un ticket cuyo guardado tarda en confirmarse, la pantalla
+//   comprueba sola si se creo (evita duplicados); el Aviso de Privacidad tambien abre sin conexion.
+//   Se sube el numero de cache para que todos los telefonos reciban la version nueva automaticamente.
 const STATIC_ASSETS = [
   './',
   './SAGAE_index_mobile.html',
@@ -116,14 +119,22 @@ const STATIC_ASSETS = [
   './logo/sagae-simbolo-blanco.png'
 ];
 
+// Recursos OPCIONALES: se guardan uno por uno y, si alguno falta, no se pierde el resto
+// (cache.addAll es de todo o nada). El Aviso de Privacidad debe abrir aun sin señal.
+const OPTIONAL_ASSETS = [
+  './aviso-privacidad.html'
+];
+
 // ── INSTALL — cachear recursos estáticos ─────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SAGAE SW] Instalando v3.2...');
+  console.log('[SAGAE SW] Instalando v3.4...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
         console.warn('[SAGAE SW] Error cacheando assets:', err);
-      });
+      }).then(() => Promise.all(OPTIONAL_ASSETS.map(u =>
+        cache.add(u).catch(err => console.warn('[SAGAE SW] Recurso opcional no disponible:', u, err))
+      )));
     }).then(() => {
       console.log('[SAGAE SW] Assets cacheados correctamente');
       return self.skipWaiting();
@@ -133,7 +144,7 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — limpiar caches viejos ─────────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SAGAE SW] Activando v3.2...');
+  console.log('[SAGAE SW] Activando v3.4...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -256,4 +267,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SAGAE SW] Service Worker v3.3 cargado correctamente');
+console.log('[SAGAE SW] Service Worker v3.4 cargado correctamente');

@@ -2418,19 +2418,35 @@ async function saveTicket(){
     const histInicial=[{tipo:"Creación",desc:"Creado desde app móvil por "+session.nombre,fecha:ts(),usuario:session.nombre,color:"green"}];
     if(solicitudPiezas) histInicial.push(solicitudPiezas);
     const t={id:code,codigo:code,titulo,activoId:aId||"",activoNombre:aNom,resp:respSelected,tipo:document.getElementById("mt-tipo").value,prior:document.getElementById("mt-prior").value,estado:document.getElementById("mt-estado").value,avance:parseInt(document.getElementById("mt-avance").value)||0,dead:document.getElementById("mt-dead").value||"—",proy:"—",desc:document.getElementById("mt-desc").value.trim(),foto:_mtFotosActuales.length?_mtFotosActuales[0].url:"—",fotos:JSON.stringify(_mtFotosActuales),historial:histInicial,fechaCreacion:ts()};
+    const codigosAntesM = new Set(tickets.map(x=>x.codigo));
     tickets.push(t);
-    const resM = await apiPostAsync("tickets","insert",t,60000);
+    let resM = await apiPostAsync("tickets","insert",t,60000);
     if(resM && resM.ok===false && resM.error==='TIMEOUT'){
       tickets = tickets.filter(x=>x.codigo!==code);
-      showToast("⏱ No se pudo confirmar. Actualizando lista para verificar...","error");
-      try{
-        const raw = await apiGet("tickets");
-        if(Array.isArray(raw) && raw.length){
-          tickets = raw.map(r=>({...r, id:r.codigo, avance:parseInt(r.avance)||0, historial:parseHist(r.historial)}));
-        }
-      }catch(e){}
-      saveCache(); renderTickets(); renderDashboard();
-      return;
+      showToast("⏱ No se pudo confirmar. Verificando si el ticket se creó...","error");
+      // Se recarga la lista y se BUSCA el ticket entre los códigos que no
+      // existían antes. Si aparece, se trata como creado (con su código real);
+      // si no, se avisa de revisar la lista antes de repetir (evita duplicados).
+      const _buscarM = async ()=>{
+        try{
+          const raw = await apiGet("tickets");
+          if(Array.isArray(raw) && raw.length){
+            tickets = raw.map(r=>({...r, id:r.codigo, avance:parseInt(r.avance)||0, historial:parseHist(r.historial)}));
+          }
+        }catch(e){}
+        return tickets.find(x=>x && x.codigo && !codigosAntesM.has(x.codigo)
+                                && x.titulo===t.titulo && (x.resp||"—")===(t.resp||"—")) || null;
+      };
+      let halladoM = await _buscarM();
+      if(!halladoM){ await new Promise(r=>setTimeout(r,5000)); halladoM = await _buscarM(); }
+      if(!halladoM){
+        saveCache(); renderTickets(); renderDashboard();
+        showToast("⚠ No se pudo confirmar si el ticket se creó. Revise la lista ANTES de volver a guardar.","error");
+        return;
+      }
+      tickets = tickets.filter(x=>x.codigo!==halladoM.codigo);
+      tickets.push(t);
+      resM = {ok:true, codigo:halladoM.codigo};
     }
     if(resM && resM.ok===false){
       tickets = tickets.filter(x=>x.codigo!==code);
@@ -2679,12 +2695,6 @@ function _resetMobPiezasTicket(){
   });
   const u = document.getElementById("mt-piezas-urgencia"); if(u) u.value="normal";
 }
-function mostrarBotonEscaner(){
-  const btn=document.getElementById("mob-scan-btn");
-  if(!btn||!session) return;
-  if(["admin","tecnico","inventario"].includes(session.rol)) btn.classList.add("visible");
-  else btn.classList.remove("visible");
-}
 async function saveMant(){
   if(!activoDetalle) return;
   const desc=document.getElementById("mm-desc").value.trim();
@@ -2876,8 +2886,8 @@ window.addEventListener("offline",()=>{
   setSyncStatus(false);
 });
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js?v=3.2").then(reg=>{
-    console.log("[SAGAE] SW registrado v3.2:", reg.scope);
+  navigator.serviceWorker.register("sw.js?v=3.4").then(reg=>{
+    console.log("[SAGAE] SW registrado v3.4:", reg.scope);
     reg.addEventListener("updatefound", ()=>{
       const newWorker = reg.installing;
       if(!newWorker) return;

@@ -1,5 +1,12 @@
 # CHANGELOG - SAGAE Hardening
 
+## [2026-10-11] Revisión: guardado de tickets sin confirmar, caché del aviso, función duplicada
+
+- **Crear ticket con confirmación tardía (web y móvil):** si el servidor guardaba pero la confirmación no llegaba en 60 s, el formulario quedaba abierto y volver a pulsar "Guardar" duplicaba el ticket. Ahora la pantalla recarga la lista y **busca** el ticket entre los códigos que no existían antes (mismo título y responsable); si lo encuentra lo trata como creado con su código real y cierra el formulario; si no, avisa de revisar la lista antes de repetir. Probado en ambos casos (guardado y no guardado) en web y móvil.
+- **Aviso de Privacidad sin conexión:** `sw.js` lo guarda como recurso **opcional** (uno por uno), para que su ausencia nunca vacíe la caché del resto de la app (`cache.addAll` es de todo o nada).
+- Móvil: se elimina la función `mostrarBotonEscaner` duplicada (idéntica).
+- Service Worker **v3.4** (la app instalada se actualiza sola).
+
 ## [2026-10-01] Auditoría de lógica: mobiliario, cierre de tickets y trazabilidad
 
 Revisión completa de la lógica de mobiliario y de los procesos que cruzan módulos, en **portal web y app móvil**.
