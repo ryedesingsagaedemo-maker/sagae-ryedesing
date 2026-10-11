@@ -1,5 +1,13 @@
 # CHANGELOG - SAGAE Hardening
 
+## [2026-10-13] Parche de seguridad, punto 4: portal público
+
+Parche en `docs/backend/PARCHE-SEGURIDAD-PUNTO4-2026-10-13.gs` (Apps Script, instalación manual):
+- Reporte anónimo: título (200) y descripción (3000) con largo máximo; tipo y prioridad solo con valores reales; sin título se rechaza.
+- Enlaces de foto del reporte: solo `https://drive.google.com/file/d/…` (nada de sitios ajenos ni `javascript:`).
+- **Subida anónima de fotos** (`uploadFoto` con `origen:"portal"`, sin sesión): solo imágenes, máximo 10 MB, carpeta fija `Tickets`, nombre limpio, 15 fotos/hora por dispositivo y 400/hora en total. Antes aceptaba cualquier archivo, tamaño y carpeta. La subida con sesión no cambia.
+- Pruebas: 28 nuevas (16 fallaban con el código anterior) + 33 + 28 + 11 anteriores sin cambios.
+
 ## [2026-10-12] Parche de seguridad del servidor (revisión de seguridad)
 
 Hallazgos de la revisión, con parche en `docs/backend/PARCHE-SEGURIDAD-2026-10-12.gs` (Apps Script, instalación manual):
