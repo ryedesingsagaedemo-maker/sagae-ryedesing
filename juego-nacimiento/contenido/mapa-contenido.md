@@ -1,6 +1,6 @@
 # Juego bíblico: el nacimiento de Jesucristo en toda la Escritura
 
-**Mapa de contenido (versión 0.1, borrador).**
+**Mapa de contenido (versión 0.3).** Los 10 bloques ya tienen niveles jugables: 5 por bloque para niños y 5 para jóvenes y adultos (100 niveles). Versículos de los niveles verificados en RVR1960; ver `contenido/versiculos.py`.
 **Texto base:** Reina-Valera 1960. Toda afirmación doctrinal se apoya en un pasaje citado.
 **Criterio:** evangélico conservador de línea bautista. Solo Escritura como autoridad. Sin alegorías especulativas, sin doctrinas pentecostales o carismáticas, sin énfasis en emociones como fundamento.
 

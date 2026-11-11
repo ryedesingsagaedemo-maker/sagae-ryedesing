@@ -19,6 +19,7 @@
   const barajar = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
   const norm = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-zñ ]/g, '').trim();
   const grupo = () => D.grupos[S.grupo];
+  const todos = (g = grupo()) => g.bloques.flatMap((b) => b.niveles.map((n) => Object.assign(n, { bloque: b })));
   const estrellas = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
   const top = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -92,15 +93,15 @@
     });
     return n;
   }
-  const hechos = () => grupo().niveles.filter((n) => S.progreso[n.id]).length;
+  const hechos = (lista = todos()) => lista.filter((n) => S.progreso[n.id]).length;
 
   function inicio() {
     $app.innerHTML = `<h1>El nacimiento de Jesucristo</h1>
       <p class="lead">De Génesis a Apocalipsis: las profecías, los lugares y el porqué de cada viaje, con la Reina-Valera 1960.</p>`;
     $app.append(selectorGrupo());
-    const sig = grupo().niveles.find((n) => !S.progreso[n.id]) || grupo().niveles[0];
-    $app.append(el(`<div class="card dorada"><div class="chip">Continuar</div><h2>${esc(sig.titulo)}</h2>
-      <p class="muted">${esc(sig.pasajes.join(' · '))} · ${hechos()} de ${grupo().niveles.length} niveles completados</p>
+    const lista = todos(), sig = lista.find((n) => !S.progreso[n.id]) || lista[0];
+    $app.append(el(`<div class="card dorada"><div class="chip">Continuar · Bloque ${sig.bloque.num}</div><h2>${esc(sig.titulo)}</h2>
+      <p class="muted">${esc(sig.pasajes.join(' · '))}</p><p class="muted">${hechos(lista)} de ${lista.length} niveles completados</p>
       <button class="primary full" id="seguir">▶ Jugar este nivel</button></div>`));
     document.getElementById('seguir').onclick = () => ir('nivel', sig.id);
     const menu = el(`<div class="menu">
@@ -113,28 +114,40 @@
     $app.append(el(`<p class="muted" style="margin-top:18px">Contenido basado en la Escritura (RVR1960). Las distancias son en línea recta y aproximadas. Tu progreso se guarda en este dispositivo.</p>`));
   }
 
+  let abierto = null;
   function niveles() {
-    $app.innerHTML = `<h1>Niveles</h1><p class="lead">Bloque 7 · Los Evangelios: el nacimiento</p>`;
+    $app.innerHTML = `<h1>Niveles</h1><p class="lead">10 bloques, de Génesis a Apocalipsis. Toca un bloque para ver sus niveles.</p>`;
     $app.append(selectorGrupo());
-    grupo().niveles.forEach((n, i) => {
-      const p = S.progreso[n.id];
-      const c = el(`<div class="card nivel"><div class="num">${i + 1}</div><div class="info"><b>${esc(n.titulo)}</b>
-        <span class="muted">${esc(n.pasajes.join(' · '))}</span><div class="stars">${p ? estrellas(p.estrellas) : 'Sin jugar'}</div></div>
-        <button class="primary">${p ? 'Repetir' : 'Jugar'}</button></div>`);
-      c.querySelector('button').onclick = () => ir('nivel', n.id);
-      $app.append(c);
+    const bl = grupo().bloques;
+    if (!abierto) { const b = bl.find((x) => x.niveles.some((n) => !S.progreso[n.id])) || bl[0]; abierto = b.id; }
+    bl.forEach((b) => {
+      const h = hechos(b.niveles), on = b.id === abierto;
+      const card = el(`<div class="card bloque ${on ? 'dorada' : ''}"><button class="cab" aria-expanded="${on}"><span class="bn">${b.num}</span>
+        <span class="bt"><b>${esc(b.titulo)}</b><small>${esc(b.sub)} · ${h}/${b.niveles.length}</small></span><span class="fl">${on ? '▲' : '▼'}</span></button></div>`);
+      card.querySelector('.cab').onclick = () => { abierto = on ? '-' : b.id; niveles(); };
+      if (on) b.niveles.forEach((n, i) => {
+        const p = S.progreso[n.id];
+        const c = el(`<div class="nivel"><div class="num">${i + 1}</div><div class="info"><b>${esc(n.titulo)}</b>
+          <span class="muted">${esc(n.pasajes.join(' · '))}</span><div class="stars">${p ? estrellas(p.estrellas) : 'Sin jugar'}</div></div>
+          <button class="primary">${p ? 'Repetir' : 'Jugar'}</button></div>`);
+        c.querySelector('button').onclick = () => ir('nivel', n.id);
+        card.append(c);
+      });
+      $app.append(card);
     });
   }
 
   /* ---------- nivel ---------- */
-  let N = null, paso = 0, puntos = 0, total = 0;
+  let N = null, paso = 0, puntos = 0, total = 0, pasos = PASOS;
   function nivel(id) {
-    N = grupo().niveles.find((n) => n.id === id); paso = 0; puntos = 0; total = 0; pintarPaso();
+    N = todos().find((n) => n.id === id); paso = 0; puntos = 0; total = 0;
+    pasos = PASOS.filter((p) => p[0] !== 'video' || N.devocional.capsula);
+    abierto = N.bloque.id; pintarPaso();
   }
   function cabecera() {
-    return `<div class="chip">${esc(N.titulo)}</div>
-      <div class="steps">${PASOS.map((p, i) => `<i class="${i <= paso ? 'on' : ''}"></i>`).join('')}</div>
-      <div class="steplabel">Paso ${paso + 1} de ${PASOS.length} · ${PASOS[paso][1]}</div>`;
+    return `<div class="chip">Bloque ${N.bloque.num} · ${esc(N.titulo)}</div>
+      <div class="steps">${pasos.map((p, i) => `<i class="${i <= paso ? 'on' : ''}"></i>`).join('')}</div>
+      <div class="steplabel">Paso ${paso + 1} de ${pasos.length} · ${pasos[paso][1]}</div>`;
   }
   function barra(sigTexto, accion, ocultar) {
     const b = el(`<div class="fixbar"><button id="atras">← Atrás</button><button class="primary" id="sig">${sigTexto}</button></div>`);
@@ -144,7 +157,7 @@
     return b;
   }
   function pintarPaso() {
-    const dv = N.devocional; const k = PASOS[paso][0];
+    const dv = N.devocional; const k = pasos[paso][0];
     $app.innerHTML = cabecera();
     if (k === 'video') {
       $app.append(el(`<div class="card"><h2>${esc(dv.capsula_titulo)}</h2>
@@ -158,7 +171,8 @@
     } else if (k === 'devocional') {
       const p = dv.predicacion;
       $app.append(el(`<div class="card"><div class="chip">Contexto</div><p>${esc(dv.contexto)}</p>
-        ${dv.porque ? `<div class="badge">${esc(D.tipos[dv.porque.tipo])}</div><p class="muted">${esc(dv.porque.texto)}</p>` : ''}</div>`));
+        ${dv.porque ? `<div class="badge">${esc(D.tipos[dv.porque.tipo])}</div><p class="muted">${esc(dv.porque.texto)}</p>` : ''}
+        ${dv.nota ? `<p class="muted"><b>Nota:</b> ${esc(dv.nota)}</p>` : ''}</div>`));
       $app.append(el(`<div class="card dorada"><div class="chip">Mini predicación</div><h2>${esc(p.titulo)}</h2>
         ${p.puntos.map((x, i) => `<div class="punto"><h3>${i + 1}. ${esc(x.titulo)}</h3><p>${esc(x.texto)}</p><span class="ref">${esc(x.cita)}</span></div>`).join('')}
         <p><b>${esc(p.conclusion)}</b></p></div>`));
@@ -270,7 +284,7 @@
     const prev = S.progreso[N.id];
     if (!prev || prev.estrellas <= est) S.progreso[N.id] = { estrellas: est, puntos, total };
     guardar();
-    const lista = grupo().niveles, i = lista.indexOf(N), sig = lista[i + 1];
+    const lista = todos(), i = lista.indexOf(N), sig = lista[i + 1];
     $app.append(el(`<div class="card final dorada"><div class="big">${estrellas(est)}</div><h2>${puntos} de ${total} respuestas correctas</h2>
       <p class="muted">Aplicación del nivel</p><p>${esc(N.aplicacion)}</p>
       <p class="ref">Versículo para memorizar: ${esc(N.devocional.memoriza.cita)}</p></div>`));
@@ -327,7 +341,7 @@
     $app.append(chips);
     const on = chips.querySelector('.on'); if (on) chips.scrollLeft = on.offsetLeft - 16;
     const v = D.viajes.find((x) => x.id === viajeSel);
-    const puntos = v.mapa === 'H' ? ['Nazaret', 'Belén', 'Jerusalén', 'Ramá'] : [...new Set([v.de, v.a, 'Egipto'].filter(Boolean))];
+    const puntos = v.mapa === 'H' ? ['Nazaret', 'Belén', 'Jerusalén', 'Ramá'] : v.mapa === 'M' ? ['Ur', 'Harán', 'Siquem', 'Egipto  ', 'Monte Sinaí'] : [...new Set([v.de, v.a, 'Egipto'].filter(Boolean))];
     const card = el(`<div class="card"></div>`);
     card.append(mapa(v.mapa, { puntos, ruta: [v.de, v.a] }));
     const A = v.de && D.lugares[v.de], B = v.a && D.lugares[v.a];
@@ -343,9 +357,9 @@
   function notas() {
     $app.innerHTML = `<h1>Mis notas</h1><p class="lead">Lo que has expresado con tus palabras en cada nivel.</p>`;
     let alguna = false;
-    Object.values(D.grupos).forEach((g) => g.niveles.forEach((n) => {
+    Object.values(D.grupos).forEach((g) => todos(g).forEach((n) => {
       const t = S.notas[n.id]; if (!t) return; alguna = true;
-      $app.append(el(`<div class="card"><div class="chip">${esc(g.titulo)}</div><h3>${esc(n.titulo)}</h3><p>${esc(t).replace(/\n/g, '<br>')}</p></div>`));
+      $app.append(el(`<div class="card"><div class="chip">${esc(g.titulo)} · Bloque ${n.bloque.num}</div><h3>${esc(n.titulo)}</h3><p>${esc(t).replace(/\n/g, '<br>')}</p></div>`));
     }));
     if (!alguna) $app.append(el(`<div class="card"><p>Aún no tienes notas. Al final de cada nivel podrás escribir con tus palabras lo que aprendiste.</p></div>`));
   }

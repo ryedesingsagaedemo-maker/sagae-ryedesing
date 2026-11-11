@@ -143,9 +143,93 @@
    "lon": 35.2345,
    "mapa": "R",
    "nota": "Jerusalén en el mapa regional."
+  },
+  "Ur": {
+   "lat": 30.96,
+   "lon": 46.1,
+   "mapa": "M",
+   "nota": "Ur de los caldeos, en el sur de Mesopotamia (ubicación arqueológica aproximada).",
+   "lab": "izq"
+  },
+  "Harán": {
+   "lat": 36.87,
+   "lon": 39.03,
+   "mapa": "M",
+   "nota": "Harán, en el norte de Mesopotamia (Gn 11:31)."
+  },
+  "Siquem": {
+   "lat": 32.21,
+   "lon": 35.28,
+   "mapa": "M",
+   "nota": "Siquem, en la tierra de Canaán, primer lugar donde se detuvo Abram (Gn 12:6).",
+   "lab": "izq"
+  },
+  "Egipto  ": {
+   "lat": 30.6,
+   "lon": 31.2,
+   "mapa": "M",
+   "nota": "El delta del Nilo como referencia de Egipto.",
+   "lab": "der"
+  },
+  "Monte Sinaí": {
+   "lat": 28.54,
+   "lon": 33.97,
+   "mapa": "M",
+   "nota": "Ubicación tradicional (Jebel Musa); la Biblia no da coordenadas.",
+   "lab": "der"
   }
  },
  "viajes": [
+  {
+   "id": "ur",
+   "titulo": "De Ur a Harán",
+   "de": "Ur",
+   "a": "Harán",
+   "mapa": "M",
+   "tipo": "familia",
+   "motivo": "Taré salió con Abram y su familia de Ur para ir a Canaán, pero se quedaron en Harán.",
+   "cita": "Gn 11:31"
+  },
+  {
+   "id": "haran",
+   "titulo": "De Harán a Canaán",
+   "de": "Harán",
+   "a": "Siquem",
+   "mapa": "M",
+   "tipo": "llamado",
+   "motivo": "Llamado de Dios: «Vete de tu tierra… a la tierra que te mostraré». Abram salió a los 75 años.",
+   "cita": "Gn 12:1-5"
+  },
+  {
+   "id": "hambre",
+   "titulo": "De Canaán a Egipto",
+   "de": "Siquem",
+   "a": "Egipto  ",
+   "mapa": "M",
+   "tipo": "hambre",
+   "motivo": "Hubo hambre en la tierra, y Abram descendió a Egipto.",
+   "cita": "Gn 12:10"
+  },
+  {
+   "id": "jacob",
+   "titulo": "Jacob desciende a Egipto",
+   "de": "Siquem",
+   "a": "Egipto  ",
+   "mapa": "M",
+   "tipo": "llamado",
+   "motivo": "Dios dijo a Jacob: «no temas de descender a Egipto, porque allí yo haré de ti una gran nación».",
+   "cita": "Gn 46:3-4"
+  },
+  {
+   "id": "exodo",
+   "titulo": "De Egipto al Sinaí",
+   "de": "Egipto  ",
+   "a": "Monte Sinaí",
+   "mapa": "M",
+   "tipo": "liberacion",
+   "motivo": "Dios sacó a Israel de Egipto; en el mes tercero llegaron al desierto de Sinaí.",
+   "cita": "Éx 12:41; 19:1"
+  },
   {
    "id": "censo",
    "titulo": "De Nazaret a Belén",
@@ -242,7 +326,11 @@
   "sueno": "🌙 Aviso en sueños",
   "estrella": "⭐ Guiados por la estrella",
   "angel": "✨ Anuncio de ángeles",
-  "ley": "📜 Por la ley de Moisés"
+  "ley": "📜 Por la ley de Moisés",
+  "llamado": "📣 Llamado de Dios",
+  "hambre": "🌾 Por el hambre",
+  "familia": "👨‍👩‍👦 Con su familia",
+  "liberacion": "🕊️ Liberación de Dios"
  },
  "mapas": {
   "H": {
@@ -333,6 +421,49 @@
      "JUDEA",
      35.6,
      31.0
+    ]
+   ]
+  },
+  "M": {
+   "img": "assets/mapa-oriente.jpg",
+   "center": [
+    38,
+    29
+   ],
+   "scale": 1950,
+   "W": 1700,
+   "H": 760,
+   "x0": 526.6777560680505,
+   "y0": 0,
+   "w": 680.6784082777883,
+   "h": 464.7303879943299,
+   "imgW": 1100,
+   "imgH": 750,
+   "etiquetas": [
+    [
+     "MESOPOTAMIA",
+     43.2,
+     34.6
+    ],
+    [
+     "EGIPTO",
+     30.6,
+     27.6
+    ],
+    [
+     "CANAÁN",
+     35.9,
+     31.0
+    ],
+    [
+     "ARABIA",
+     43.5,
+     27.9
+    ],
+    [
+     "Mar Mediterráneo",
+     31.5,
+     33.6
     ]
    ]
   }
