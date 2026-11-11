@@ -35,43 +35,107 @@
     return 2 * R * Math.asin(Math.sqrt(h));
   }
   /** Devuelve un elemento .mapa con puntos; opts: {puntos:[nombres], ruta:[a,b], onTap(nombre, g)} */
+  /** Mapa 2D interactivo: arrastrar, pellizcar o rueda para acercar, botones ＋ − ⟲,
+   *  cámara que se ajusta a los puntos, ruta curva animada y viajero que la recorre.
+   *  opts: {puntos:[nombres], ruta:[a,b], desde:'este'|'cerca', hacia:'este', icono:'🫏', onTap(nombre,g), enfoque:[nombres]} */
+  let mapaN = 0;
   function mapa(clave, opts) {
-    const m = D.mapas[clave];
+    const m = D.mapas[clave], uid = 'm' + (++mapaN);
     const u = m.w / 55, fs = m.w / 21;
-    const pts = (opts.puntos || []).map((n) => {
-      const L = D.lugares[n]; const [x, y] = proj(m, L.lon, L.lat);
-      return { n, x, y };
-    });
-    let linea = '';
-    if (opts.ruta && opts.ruta[0] && opts.ruta[1]) {
-      const a = D.lugares[opts.ruta[0]], b = D.lugares[opts.ruta[1]];
-      const [x1, y1] = proj(m, a.lon, a.lat), [x2, y2] = proj(m, b.lon, b.lat);
-      linea = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#a3281b" stroke-width="${u * 0.7}" stroke-dasharray="${u * 1.6} ${u}" stroke-linecap="round"/>`;
+    const P = (n) => { const L = D.lugares[n]; const [x, y] = proj(m, L.lon, L.lat); return { n, x, y }; };
+    const pts = (opts.puntos || []).map(P);
+    // ruta (curva) con salida o llegada aproximada cuando el texto no da el lugar
+    let A = opts.ruta && opts.ruta[0] ? P(opts.ruta[0]) : null, B = opts.ruta && opts.ruta[1] ? P(opts.ruta[1]) : null;
+    const lejos = (p, k) => ({ x: Math.min(m.w * 0.97, p.x + m.w * 0.33 * k), y: p.y - m.h * 0.06 * k });
+    if (!A && B && opts.desde) A = opts.desde === 'cerca' ? { x: B.x + u * 5, y: B.y + u * 4 } : lejos(B, 1);
+    if (A && !B && opts.hacia) B = lejos(A, 1);
+    let rutaSVG = '', viajero = '', destino = '';
+    if (A && B) {
+      const dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy) || 1;
+      const cx = (A.x + B.x) / 2 - (dy / L) * L * 0.22, cy = (A.y + B.y) / 2 + (dx / L) * L * 0.22;
+      const d = `M${A.x},${A.y} Q${cx},${cy} ${B.x},${B.y}`;
+      rutaSVG = `<path d="${d}" fill="none" stroke="#3a2814" stroke-opacity=".35" stroke-width="${u * 1.1}" stroke-linecap="round" transform="translate(${u * .25} ${u * .35})"/>
+        <path d="${d}" fill="none" stroke="#fff3d0" stroke-width="${u * 1.15}" stroke-linecap="round"/>
+        <path id="${uid}r" class="ruta-linea" d="${d}" fill="none" stroke="#a3281b" stroke-width="${u * .7}" stroke-linecap="round" pathLength="1" style="stroke-dasharray:1 1.2;stroke-dashoffset:1.1"/>`;
+      viajero = `<g><g class="esc"><text x="0" y="0" text-anchor="middle" font-size="${fs * 1.6}" style="filter:drop-shadow(0 ${u * .2}px ${u * .25}px rgba(0,0,0,.5))">${opts.icono || '🚶'}</text></g>
+        <animateMotion dur="2.6s" begin="0.3s" fill="freeze" calcMode="spline" keyPoints="0;1" keyTimes="0;1" keySplines=".45 0 .55 1"><mpath href="#${uid}r"/></animateMotion></g>`;
+      destino = `<circle class="pulso" cx="${B.x}" cy="${B.y}" r="${u * 2.2}" fill="none" stroke="#a3281b" stroke-width="${u * .45}"/>`;
     }
     const etiquetas = (m.etiquetas || []).map(([t, lon, lat]) => {
-      const [x, y] = proj(m, lon, lat);
-      const mar = /^(Mar|Río)/.test(t);
+      const [x, y] = proj(m, lon, lat), mar = /^(Mar|Río)/.test(t);
       return `<text x="${x}" y="${y}" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="${fs * (mar ? 0.8 : 0.9)}" letter-spacing="${mar ? 0 : fs * 0.15}" fill="${mar ? '#2f5668' : '#5b3e1d'}" fill-opacity=".75">${esc(t)}</text>`;
     }).join('');
+    // alfiler con relieve: sombra, cuerpo con degradado y brillo
     const marcas = pts.map((p) => {
-      const lab = (D.lugares[p.n].lab) || (p.x > m.w * 0.62 ? 'izq' : 'der'), izq = lab === 'izq';
-      return `<g class="pt" data-n="${esc(p.n)}"><circle cx="${p.x}" cy="${p.y}" r="${u * 1.25}" fill="#a3281b" stroke="#fff6dc" stroke-width="${u * 0.5}"/>
-      <text x="${p.x + (izq ? -u * 2 : u * 2)}" y="${p.y + fs * 0.35}" text-anchor="${izq ? 'end' : 'start'}" font-family="Georgia,serif" font-weight="700" font-size="${fs}" fill="#2f1e0a" stroke="#fff3d0" stroke-width="${fs * 0.22}" paint-order="stroke">${esc(p.n.trim())}</text></g>`;
+      const lab = (D.lugares[p.n].lab) || (p.x > m.w * 0.62 ? 'izq' : 'der'), izq = lab === 'izq', s = u * 1.5;
+      return `<g class="pt" data-n="${esc(p.n)}" transform="translate(${p.x} ${p.y})"><g class="esc">
+        <ellipse cx="0" cy="0" rx="${s * .9}" ry="${s * .32}" fill="rgba(40,20,5,.35)"/>
+        <path d="M0,0 C${-s * .25},${-s * .9} ${-s},${-s * 1.3} ${-s},${-s * 2.1} A${s},${s} 0 1 1 ${s},${-s * 2.1} C${s},${-s * 1.3} ${s * .25},${-s * .9} 0,0Z" fill="url(#${uid}g)" stroke="#5a1309" stroke-width="${u * .18}"/>
+        <circle class="nucleo" cx="0" cy="${-s * 2.1}" r="${s * .42}" fill="#fff6dc"/>
+        <text x="${izq ? -s * 1.35 : s * 1.35}" y="${-s * 1.75}" text-anchor="${izq ? 'end' : 'start'}" font-family="Georgia,serif" font-weight="700" font-size="${fs}" fill="#2f1e0a" stroke="#fff3d0" stroke-width="${fs * 0.24}" paint-order="stroke">${esc(p.n.trim())}</text>
+      </g></g>`;
     }).join('');
-    const node = el(`<div class="mapa"><img src="${m.img}" alt="Mapa ${clave === 'H' ? 'de Tierra Santa' : 'de la región'}" width="${m.imgW}" height="${m.imgH}">
-      <svg viewBox="0 0 ${m.w} ${m.h}" preserveAspectRatio="none" role="img" aria-label="Mapa con lugares">${etiquetas}${linea}${marcas}</svg></div>`);
-    if (opts.onTap) {
-      // El toque elige el punto más cercano (Belén y Jerusalén están a ≈9 km).
-      const svg = node.querySelector('svg');
-      svg.addEventListener('click', (ev) => {
-        const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    const caja = el(`<div class="mapa-caja"><div class="mapa" style="aspect-ratio:${m.imgW}/${m.imgH}"><div class="mundo">
+      <img src="${m.img}" alt="Mapa ${clave === 'H' ? 'de Tierra Santa' : 'de la región'}" width="${m.imgW}" height="${m.imgH}" draggable="false">
+      <svg viewBox="0 0 ${m.w} ${m.h}" preserveAspectRatio="none" role="img" aria-label="Mapa con lugares"><defs>
+        <radialGradient id="${uid}g" cx=".35" cy=".25" r=".9"><stop offset="0" stop-color="#ff8a6a"/><stop offset=".5" stop-color="#c0311c"/><stop offset="1" stop-color="#6e170b"/></radialGradient></defs>
+        ${etiquetas}${rutaSVG}${destino}${marcas}${viajero}</svg></div></div>
+      <div class="ctrl"><span class="pista">✋ Arrastra · 🤏 pellizca para acercar</span><button class="zmas" aria-label="Acercar">＋</button><button class="zmenos" aria-label="Alejar">−</button><button class="zcentro" aria-label="Volver a centrar">⟲</button></div></div>`);
+    const node = caja.querySelector('.mapa');
+    const mundo = node.querySelector('.mundo'), svg = node.querySelector('svg');
+    let cam = { s: 1, tx: 0, ty: 0 };
+    const tam = () => ({ W: node.clientWidth, H: node.clientHeight });
+    const limitar = () => { const { W, H } = tam(); cam.s = Math.max(1, Math.min(6, cam.s)); cam.tx = Math.min(0, Math.max(W - W * cam.s, cam.tx)); cam.ty = Math.min(0, Math.max(H - H * cam.s, cam.ty)); };
+    const aplicar = (anim) => { limitar(); mundo.classList.toggle('anim', !!anim); mundo.style.transform = `translate(${cam.tx}px,${cam.ty}px) scale(${cam.s})`; mundo.style.setProperty('--k', String(1 / Math.sqrt(cam.s))); };
+    const enfocar = (anim) => {
+      const lista = (opts.enfoque ? opts.enfoque.map(P) : [A, B].filter(Boolean));
+      const { W, H } = tam(); if (!W) return;
+      if (!lista.length) { cam = { s: 1, tx: 0, ty: 0 }; return aplicar(anim); }
+      const k = W / m.w, xs = lista.map((p) => p.x * k), ys = lista.map((p) => p.y * k);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const bw = Math.max(x1 - x0, W * 0.18), bh = Math.max(y1 - y0, H * 0.18);
+      const s = Math.min(W / (bw * 1.9), H / (bh * 1.9), 4);
+      cam = { s, tx: W / 2 - ((x0 + x1) / 2) * s, ty: H / 2 - ((y0 + y1) / 2 + H * 0.04) * s };
+      aplicar(anim);
+    };
+    const zoomEn = (f, cx, cy) => { const { W, H } = tam(); cx = cx ?? W / 2; cy = cy ?? H / 2; const s2 = Math.max(1, Math.min(6, cam.s * f)); cam.tx = cx - (cx - cam.tx) * (s2 / cam.s); cam.ty = cy - (cy - cam.ty) * (s2 / cam.s); cam.s = s2; aplicar(true); };
+    caja.querySelector('.zmas').onclick = () => zoomEn(1.5);
+    caja.querySelector('.zmenos').onclick = () => zoomEn(1 / 1.5);
+    caja.querySelector('.zcentro').onclick = () => enfocar(true);
+    // gestos: arrastrar, pellizcar y rueda
+    const ptrs = new Map(); let movido = 0, ini = null;
+    node.addEventListener('pointerdown', (e) => { node.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); movido = 0; ini = { ...cam }; mundo.classList.remove('anim'); });
+    node.addEventListener('pointermove', (e) => {
+      if (!ptrs.has(e.pointerId)) return;
+      const prev = ptrs.get(e.pointerId); const now = { x: e.clientX, y: e.clientY };
+      if (ptrs.size === 1) { cam.tx += now.x - prev.x; cam.ty += now.y - prev.y; movido += Math.abs(now.x - prev.x) + Math.abs(now.y - prev.y); aplicar(false); }
+      else if (ptrs.size === 2) {
+        const [o] = [...ptrs.entries()].filter(([id]) => id !== e.pointerId).map(([, v]) => v);
+        const d0 = Math.hypot(prev.x - o.x, prev.y - o.y), d1 = Math.hypot(now.x - o.x, now.y - o.y);
+        const r = node.getBoundingClientRect();
+        if (d0 > 0) { const f = d1 / d0, cx = (now.x + o.x) / 2 - r.left, cy = (now.y + o.y) / 2 - r.top; const s2 = Math.max(1, Math.min(6, cam.s * f)); cam.tx = cx - (cx - cam.tx) * (s2 / cam.s); cam.ty = cy - (cy - cam.ty) * (s2 / cam.s); cam.s = s2; aplicar(false); }
+        movido += 50;
+      }
+      ptrs.set(e.pointerId, now);
+    });
+    const soltar = (e) => {
+      if (!ptrs.has(e.pointerId)) return;
+      const unico = ptrs.size === 1; ptrs.delete(e.pointerId);
+      if (unico && movido < 8 && opts.onTap && e.type === 'pointerup') {
+        // toque: elegir el lugar más cercano (Belén y Jerusalén están a ≈9 km)
+        const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
         const q = pt.matrixTransform(svg.getScreenCTM().inverse());
         let best = null, bd = Infinity;
-        pts.forEach((p) => { const d = Math.hypot(p.x - q.x, (p.y - q.y)); if (d < bd) { bd = d; best = p; } });
-        if (best && bd < u * 8) opts.onTap(best.n, svg.querySelector(`.pt[data-n="${CSS.escape(best.n)}"]`));
-      });
-    }
-    return node;
+        pts.forEach((p) => { const d = Math.hypot(p.x - q.x, (p.y - u * 3 * (1 / Math.sqrt(cam.s))) - q.y); if (d < bd) { bd = d; best = p; } });
+        if (best && bd < u * 9 / Math.sqrt(cam.s)) opts.onTap(best.n, svg.querySelector(`.pt[data-n="${CSS.escape(best.n)}"]`));
+      }
+    };
+    node.addEventListener('pointerup', soltar); node.addEventListener('pointercancel', soltar);
+    node.addEventListener('wheel', (e) => { e.preventDefault(); const r = node.getBoundingClientRect(); zoomEn(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    // ajustar la cámara cuando el mapa ya tiene tamaño en pantalla
+    const ro = new ResizeObserver(() => { if (node.clientWidth) { enfocar(false); ro.disconnect(); } });
+    ro.observe(node);
+    return caja;
   }
 
   /* ---------- navegación ---------- */
@@ -123,7 +187,7 @@
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalAbierto) history.back(); });
   function botonAmpliar(clave, opts, titulo) {
     const b = el(`<button class="ampliar">🔍 Ampliar mapa</button>`);
-    b.onclick = () => abrirModal(titulo || 'Mapa', mapa(clave, { puntos: opts.puntos, ruta: opts.ruta }));
+    b.onclick = () => abrirModal(titulo || 'Mapa', mapa(clave, Object.assign({}, opts, { onTap: null })));
     return b;
   }
 
@@ -145,8 +209,11 @@
   const hechos = (lista = todos()) => lista.filter((n) => S.progreso[n.id]).length;
 
   function inicio() {
-    $app.innerHTML = `<h1>El nacimiento de Jesucristo</h1>
-      <p class="lead">De Génesis a Apocalipsis: las profecías, los lugares y el porqué de cada viaje, con la Reina-Valera 1960.</p>`;
+    $app.innerHTML = `<div class="hero"><div class="chip" style="color:var(--gold2);position:relative">Templo Bíblico Emmanuel</div>
+      <h1>El nacimiento de Jesucristo</h1>
+      <p class="lead">De Génesis a Apocalipsis: las profecías, los lugares y el porqué de cada viaje, con la Reina-Valera 1960.</p>
+      <button class="gold ver-intro" id="verIntro">▶ Ver la intro</button></div>`;
+    document.getElementById('verIntro').onclick = () => intro(true);
     $app.append(selectorGrupo());
     const lista = todos(), sig = lista.find((n) => !S.progreso[n.id]) || lista[0];
     $app.append(el(`<div class="card dorada"><div class="chip">Continuar · Bloque ${sig.bloque.num}</div><h2>${esc(sig.titulo)}</h2>
@@ -174,7 +241,7 @@
     bl.forEach((b) => {
       const h = hechos(b.niveles), on = b.id === abierto;
       const card = el(`<div class="card bloque ${on ? 'dorada' : ''}"><button class="cab" aria-expanded="${on}"><span class="bn">${b.num}</span>
-        <span class="bt"><b>${esc(b.titulo)}</b><small>${esc(b.sub)} · ${h}/${b.niveles.length}</small></span><span class="fl">${on ? '▲' : '▼'}</span></button></div>`);
+        <span class="bt"><b>${esc(b.titulo)}</b><small>${esc(b.sub)} · ${h}/${b.niveles.length}</small><span class="barrita"><i style="width:${(h / b.niveles.length) * 100}%"></i></span></span><span class="fl">${on ? '▲' : '▼'}</span></button></div>`);
       card.querySelector('.cab').onclick = () => { abierto = on ? '-' : b.id; const y = window.scrollY; niveles(); window.scrollTo(0, y); };
       if (on) b.niveles.forEach((n, i) => {
         const p = S.progreso[n.id];
@@ -272,15 +339,15 @@
     } else if (q.tipo === 'mapa') {
       let hecho = false;
       op.append(mapa(q.mapa, {
-        puntos: q.opciones,
+        puntos: q.opciones, enfoque: q.opciones,
         onTap: (n, g) => {
           if (hecho) return; hecho = true;
           const ok = n === q.respuesta;
-          g.querySelector('circle').setAttribute('fill', ok ? '#3f8a4a' : '#b0472f');
+          g.querySelector('path').setAttribute('fill', ok ? '#3f8a4a' : '#b0472f');
           responder(ok, (ok ? '' : `Era ${q.respuesta.trim()}. `) + (q.explicacion || ''));
         },
       }));
-      op.append(el(`<p class="muted">Toca un punto rojo del mapa.</p>`), botonAmpliar(q.mapa, { puntos: q.opciones }, 'Mapa de la pregunta'));
+      op.append(el(`<p class="muted">Toca un punto rojo del mapa.</p>`), botonAmpliar(q.mapa, { puntos: q.opciones, enfoque: q.opciones }, 'Mapa de la pregunta'));
     } else if (q.tipo === 'ordenar') {
       const zona = el(`<div class="orden" aria-label="Tu orden"></div>`), piezas = el(`<div class="piezas"></div>`), elegidos = [];
       barajar(q.eventos).forEach((e) => {
@@ -341,7 +408,7 @@
     if (!prev || prev.estrellas <= est) S.progreso[N.id] = { estrellas: est, puntos, total };
     guardar();
     const lista = todos(), i = lista.indexOf(N), sig = lista[i + 1];
-    $app.append(el(`<div class="card final dorada"><div class="big">${estrellas(est)}</div><h2>${puntos} de ${total} respuestas correctas</h2>
+    $app.append(el(`<div class="card final dorada"><div class="medalla">${est === 3 ? '🏆' : est === 2 ? '⭐' : '📖'}</div><div class="big">${estrellas(est)}</div><h2>${puntos} de ${total} respuestas correctas</h2>
       <p class="muted">Aplicación del nivel</p><p>${esc(N.aplicacion)}</p>
       <p class="ref">Versículo para memorizar: ${esc(N.devocional.memoriza.cita)}</p></div>`));
     const r = el(`<div class="row"></div>`);
@@ -406,14 +473,35 @@
     const v = D.viajes.find((x) => x.id === viajeSel);
     const puntos = v.mapa === 'H' ? ['Nazaret', 'Belén', 'Jerusalén', 'Ramá'] : v.mapa === 'M' ? ['Ur', 'Harán', 'Siquem', 'Egipto  ', 'Monte Sinaí'] : [...new Set([v.de, v.a, 'Egipto'].filter(Boolean))];
     const card = el(`<div class="card"></div>`);
-    card.append(mapa(v.mapa, { puntos, ruta: [v.de, v.a] }), botonAmpliar(v.mapa, { puntos, ruta: [v.de, v.a] }, v.titulo));
+    const om = Object.assign({ puntos, ruta: [v.de, v.a], icono: ICONOS[v.id] || '🚶' }, PISTAS[v.id] || {});
+    card.append(mapa(v.mapa, om), botonAmpliar(v.mapa, om, v.titulo));
     const A = v.de && D.lugares[v.de], B = v.a && D.lugares[v.a];
     const d = A && B ? Math.round(km(A, B)) : null;
     card.append(el(`<div><h2 style="margin-top:12px">${esc(v.titulo)}</h2><div class="badge">${esc(D.tipos[v.tipo])}</div>
       <p>${esc(v.motivo)}</p><p class="ref">${esc(v.cita)}</p>
-      ${d ? `<div class="dist">≈ ${d} km</div><p class="muted">En línea recta entre ${esc(v.de.trim())} (${A.lat.toFixed(2)}° N, ${A.lon.toFixed(2)}° E) y ${esc(v.a.trim())} (${B.lat.toFixed(2)}° N, ${B.lon.toFixed(2)}° E). El camino real es más largo.</p>` : '<p class="muted">El texto no indica el punto exacto de partida o llegada, así que no se calcula distancia.</p>'}
+      ${d ? `<div class="dist">≈ <span id="kmCont" data-km="${d}">0</span> km</div><p class="muted">En línea recta entre ${esc(v.de.trim())} (${A.lat.toFixed(2)}° N, ${A.lon.toFixed(2)}° E) y ${esc(v.a.trim())} (${B.lat.toFixed(2)}° N, ${B.lon.toFixed(2)}° E). El camino real es más largo.</p>` : '<p class="muted">El texto no indica el punto exacto de partida o llegada, así que no se calcula distancia.</p>'}
       ${[v.de, v.a].filter(Boolean).map((n) => `<p class="muted">• ${esc(n.trim())}: ${esc(D.lugares[n].nota)}</p>`).join('')}</div>`));
     $app.append(card);
+    const kc = card.querySelector('#kmCont');
+    if (kc) { const fin = +kc.dataset.km, t0 = performance.now(); const paso = (t) => { const f = Math.min(1, (t - t0 - 300) / 2300); kc.textContent = Math.max(0, Math.round(fin * (f < 0 ? 0 : 1 - Math.pow(1 - f, 3)))); if (f < 1) requestAnimationFrame(paso); }; requestAnimationFrame(paso); }
+  }
+  const ICONOS = { censo: '🫏', pastores: '🐑', presentacion: '🫏', magos1: '🐪', magos2: '🐪', magos3: '🐪', huida: '🫏', regreso: '🫏', nazaret: '🫏', ur: '🐪', haran: '🐪', hambre: '🐪', jacob: '🐪', exodo: '🚶' };
+  const PISTAS = { pastores: { desde: 'cerca' }, magos1: { desde: 'este' }, magos3: { hacia: 'este' } };
+
+  /* ---------- intro con el logo ---------- */
+  function intro(forzar) {
+    let visto = false; try { visto = sessionStorage.getItem('tbe-intro') === '1'; } catch (e) {}
+    if (visto && !forzar) return;
+    const n = el(`<div class="intro" role="dialog" aria-label="Presentación"><div class="rayos"></div>
+      <button class="saltar">Saltar ⏭</button>
+      <div class="sello"><img src="assets/logo.png" alt="Logo del Templo Bíblico Emmanuel"></div>
+      <div class="l1">Templo Bíblico Emmanuel presenta</div>
+      <div class="l2">El nacimiento de Jesucristo</div>
+      <div class="l3">De Génesis a Apocalipsis · Reina-Valera 1960</div>
+      <button class="gold entrar">Comenzar ▶</button></div>`);
+    const cerrar = () => { try { sessionStorage.setItem('tbe-intro', '1'); } catch (e) {} n.classList.add('fuera'); setTimeout(() => n.remove(), 650); };
+    n.querySelector('.saltar').onclick = cerrar; n.querySelector('.entrar').onclick = cerrar;
+    document.body.append(n); n.querySelector('.entrar').focus({ preventScroll: true });
   }
 
   /* ---------- notas ---------- */
@@ -429,6 +517,7 @@
     if (!alguna) $app.append(el(`<div class="card"><p>Aún no tienes notas. Al final de cada nivel podrás escribir con tus palabras lo que aprendiste.</p></div>`));
   }
 
+  intro(false);
   { const st = leerHash(); ir(st.tab, st.arg, false); try { history.replaceState({ tab: st.tab, arg: st.arg }, '', urlDe(st.tab, st.arg)); } catch (e) {} }
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

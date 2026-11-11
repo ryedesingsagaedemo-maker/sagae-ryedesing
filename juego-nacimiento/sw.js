@@ -1,7 +1,7 @@
 /* Service worker: guarda la app para usarla sin conexión. Subir VERSION al cambiar archivos. */
-const VERSION = 'nacimiento-v5';
+const VERSION = 'nacimiento-v6';
 const BASE = ['./', 'index.html', 'app.css', 'app.js', 'niveles/datos.js', 'manifest.webmanifest',
-  'assets/logo.png', 'assets/icon-192.png', 'assets/mapa-tierra-santa.jpg', 'assets/mapa-region.jpg', 'assets/mapa-oriente.jpg'];
+  'assets/logo.png', 'assets/papel.jpg', 'assets/icon-192.png', 'assets/mapa-tierra-santa.jpg', 'assets/mapa-region.jpg', 'assets/mapa-oriente.jpg'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(BASE))); self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION).map((k) => caches.delete(k)))));
