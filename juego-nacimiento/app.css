@@ -1,0 +1,83 @@
+:root{
+  --ink:#24180c; --ink2:#5b4630; --paper:#f7efdc; --card:#fffaf0; --gold:#c08a1e; --gold2:#e7c46b;
+  --dark:#1c140b; --ok:#d6efcb; --okb:#3f8a4a; --bad:#f6d3c8; --badb:#b0472f; --line:#e3d3ad;
+  --r:16px; --shadow:0 6px 20px rgba(40,25,10,.12);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font-family:Georgia,"Times New Roman",serif;background:var(--paper);color:var(--ink);min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+.top{position:sticky;top:0;z-index:5;background:var(--dark);color:#f7efdc;display:flex;align-items:center;gap:12px;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top))}
+.top .logo{width:46px;height:46px;border-radius:50%;background:#fff;object-fit:cover}
+.marca{font:700 15px/1.2 Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--gold2)}
+.sub{font:13px Arial,sans-serif;color:#d9c9a5}
+main{max-width:760px;margin:0 auto;padding:14px}
+h1{font-size:26px;line-height:1.15;margin:6px 0 8px}
+h2{font-size:21px;margin:4px 0 8px}
+h3{font-size:18px;margin:12px 0 6px}
+p{line-height:1.5}
+.lead{color:var(--ink2);margin-top:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:12px 0;box-shadow:var(--shadow)}
+.card.dorada{border:2px solid var(--gold)}
+.chip{display:inline-block;font:700 12px Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.ref{font:700 13px Arial,sans-serif;color:var(--gold)}
+.muted{color:var(--ink2);font-size:14px}
+button,.btn{font:600 16px Arial,sans-serif;border-radius:12px;border:2px solid var(--ink);background:#fff;color:var(--ink);padding:12px 16px;min-height:48px;cursor:pointer;touch-action:manipulation}
+.btn.primary,button.primary{background:var(--dark);color:#f7efdc;border-color:var(--dark)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
+button:disabled{opacity:1;cursor:default}
+.full{width:100%;display:block}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.menu button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;min-height:110px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+.menu button b{font:700 17px Georgia,serif}
+.menu button small{font:13px Arial,sans-serif;color:var(--ink2)}
+.menu .ico{font-size:26px}
+.seg{display:flex;background:#eadfc4;border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;min-height:44px;font-size:15px}
+.seg button.on{background:var(--dark);color:#f7efdc}
+.nivel{display:flex;align-items:center;gap:12px}
+.nivel .num{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--dark);color:var(--gold2);font:700 18px Arial,sans-serif}
+.nivel .info{flex:1}
+.nivel .info b{display:block;font-size:17px}
+.stars{color:var(--gold);letter-spacing:2px;font-size:15px}
+.steps{display:flex;gap:6px;margin:6px 0 10px}
+.steps i{flex:1;height:6px;border-radius:3px;background:#e3d3ad}
+.steps i.on{background:var(--gold)}
+.steplabel{font:700 13px Arial,sans-serif;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em}
+video{width:100%;border-radius:12px;background:#000;display:block}
+blockquote{margin:10px 0;padding:10px 14px;border-left:4px solid var(--gold);background:#fbf4e3;border-radius:0 10px 10px 0;font-style:italic;line-height:1.5}
+.punto{border-top:1px dashed var(--line);padding-top:8px;margin-top:8px}
+.badge{display:inline-block;font:700 13px Arial,sans-serif;padding:6px 10px;border-radius:999px;background:#f2e2bb;color:var(--ink);margin:4px 0}
+.opciones button{display:block;width:100%;text-align:left;margin:8px 0}
+.opciones button.ok{background:var(--ok);border-color:var(--okb)}
+.opciones button.bad{background:var(--bad);border-color:var(--badb)}
+.fb{margin-top:10px;padding:10px 12px;border-radius:12px;background:#fbf4e3}
+.fb.ok{background:var(--ok)} .fb.bad{background:var(--bad)}
+input,textarea{font:17px Georgia,serif;width:100%;padding:12px;border:2px solid var(--ink);border-radius:12px;background:#fff}
+textarea{min-height:140px}
+.orden{min-height:52px;border:2px dashed var(--line);border-radius:12px;padding:8px;margin:8px 0;line-height:1.6}
+.piezas button{margin:4px;min-height:44px}
+.shake{animation:sh .3s}
+@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.mapa{position:relative;border-radius:12px;overflow:hidden;border:2px solid #b89c62;background:#e9d9b0}
+.mapa img{display:block;width:100%;height:auto}
+.mapa svg{position:absolute;inset:0;width:100%;height:100%}
+.mapa .pt{cursor:pointer}
+.viajes{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.viajes button{flex:none;scroll-snap-align:start;min-height:44px;font-size:14px;padding:8px 12px;white-space:nowrap}
+.viajes button.on{background:var(--dark);color:#f7efdc}
+.dist{font:700 22px Arial,sans-serif;color:var(--ink)}
+.ruta .paso{position:relative;padding-left:26px;margin:0 0 4px}
+.ruta .paso:before{content:"";position:absolute;left:9px;top:0;bottom:-4px;width:2px;background:var(--gold)}
+.ruta .paso:after{content:"";position:absolute;left:3px;top:20px;width:14px;height:14px;border-radius:50%;background:var(--gold);border:2px solid var(--paper)}
+.fixbar{display:flex;gap:10px;margin:14px 0 8px}
+.fixbar button{flex:1}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:var(--dark);padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;border:0;border-radius:0;background:transparent;color:#d9c9a5;font:600 11px Arial,sans-serif;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px}
+.tabs button span{font-size:20px}
+.tabs button.on{color:var(--gold2)}
+.final{text-align:center}
+.final .big{font-size:44px;color:var(--gold)}
+.hidden{display:none!important}
+@media (min-width:700px){.menu{grid-template-columns:repeat(4,1fr)}}

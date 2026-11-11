@@ -1,16 +1,26 @@
-# Juego bíblico: el nacimiento de Cristo
+# Juego bíblico: el nacimiento de Jesucristo · Templo Bíblico Emmanuel
 
-- `contenido/mapa-contenido.md`: mapa de contenido (10 bloques, de Génesis a Apocalipsis).
-- `niveles/ninos.json` y `niveles/jovenes-adultos.json`: 5 niveles por grupo de edad, bloque 7 (Evangelios).
-- `niveles/datos.js`: los mismos niveles en formato que lee la página. Se regenera desde los JSON.
-- `index.html`: versión jugable mínima. Ábrela directamente en el navegador.
+Publicado en: https://juego-nacimiento.vercel.app
 
-## Logo
+## Qué incluye
+- **Niveles (bloque 7, Evangelios):** 5 para niños (6-11) y 5 para jóvenes y adultos. Cada nivel tiene 7 pasos:
+  cápsula de video, lectura (RVR1960), devocional con contexto y mini predicación, juego (opción múltiple,
+  mapa, ordenar, distancias, completar), memoriza, expresa con tus palabras y resultado con estrellas.
+- **Ruta de la promesa:** de Génesis 3:15 (tras el pecado de Adán) a Romanos y Apocalipsis 22:16, con un reto para ordenarla.
+- **Mapa de viajes:** cada traslado con su motivo (mandato del rey, aviso en sueños, estrella, ángeles, ley),
+  la cita, coordenadas aproximadas y distancia en línea recta.
+- **Mis notas:** lo que cada persona escribe se guarda en su dispositivo.
+- Instalable en el celular (PWA) y usable sin conexión después de la primera visita.
 
-Falta el logo del Templo Bíblico Emanuel. Súbelo como `logo/templo-biblico-emanuel.png`
-y aparecerá en el encabezado. (La carpeta `logo/` del repo tiene el logo de SAGAE, que es otra marca y no se usa aquí.)
+## Archivos
+- `niveles/ninos.json`, `niveles/jovenes-adultos.json`: preguntas.
+- `contenido/devocionales.json`: contexto, lectura, mini predicación, aplicaciones, versículo para memorizar.
+- `contenido/ruta-mapas.json`: ruta de la promesa, lugares, viajes y mapas.
+- `build.py`: genera `niveles/datos.js` (lo que lee la página). Ejecutar después de editar los JSON.
+- `videos/`: cápsulas recortadas del video de las profecías (con el nombre y logo del templo).
+- `assets/`: logo, íconos y mapas de pergamino.
 
 ## Verificación
-
-Citas del bloque 7 revisadas contra Reina-Valera 1960 (Biblegateway): Lc 1:26-38; Mt 1:18-25; Lc 2:1-38; Mt 2:1-23.
-Pendiente: Mt 1:1-17 y Lc 3:23-38 (genealogías), que no se incluyeron en los niveles.
+Textos bíblicos copiados de la Reina-Valera 1960 (Bible Gateway). Distancias calculadas en línea recta
+desde coordenadas aproximadas; el camino real es más largo. Egipto: el texto no dice la ciudad; el mapa usa el
+delta del Nilo como referencia. Pendiente: genealogías (Mt 1:1-17; Lc 3:23-38) y revisión pastoral del contenido.
