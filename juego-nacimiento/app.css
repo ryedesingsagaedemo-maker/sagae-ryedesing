@@ -89,3 +89,16 @@ textarea{min-height:140px}
 .bloque .bt small{font:13px Arial,sans-serif;color:var(--ink2)}
 .bloque .fl{color:var(--ink2)}
 .bloque .nivel{border-top:1px solid var(--line);padding:12px 16px}
+.migas{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.migas button{min-height:44px;padding:8px 12px;font-size:15px}
+.migas .volver,.migas .casa{width:48px;padding:0}
+.migas .salir{background:#fff;border-color:var(--badb);color:var(--badb)}
+.ruta-migas{flex:1;font:600 13px Arial,sans-serif;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ampliar{margin-top:10px;width:100%}
+.modal{position:fixed;inset:0;z-index:20;background:rgba(20,12,4,.96);display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.modal-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;color:#f7efdc}
+.modal-cuerpo{flex:1;overflow:auto;padding:8px;display:flex;align-items:center;justify-content:center}
+.modal-cuerpo .mapa{width:100%;max-width:1100px}
+body.con-modal{overflow:hidden}
+body.con-modal .tabs{display:none}
+.subir{position:fixed;right:14px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:7;width:48px;height:48px;padding:0;border-radius:50%;background:var(--dark);color:var(--gold2);border-color:var(--dark);font-size:22px;box-shadow:var(--shadow)}

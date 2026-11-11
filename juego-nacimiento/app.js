@@ -78,11 +78,60 @@
   const tabs = document.getElementById('tabs');
   tabs.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) ir(b.dataset.tab); });
   function marcarTab(t) { tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t)); }
-  function ir(tab, arg) {
+  const VISTAS = { inicio, niveles, ruta, mapa: mapaTab, notas, nivel };
+  const urlDe = (tab, arg) => location.href.split('#')[0] + '#' + tab + (arg ? '/' + arg : '');
+  function ir(tab, arg, push = true) {
+    if (!VISTAS[tab] || (tab === 'nivel' && !todos().some((n) => n.id === arg))) { tab = 'inicio'; arg = null; }
+    cerrarModal();
     marcarTab(tab === 'nivel' ? 'niveles' : tab);
-    ({ inicio, niveles, ruta, mapaTab, notas, nivel }[tab === 'mapa' ? 'mapaTab' : tab])(arg);
+    VISTAS[tab](arg);
+    try { if (push) history.pushState({ tab, arg }, '', urlDe(tab, arg)); } catch (e) {}
     top();
   }
+  // Botón "atrás" del celular o del navegador
+  window.addEventListener('popstate', (e) => {
+    if (modalAbierto) { cerrarModal(); return; }
+    const st = (e.state && e.state.tab) ? e.state : leerHash();
+    ir(st.tab, st.arg, false);
+  });
+  function leerHash() { const [tab, arg] = location.hash.replace('#', '').split('/'); return { tab: tab || 'inicio', arg: arg ? decodeURIComponent(arg) : null }; }
+
+  /** Barra de navegación superior de cada sección: Volver + ruta + Inicio. */
+  function migas(partes, salir) {
+    const n = el(`<nav class="migas" aria-label="Navegación"><button class="volver" aria-label="Volver">←</button>
+      <span class="ruta-migas">${partes.map(esc).join(' › ')}</span>
+      ${salir ? '<button class="salir">✕ Salir</button>' : ''}<button class="casa" aria-label="Ir al inicio">🏠</button></nav>`);
+    n.querySelector('.volver').onclick = () => { if (history.state && history.state.tab && history.length > 1) history.back(); else ir('inicio'); };
+    n.querySelector('.casa').onclick = () => ir('inicio');
+    if (salir) n.querySelector('.salir').onclick = salir;
+    return n;
+  }
+
+  /* ---------- ventana a pantalla completa (mapas) ---------- */
+  let modalAbierto = null;
+  function abrirModal(titulo, contenido) {
+    cerrarModal();
+    const m = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titulo)}"><div class="modal-top"><b>${esc(titulo)}</b>
+      <button class="primary" id="cerrarModal">✕ Cerrar</button></div><div class="modal-cuerpo"></div></div>`);
+    m.querySelector('.modal-cuerpo').append(contenido);
+    m.querySelector('#cerrarModal').onclick = () => history.back();
+    document.body.append(m); document.body.classList.add('con-modal'); modalAbierto = m;
+    try { history.pushState({ modal: true }, '', location.href); } catch (e) {}
+    m.querySelector('#cerrarModal').focus();
+  }
+  function cerrarModal() { if (modalAbierto) { modalAbierto.remove(); modalAbierto = null; document.body.classList.remove('con-modal'); } }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalAbierto) history.back(); });
+  function botonAmpliar(clave, opts, titulo) {
+    const b = el(`<button class="ampliar">🔍 Ampliar mapa</button>`);
+    b.onclick = () => abrirModal(titulo || 'Mapa', mapa(clave, { puntos: opts.puntos, ruta: opts.ruta }));
+    return b;
+  }
+
+  /* ---------- botón para subir ---------- */
+  const subir = el(`<button class="subir hidden" aria-label="Volver arriba">↑</button>`);
+  document.body.append(subir);
+  subir.onclick = () => top();
+  window.addEventListener('scroll', () => subir.classList.toggle('hidden', window.scrollY < 500), { passive: true });
 
   function selectorGrupo() {
     const n = el(`<div class="seg" role="group" aria-label="Grupo de edad">
@@ -116,7 +165,9 @@
 
   let abierto = null;
   function niveles() {
-    $app.innerHTML = `<h1>Niveles</h1><p class="lead">10 bloques, de Génesis a Apocalipsis. Toca un bloque para ver sus niveles.</p>`;
+    $app.innerHTML = '';
+    $app.append(migas(['Inicio', 'Niveles']));
+    $app.append(el(`<div><h1>Niveles</h1><p class="lead">10 bloques, de Génesis a Apocalipsis. Toca un bloque para ver sus niveles.</p></div>`));
     $app.append(selectorGrupo());
     const bl = grupo().bloques;
     if (!abierto) { const b = bl.find((x) => x.niveles.some((n) => !S.progreso[n.id])) || bl[0]; abierto = b.id; }
@@ -124,7 +175,7 @@
       const h = hechos(b.niveles), on = b.id === abierto;
       const card = el(`<div class="card bloque ${on ? 'dorada' : ''}"><button class="cab" aria-expanded="${on}"><span class="bn">${b.num}</span>
         <span class="bt"><b>${esc(b.titulo)}</b><small>${esc(b.sub)} · ${h}/${b.niveles.length}</small></span><span class="fl">${on ? '▲' : '▼'}</span></button></div>`);
-      card.querySelector('.cab').onclick = () => { abierto = on ? '-' : b.id; niveles(); };
+      card.querySelector('.cab').onclick = () => { abierto = on ? '-' : b.id; const y = window.scrollY; niveles(); window.scrollTo(0, y); };
       if (on) b.niveles.forEach((n, i) => {
         const p = S.progreso[n.id];
         const c = el(`<div class="nivel"><div class="num">${i + 1}</div><div class="info"><b>${esc(n.titulo)}</b>
@@ -145,7 +196,7 @@
     abierto = N.bloque.id; pintarPaso();
   }
   function cabecera() {
-    return `<div class="chip">Bloque ${N.bloque.num} · ${esc(N.titulo)}</div>
+    return `<div id="migasNivel"></div><div class="chip">Bloque ${N.bloque.num} · ${esc(N.titulo)}</div>
       <div class="steps">${pasos.map((p, i) => `<i class="${i <= paso ? 'on' : ''}"></i>`).join('')}</div>
       <div class="steplabel">Paso ${paso + 1} de ${pasos.length} · ${pasos[paso][1]}</div>`;
   }
@@ -158,7 +209,7 @@
   }
   function pintarPaso() {
     const dv = N.devocional; const k = pasos[paso][0];
-    $app.innerHTML = cabecera();
+    $app.innerHTML = cabecera(); ponerMigasNivel();
     if (k === 'video') {
       $app.append(el(`<div class="card"><h2>${esc(dv.capsula_titulo)}</h2>
         <video controls playsinline preload="metadata" poster="${dv.capsula.replace('.mp4', '.jpg')}" src="${dv.capsula}"></video>
@@ -189,11 +240,16 @@
     } else if (k === 'fin') { fin(); }
   }
 
+  function ponerMigasNivel() {
+    const h = $app.querySelector('#migasNivel'); if (!h) return;
+    h.replaceWith(migas(['Bloque ' + N.bloque.num, N.titulo], () => { if (paso === 0 || PASOS_FIN() || confirm('¿Salir del nivel? Tu avance en este nivel no se guardará.')) ir('niveles'); }));
+  }
+  const PASOS_FIN = () => pasos[paso] && pasos[paso][0] === 'fin';
   function juego(i) {
     const qs = N.preguntas;
     if (i >= qs.length) { paso++; return pintarPaso(); }
     const q = qs[i];
-    $app.innerHTML = cabecera();
+    $app.innerHTML = cabecera(); ponerMigasNivel();
     const c = el(`<div class="card"><div class="steplabel">Pregunta ${i + 1} de ${qs.length}</div><h2>${esc(q.pregunta)}</h2><div class="opciones" id="op"></div><div id="fb"></div></div>`);
     $app.append(c);
     const op = c.querySelector('#op'), fb = c.querySelector('#fb');
@@ -224,7 +280,7 @@
           responder(ok, (ok ? '' : `Era ${q.respuesta.trim()}. `) + (q.explicacion || ''));
         },
       }));
-      op.append(el(`<p class="muted">Toca un punto rojo del mapa.</p>`));
+      op.append(el(`<p class="muted">Toca un punto rojo del mapa.</p>`), botonAmpliar(q.mapa, { puntos: q.opciones }, 'Mapa de la pregunta'));
     } else if (q.tipo === 'ordenar') {
       const zona = el(`<div class="orden" aria-label="Tu orden"></div>`), piezas = el(`<div class="piezas"></div>`), elegidos = [];
       barajar(q.eventos).forEach((e) => {
@@ -293,12 +349,17 @@
     r.append(b1);
     if (sig) { const b2 = el(`<button class="primary full">Siguiente nivel: ${esc(sig.titulo)} →</button>`); b2.onclick = () => ir('nivel', sig.id); r.append(b2); }
     else { const b2 = el(`<button class="primary full">Ver la ruta de la promesa →</button>`); b2.onclick = () => ir('ruta'); r.append(b2); }
+    const b3 = el(`<button class="full">📖 Volver a los niveles</button>`); b3.onclick = () => ir('niveles');
+    const b4 = el(`<button class="full">🏠 Ir al inicio</button>`); b4.onclick = () => ir('inicio');
+    r.append(b3, b4);
     $app.append(r);
   }
 
   /* ---------- ruta de la promesa ---------- */
   function ruta() {
-    $app.innerHTML = `<h1>Ruta de la promesa</h1><p class="lead">Desde el pecado de Adán hasta Apocalipsis: lo que Dios prometió sobre el Mesías y lo que significa para nosotros.</p>`;
+    $app.innerHTML = '';
+    $app.append(migas(['Inicio', 'Ruta de la promesa']));
+    $app.append(el(`<div><h1>Ruta de la promesa</h1><p class="lead">Desde el pecado de Adán hasta Apocalipsis: lo que Dios prometió sobre el Mesías y lo que significa para nosotros.</p></div>`));
     $app.append(el(`<div class="card"><h2>Cápsula: el linaje prometido</h2><video controls playsinline preload="metadata" poster="videos/capsula-ruta.jpg" src="videos/capsula-ruta.mp4"></video></div>`));
     const r = el(`<div class="ruta"></div>`);
     D.ruta.forEach((p, i) => {
@@ -331,7 +392,9 @@
   /* ---------- mapa de viajes ---------- */
   let viajeSel = 'censo';
   function mapaTab() {
-    $app.innerHTML = `<h1>Mapa de viajes</h1><p class="lead">Por qué se movieron: unas veces por mandato del rey, otras por aviso en sueños.</p>`;
+    $app.innerHTML = '';
+    $app.append(migas(['Inicio', 'Mapa de viajes']));
+    $app.append(el(`<div><h1>Mapa de viajes</h1><p class="lead">Por qué se movieron: unas veces por mandato del rey, otras por aviso en sueños.</p></div>`));
     const chips = el(`<div class="viajes" role="tablist" aria-label="Viajes"></div>`);
     D.viajes.forEach((v) => {
       const b = el(`<button class="${v.id === viajeSel ? 'on' : ''}">${esc(v.titulo)}</button>`);
@@ -343,7 +406,7 @@
     const v = D.viajes.find((x) => x.id === viajeSel);
     const puntos = v.mapa === 'H' ? ['Nazaret', 'Belén', 'Jerusalén', 'Ramá'] : v.mapa === 'M' ? ['Ur', 'Harán', 'Siquem', 'Egipto  ', 'Monte Sinaí'] : [...new Set([v.de, v.a, 'Egipto'].filter(Boolean))];
     const card = el(`<div class="card"></div>`);
-    card.append(mapa(v.mapa, { puntos, ruta: [v.de, v.a] }));
+    card.append(mapa(v.mapa, { puntos, ruta: [v.de, v.a] }), botonAmpliar(v.mapa, { puntos, ruta: [v.de, v.a] }, v.titulo));
     const A = v.de && D.lugares[v.de], B = v.a && D.lugares[v.a];
     const d = A && B ? Math.round(km(A, B)) : null;
     card.append(el(`<div><h2 style="margin-top:12px">${esc(v.titulo)}</h2><div class="badge">${esc(D.tipos[v.tipo])}</div>
@@ -355,7 +418,9 @@
 
   /* ---------- notas ---------- */
   function notas() {
-    $app.innerHTML = `<h1>Mis notas</h1><p class="lead">Lo que has expresado con tus palabras en cada nivel.</p>`;
+    $app.innerHTML = '';
+    $app.append(migas(['Inicio', 'Mis notas']));
+    $app.append(el(`<div><h1>Mis notas</h1><p class="lead">Lo que has expresado con tus palabras en cada nivel.</p></div>`));
     let alguna = false;
     Object.values(D.grupos).forEach((g) => todos(g).forEach((n) => {
       const t = S.notas[n.id]; if (!t) return; alguna = true;
@@ -364,6 +429,6 @@
     if (!alguna) $app.append(el(`<div class="card"><p>Aún no tienes notas. Al final de cada nivel podrás escribir con tus palabras lo que aprendiste.</p></div>`));
   }
 
-  ir('inicio');
+  { const st = leerHash(); ir(st.tab, st.arg, false); try { history.replaceState({ tab: st.tab, arg: st.arg }, '', urlDe(st.tab, st.arg)); } catch (e) {} }
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
