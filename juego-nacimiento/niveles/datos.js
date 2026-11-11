@@ -1,0 +1,737 @@
+window.NIVELES = {
+ "ninos": {
+  "grupo": "ninos",
+  "titulo": "Niños (6 a 11 años)",
+  "version_biblica": "Reina-Valera 1960 (RVR1960)",
+  "bloque": "7. Los Evangelios: el nacimiento",
+  "niveles": [
+   {
+    "id": "ni-1",
+    "titulo": "El ángel visita a María",
+    "pasajes": [
+     "Lc 1:26-38"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿En qué ciudad vivía María?",
+      "opciones": [
+       "Belén",
+       "Nazaret",
+       "Jerusalén"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 1:26",
+      "explicacion": "María vivía en Nazaret, en Galilea."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Qué nombre le dijo el ángel que le pusiera al niño?",
+      "opciones": [
+       "Juan",
+       "Jesús",
+       "David"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 1:31",
+      "explicacion": "«…llamarás su nombre JESÚS.»"
+     },
+     {
+      "tipo": "ordenar",
+      "pregunta": "Ordena lo que pasó en el nacimiento.",
+      "eventos": [
+       "Nace en Belén",
+       "Viajan a Belén",
+       "Los ángeles avisan a los pastores"
+      ],
+      "orden_correcto": [
+       "Viajan a Belén",
+       "Nace en Belén",
+       "Los ángeles avisan a los pastores"
+      ],
+      "cita": "Lc 2:4, 6, 8"
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa: «…llamarás su nombre ___.»",
+      "respuesta": "JESÚS",
+      "cita": "Lc 1:31"
+     }
+    ],
+    "aplicacion": "Dios habló a María con calma. ¿Qué te dice la Biblia que puedes hacer cuando tienes miedo?"
+   },
+   {
+    "id": "ni-2",
+    "titulo": "El viaje a Belén",
+    "pasajes": [
+     "Lc 2:1-5"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Quién mandó hacer el censo?",
+      "opciones": [
+       "Herodes",
+       "Augusto César",
+       "Pedro"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 2:1",
+      "explicacion": "Fue el emperador Augusto César."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿A qué ciudad fue José?",
+      "opciones": [
+       "Nazaret",
+       "Belén",
+       "Egipto"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 2:4",
+      "explicacion": "Fue a Belén, la ciudad de David."
+     },
+     {
+      "tipo": "distancia",
+      "pregunta": "¿Qué tan lejos está Belén de Nazaret, en línea recta?",
+      "opciones": [
+       "Como 10 km",
+       "Como 111 km",
+       "Como 1,000 km"
+      ],
+      "respuesta": 1,
+      "coordenadas": {
+       "Nazaret": [
+        32.7,
+        35.3
+       ],
+       "Belén": [
+        31.705,
+        35.2
+       ]
+      },
+      "cita": "Lc 2:4",
+      "explicacion": "En línea recta son unos 111 km. El camino era más largo."
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa: «…a la ciudad de David, que se llama ___.»",
+      "respuesta": "Belén",
+      "cita": "Lc 2:4"
+     }
+    ],
+    "aplicacion": "José obedeció aunque el viaje era largo. ¿En qué te cuesta obedecer?"
+   },
+   {
+    "id": "ni-3",
+    "titulo": "El pesebre y los pastores",
+    "pasajes": [
+     "Lc 2:6-20"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Dónde acostaron al niño?",
+      "opciones": [
+       "En una cuna de oro",
+       "En un pesebre",
+       "En el templo"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 2:7",
+      "explicacion": "Lo acostaron en un pesebre, porque no había lugar en el mesón."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Quién avisó a los pastores?",
+      "opciones": [
+       "Un ángel del Señor",
+       "El rey Herodes",
+       "Los magos"
+      ],
+      "respuesta": 0,
+      "cita": "Lc 2:9",
+      "explicacion": "Un ángel del Señor les dio la buena noticia."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Qué hacía María con lo que pasaba?",
+      "opciones": [
+       "Lo guardaba en su corazón",
+       "Lo olvidaba",
+       "Lo escribía en una piedra"
+      ],
+      "respuesta": 0,
+      "cita": "Lc 2:19",
+      "explicacion": "«…meditándolas en su corazón.»"
+     },
+     {
+      "tipo": "ordenar",
+      "pregunta": "Ordena lo que hicieron los pastores.",
+      "eventos": [
+       "Volvieron alabando a Dios",
+       "Fueron a Belén",
+       "Oyeron al ángel"
+      ],
+      "orden_correcto": [
+       "Oyeron al ángel",
+       "Fueron a Belén",
+       "Volvieron alabando a Dios"
+      ],
+      "cita": "Lc 2:9, 15, 20"
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa: «…os ha nacido hoy un ___, que es Cristo el Señor.»",
+      "respuesta": "Salvador",
+      "cita": "Lc 2:11"
+     }
+    ],
+    "aplicacion": "Los pastores fueron a ver al niño y después alabaron a Dios. ¿Qué puedes alabar hoy?"
+   },
+   {
+    "id": "ni-4",
+    "titulo": "Los magos",
+    "pasajes": [
+     "Mt 2:1-12"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿De dónde vinieron los magos?",
+      "opciones": [
+       "De Egipto",
+       "Del oriente",
+       "De Galilea"
+      ],
+      "respuesta": 1,
+      "cita": "Mt 2:1",
+      "explicacion": "Vinieron del oriente."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Qué regalos llevaron?",
+      "opciones": [
+       "Oro, incienso y mirra",
+       "Pan y vino",
+       "Juguetes"
+      ],
+      "respuesta": 0,
+      "cita": "Mt 2:11",
+      "explicacion": "Llevaron oro, incienso y mirra."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Por qué volvieron por otro camino?",
+      "opciones": [
+       "Porque se perdieron",
+       "Porque Dios les avisó en sueños",
+       "Porque Herodes los llamó"
+      ],
+      "respuesta": 1,
+      "cita": "Mt 2:12",
+      "explicacion": "Fueron avisados en sueños."
+     },
+     {
+      "tipo": "ordenar",
+      "pregunta": "Ordena el viaje de los magos.",
+      "eventos": [
+       "Adoran al niño",
+       "Ven la estrella",
+       "Van a Belén"
+      ],
+      "orden_correcto": [
+       "Ven la estrella",
+       "Van a Belén",
+       "Adoran al niño"
+      ],
+      "cita": "Mt 2:2, 9, 11"
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa: «…y postrándose, lo ___.»",
+      "respuesta": "adoraron",
+      "cita": "Mt 2:11"
+     }
+    ],
+    "aplicacion": "Los magos adoraron a Jesús. ¿Cómo puedes adorar a Dios en tu casa?"
+   },
+   {
+    "id": "ni-5",
+    "titulo": "La huida a Egipto y el regreso",
+    "pasajes": [
+     "Mt 2:13-23"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Por qué tuvieron que huir?",
+      "opciones": [
+       "Herodes quería matar al niño",
+       "Tenían hambre",
+       "Querían ver el mar"
+      ],
+      "respuesta": 0,
+      "cita": "Mt 2:13",
+      "explicacion": "Herodes buscaba al niño para matarlo."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿A qué país huyeron?",
+      "opciones": [
+       "Egipto",
+       "Roma",
+       "Grecia"
+      ],
+      "respuesta": 0,
+      "cita": "Mt 2:13",
+      "explicacion": "Huyeron a Egipto."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿En qué ciudad se establecieron al volver?",
+      "opciones": [
+       "Belén",
+       "Nazaret",
+       "Jerusalén"
+      ],
+      "respuesta": 1,
+      "cita": "Mt 2:23",
+      "explicacion": "Vivieron en Nazaret."
+     },
+     {
+      "tipo": "ordenar",
+      "pregunta": "Ordena la historia.",
+      "eventos": [
+       "Se establecen en Nazaret",
+       "Huyen a Egipto",
+       "Vuelven a Israel"
+      ],
+      "orden_correcto": [
+       "Huyen a Egipto",
+       "Vuelven a Israel",
+       "Se establecen en Nazaret"
+      ],
+      "cita": "Mt 2:13, 20-23"
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa: «…De Egipto llamé a mi ___.»",
+      "respuesta": "Hijo",
+      "cita": "Mt 2:15"
+     }
+    ],
+    "aplicacion": "Dios cuidó a su familia en el camino. ¿Cómo sabes que Dios te cuida?"
+   }
+  ]
+ },
+ "jovenes-adultos": {
+  "grupo": "jovenes-adultos",
+  "titulo": "Jóvenes y adultos",
+  "version_biblica": "Reina-Valera 1960 (RVR1960)",
+  "bloque": "7. Los Evangelios: el nacimiento",
+  "niveles": [
+   {
+    "id": "ja-1",
+    "titulo": "El anuncio",
+    "pasajes": [
+     "Lc 1:26-38",
+     "Mt 1:18-25"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿A qué ciudad de Galilea fue enviado el ángel Gabriel?",
+      "opciones": [
+       "Belén",
+       "Nazaret",
+       "Jerusalén",
+       "Capernaum"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 1:26",
+      "explicacion": "«…a una ciudad de Galilea, llamada Nazaret…»"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Qué nombre debía ponerle María al niño?",
+      "opciones": [
+       "Emanuel",
+       "Jesús",
+       "Cristo",
+       "Hijo del Altísimo"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 1:31",
+      "explicacion": "«…llamarás su nombre JESÚS.» El nombre expresa su misión: Mt 1:21 dice que «salvará a su pueblo de sus pecados»."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "Según el ángel a José, ¿de dónde era lo engendrado en María?",
+      "opciones": [
+       "De José",
+       "Del Espíritu Santo",
+       "De un sacerdote",
+       "De la ley de Moisés"
+      ],
+      "respuesta": 1,
+      "cita": "Mt 1:20",
+      "explicacion": "«…lo que en ella es engendrado, del Espíritu Santo es.»"
+     },
+     {
+      "tipo": "ordenar",
+      "pregunta": "Ordena los eventos del nacimiento en el orden del relato.",
+      "eventos": [
+       "Nacimiento en Belén",
+       "Viaje de Nazaret a Belén",
+       "Ángeles anuncian a los pastores"
+      ],
+      "orden_correcto": [
+       "Viaje de Nazaret a Belén",
+       "Nacimiento en Belén",
+       "Ángeles anuncian a los pastores"
+      ],
+      "cita": "Lc 2:4, 6, 8"
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa el versículo: «…y llamarás su nombre ___, porque él salvará a su pueblo de sus pecados.»",
+      "respuesta": "JESÚS",
+      "cita": "Mt 1:21"
+     }
+    ],
+    "aplicacion": "El nombre de Jesús anuncia su obra: salvar del pecado. Reflexiona: ¿de qué te ha salvado él?"
+   },
+   {
+    "id": "ja-2",
+    "titulo": "El censo y el viaje",
+    "pasajes": [
+     "Lc 2:1-5"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Quién promulgó el edicto de empadronamiento?",
+      "opciones": [
+       "Herodes",
+       "Cirenio",
+       "Augusto César",
+       "Pilato"
+      ],
+      "respuesta": 2,
+      "cita": "Lc 2:1",
+      "explicacion": "«…se promulgó un edicto de parte de Augusto César…»"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Quién gobernaba Siria cuando se hizo el censo?",
+      "opciones": [
+       "Herodes",
+       "Cirenio",
+       "Arquelao",
+       "Augusto"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 2:2",
+      "explicacion": "«Este primer censo se hizo siendo Cirenio gobernador de Siria.»"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Por qué José debía ir a Belén?",
+      "opciones": [
+       "Porque tenía negocios allí",
+       "Porque era de la casa y familia de David",
+       "Porque Herodes lo llamó",
+       "Porque María quería ver a Isabel"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 2:4",
+      "explicacion": "«…a la ciudad de David, que se llama Belén, por cuanto era de la casa y familia de David.»"
+     },
+     {
+      "tipo": "distancia",
+      "pregunta": "Distancia en línea recta entre Nazaret y Belén, según el mapa del juego.",
+      "opciones": [
+       "40 km",
+       "111 km",
+       "250 km",
+       "600 km"
+      ],
+      "respuesta": 1,
+      "coordenadas": {
+       "Nazaret": [
+        32.7,
+        35.3
+       ],
+       "Belén": [
+        31.705,
+        35.2
+       ]
+      },
+      "cita": "Lc 2:4",
+      "explicacion": "Son unos 111 km en línea recta. El camino real era más largo, porque debían rodear por rutas de la región."
+     },
+     {
+      "tipo": "ordenar",
+      "pregunta": "Ordena estos trayectos de menor a mayor distancia en línea recta.",
+      "eventos": [
+       "Nazaret → Belén",
+       "Belén → Jerusalén",
+       "Nazaret → Jerusalén"
+      ],
+      "orden_correcto": [
+       "Belén → Jerusalén",
+       "Nazaret → Jerusalén",
+       "Nazaret → Belén"
+      ],
+      "cita": "Coordenadas aproximadas del mapa"
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa: «…a la ciudad de David, que se llama ___, por cuanto era de la casa y familia de David.»",
+      "respuesta": "Belén",
+      "cita": "Lc 2:4"
+     }
+    ],
+    "aplicacion": "Dios ordenó los acontecimientos aunque el mandato venía de un emperador. ¿Qué te enseña esto sobre cómo Dios gobierna la historia?"
+   },
+   {
+    "id": "ja-3",
+    "titulo": "El pesebre y los pastores",
+    "pasajes": [
+     "Lc 2:6-20"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Por qué lo acostaron en un pesebre?",
+      "opciones": [
+       "Porque era una cueva para animales",
+       "Porque no había lugar para ellos en el mesón",
+       "Porque Herodes lo ordenó",
+       "Porque era costumbre de la familia"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 2:7",
+      "explicacion": "«…porque no había lugar para ellos en el mesón.»"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Qué señal dio el ángel a los pastores?",
+      "opciones": [
+       "Una estrella brillante",
+       "Un niño envuelto en pañales, acostado en un pesebre",
+       "Un trono de oro",
+       "Una voz desde el templo"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 2:12",
+      "explicacion": "«Hallaréis al niño envuelto en pañales, acostado en un pesebre.»"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Qué guardaba María en su corazón?",
+      "opciones": [
+       "Las riquezas de los magos",
+       "Todas estas cosas, meditándolas",
+       "Las profecías de Isaías en secreto",
+       "El nombre de Herodes"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 2:19",
+      "explicacion": "«Pero María guardaba todas estas cosas, meditándolas en su corazón.»"
+     },
+     {
+      "tipo": "ordenar",
+      "pregunta": "Ordena lo que ocurrió con los pastores.",
+      "eventos": [
+       "Vuelven glorificando a Dios",
+       "Un ángel les anuncia el nacimiento",
+       "Van a Belén y hallan al niño"
+      ],
+      "orden_correcto": [
+       "Un ángel les anuncia el nacimiento",
+       "Van a Belén y hallan al niño",
+       "Vuelven glorificando a Dios"
+      ],
+      "cita": "Lc 2:9, 15-16, 20"
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa: «…os ha nacido hoy, en la ciudad de David, un ___, que es CRISTO el Señor.»",
+      "respuesta": "Salvador",
+      "cita": "Lc 2:11"
+     }
+    ],
+    "aplicacion": "El Salvador vino a un lugar humilde y los primeros en oír fueron pastores. ¿Qué lugar le das tú en tu vida?"
+   },
+   {
+    "id": "ja-4",
+    "titulo": "Los magos",
+    "pasajes": [
+     "Mt 2:1-12"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿De dónde vinieron los magos?",
+      "opciones": [
+       "De Egipto",
+       "Del oriente",
+       "De Galilea",
+       "De Roma"
+      ],
+      "respuesta": 1,
+      "cita": "Mt 2:1",
+      "explicacion": "«…vinieron del oriente a Jerusalén unos magos.»"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Qué lugar profetizó el escriba citando a Miqueas?",
+      "opciones": [
+       "Nazaret",
+       "Jerusalén",
+       "Belén de Judea",
+       "Egipto"
+      ],
+      "respuesta": 2,
+      "cita": "Mt 2:5-6",
+      "explicacion": "«En Belén de Judea; porque así está escrito por el profeta.» (Mi 5:2)."
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Qué regalos ofrecieron los magos?",
+      "opciones": [
+       "Oro, incienso y mirra",
+       "Pan, vino y aceite",
+       "Lino, lana y plata",
+       "Trigo, cebada y miel"
+      ],
+      "respuesta": 0,
+      "cita": "Mt 2:11",
+      "explicacion": "«…le ofrecieron presentes: oro, incienso y mirra.»"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Por qué los magos regresaron por otro camino?",
+      "opciones": [
+       "Porque Herodes se lo pidió",
+       "Porque fueron avisados en sueños",
+       "Porque se perdieron",
+       "Porque el camino era más corto"
+      ],
+      "respuesta": 1,
+      "cita": "Mt 2:12",
+      "explicacion": "«Pero siendo avisados por revelación en sueños que no volviesen a Herodes, regresaron a su tierra por otro camino.»"
+     },
+     {
+      "tipo": "ordenar",
+      "pregunta": "Ordena el recorrido de los magos.",
+      "eventos": [
+       "Llegan a Belén y adoran al niño",
+       "Ven la estrella en el oriente",
+       "Herodes consulta a los escribas"
+      ],
+      "orden_correcto": [
+       "Ven la estrella en el oriente",
+       "Herodes consulta a los escribas",
+       "Llegan a Belén y adoran al niño"
+      ],
+      "cita": "Mt 2:2, 4-5, 9, 11"
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa: «…vieron al niño con su madre María, y postrándose, ___.»",
+      "respuesta": "lo adoraron",
+      "cita": "Mt 2:11"
+     }
+    ],
+    "aplicacion": "Herodes quería adorar al niño solo de nombre; los magos lo adoraron de verdad. ¿Cómo se ve la adoración en tu vida diaria?"
+   },
+   {
+    "id": "ja-5",
+    "titulo": "La huida, el regreso y el templo",
+    "pasajes": [
+     "Mt 2:13-23",
+     "Lc 2:21-38"
+    ],
+    "preguntas": [
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Adónde huyó la familia de Jesús?",
+      "opciones": [
+       "A Egipto",
+       "A Roma",
+       "A Samaria",
+       "A Babilonia"
+      ],
+      "respuesta": 0,
+      "cita": "Mt 2:13",
+      "explicacion": "«…huye a Egipto, y permanece allá hasta que yo te diga.»"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Qué profecía se cumplió con la estancia en Egipto?",
+      "opciones": [
+       "Isaías 53",
+       "Oseas 11:1",
+       "Miqueas 4",
+       "Zacarías 9"
+      ],
+      "respuesta": 1,
+      "cita": "Mt 2:15",
+      "explicacion": "«…De Egipto llamé a mi Hijo.» (Os 11:1)"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "¿Dónde se establecieron al regresar?",
+      "opciones": [
+       "En Belén",
+       "En Jerusalén",
+       "En Nazaret",
+       "En Jericó"
+      ],
+      "respuesta": 2,
+      "cita": "Mt 2:23",
+      "explicacion": "«…y vino y habitó en la ciudad que se llama Nazaret.»"
+     },
+     {
+      "tipo": "opcion",
+      "pregunta": "Según Simeón, ¿qué no vería antes de morir?",
+      "opciones": [
+       "Al niño Jesús",
+       "La muerte",
+       "El templo",
+       "Egipto"
+      ],
+      "respuesta": 1,
+      "cita": "Lc 2:26",
+      "explicacion": "«…no vería la muerte antes que viese al Ungido del Señor.»"
+     },
+     {
+      "tipo": "ordenar",
+      "pregunta": "Ordena la historia de la familia tras el nacimiento.",
+      "eventos": [
+       "Regresan a Israel",
+       "Huyen a Egipto",
+       "Se establecen en Nazaret"
+      ],
+      "orden_correcto": [
+       "Huyen a Egipto",
+       "Regresan a Israel",
+       "Se establecen en Nazaret"
+      ],
+      "cita": "Mt 2:13, 20-23"
+     },
+     {
+      "tipo": "completar",
+      "pregunta": "Completa: «…luz para revelación a los gentiles, y gloria de tu pueblo ___.»",
+      "respuesta": "Israel",
+      "cita": "Lc 2:32"
+     }
+    ],
+    "aplicacion": "Dios cuidó al niño en la huida y en el regreso. ¿Cómo has visto su cuidado en tiempos difíciles?"
+   }
+  ]
+ }
+};

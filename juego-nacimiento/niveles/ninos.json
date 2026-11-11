@@ -1,0 +1,61 @@
+{
+  "grupo": "ninos",
+  "titulo": "Niños (6 a 11 años)",
+  "version_biblica": "Reina-Valera 1960 (RVR1960)",
+  "bloque": "7. Los Evangelios: el nacimiento",
+  "niveles": [
+    {
+      "id": "ni-1", "titulo": "El ángel visita a María", "pasajes": ["Lc 1:26-38"],
+      "preguntas": [
+        {"tipo": "opcion", "pregunta": "¿En qué ciudad vivía María?", "opciones": ["Belén", "Nazaret", "Jerusalén"], "respuesta": 1, "cita": "Lc 1:26", "explicacion": "María vivía en Nazaret, en Galilea."},
+        {"tipo": "opcion", "pregunta": "¿Qué nombre le dijo el ángel que le pusiera al niño?", "opciones": ["Juan", "Jesús", "David"], "respuesta": 1, "cita": "Lc 1:31", "explicacion": "«…llamarás su nombre JESÚS.»"},
+        {"tipo": "ordenar", "pregunta": "Ordena lo que pasó en el nacimiento.", "eventos": ["Nace en Belén", "Viajan a Belén", "Los ángeles avisan a los pastores"], "orden_correcto": ["Viajan a Belén", "Nace en Belén", "Los ángeles avisan a los pastores"], "cita": "Lc 2:4, 6, 8"},
+        {"tipo": "completar", "pregunta": "Completa: «…llamarás su nombre ___.»", "respuesta": "JESÚS", "cita": "Lc 1:31"}
+      ],
+      "aplicacion": "Dios habló a María con calma. ¿Qué te dice la Biblia que puedes hacer cuando tienes miedo?"
+    },
+    {
+      "id": "ni-2", "titulo": "El viaje a Belén", "pasajes": ["Lc 2:1-5"],
+      "preguntas": [
+        {"tipo": "opcion", "pregunta": "¿Quién mandó hacer el censo?", "opciones": ["Herodes", "Augusto César", "Pedro"], "respuesta": 1, "cita": "Lc 2:1", "explicacion": "Fue el emperador Augusto César."},
+        {"tipo": "opcion", "pregunta": "¿A qué ciudad fue José?", "opciones": ["Nazaret", "Belén", "Egipto"], "respuesta": 1, "cita": "Lc 2:4", "explicacion": "Fue a Belén, la ciudad de David."},
+        {"tipo": "distancia", "pregunta": "¿Qué tan lejos está Belén de Nazaret, en línea recta?", "opciones": ["Como 10 km", "Como 111 km", "Como 1,000 km"], "respuesta": 1, "coordenadas": {"Nazaret": [32.70, 35.30], "Belén": [31.705, 35.20]}, "cita": "Lc 2:4", "explicacion": "En línea recta son unos 111 km. El camino era más largo."},
+        {"tipo": "completar", "pregunta": "Completa: «…a la ciudad de David, que se llama ___.»", "respuesta": "Belén", "cita": "Lc 2:4"}
+      ],
+      "aplicacion": "José obedeció aunque el viaje era largo. ¿En qué te cuesta obedecer?"
+    },
+    {
+      "id": "ni-3", "titulo": "El pesebre y los pastores", "pasajes": ["Lc 2:6-20"],
+      "preguntas": [
+        {"tipo": "opcion", "pregunta": "¿Dónde acostaron al niño?", "opciones": ["En una cuna de oro", "En un pesebre", "En el templo"], "respuesta": 1, "cita": "Lc 2:7", "explicacion": "Lo acostaron en un pesebre, porque no había lugar en el mesón."},
+        {"tipo": "opcion", "pregunta": "¿Quién avisó a los pastores?", "opciones": ["Un ángel del Señor", "El rey Herodes", "Los magos"], "respuesta": 0, "cita": "Lc 2:9", "explicacion": "Un ángel del Señor les dio la buena noticia."},
+        {"tipo": "opcion", "pregunta": "¿Qué hacía María con lo que pasaba?", "opciones": ["Lo guardaba en su corazón", "Lo olvidaba", "Lo escribía en una piedra"], "respuesta": 0, "cita": "Lc 2:19", "explicacion": "«…meditándolas en su corazón.»"},
+        {"tipo": "ordenar", "pregunta": "Ordena lo que hicieron los pastores.", "eventos": ["Volvieron alabando a Dios", "Fueron a Belén", "Oyeron al ángel"], "orden_correcto": ["Oyeron al ángel", "Fueron a Belén", "Volvieron alabando a Dios"], "cita": "Lc 2:9, 15, 20"},
+        {"tipo": "completar", "pregunta": "Completa: «…os ha nacido hoy un ___, que es Cristo el Señor.»", "respuesta": "Salvador", "cita": "Lc 2:11"}
+      ],
+      "aplicacion": "Los pastores fueron a ver al niño y después alabaron a Dios. ¿Qué puedes alabar hoy?"
+    },
+    {
+      "id": "ni-4", "titulo": "Los magos", "pasajes": ["Mt 2:1-12"],
+      "preguntas": [
+        {"tipo": "opcion", "pregunta": "¿De dónde vinieron los magos?", "opciones": ["De Egipto", "Del oriente", "De Galilea"], "respuesta": 1, "cita": "Mt 2:1", "explicacion": "Vinieron del oriente."},
+        {"tipo": "opcion", "pregunta": "¿Qué regalos llevaron?", "opciones": ["Oro, incienso y mirra", "Pan y vino", "Juguetes"], "respuesta": 0, "cita": "Mt 2:11", "explicacion": "Llevaron oro, incienso y mirra."},
+        {"tipo": "opcion", "pregunta": "¿Por qué volvieron por otro camino?", "opciones": ["Porque se perdieron", "Porque Dios les avisó en sueños", "Porque Herodes los llamó"], "respuesta": 1, "cita": "Mt 2:12", "explicacion": "Fueron avisados en sueños."},
+        {"tipo": "ordenar", "pregunta": "Ordena el viaje de los magos.", "eventos": ["Adoran al niño", "Ven la estrella", "Van a Belén"], "orden_correcto": ["Ven la estrella", "Van a Belén", "Adoran al niño"], "cita": "Mt 2:2, 9, 11"},
+        {"tipo": "completar", "pregunta": "Completa: «…y postrándose, lo ___.»", "respuesta": "adoraron", "cita": "Mt 2:11"}
+      ],
+      "aplicacion": "Los magos adoraron a Jesús. ¿Cómo puedes adorar a Dios en tu casa?"
+    },
+    {
+      "id": "ni-5", "titulo": "La huida a Egipto y el regreso", "pasajes": ["Mt 2:13-23"],
+      "preguntas": [
+        {"tipo": "opcion", "pregunta": "¿Por qué tuvieron que huir?", "opciones": ["Herodes quería matar al niño", "Tenían hambre", "Querían ver el mar"], "respuesta": 0, "cita": "Mt 2:13", "explicacion": "Herodes buscaba al niño para matarlo."},
+        {"tipo": "opcion", "pregunta": "¿A qué país huyeron?", "opciones": ["Egipto", "Roma", "Grecia"], "respuesta": 0, "cita": "Mt 2:13", "explicacion": "Huyeron a Egipto."},
+        {"tipo": "opcion", "pregunta": "¿En qué ciudad se establecieron al volver?", "opciones": ["Belén", "Nazaret", "Jerusalén"], "respuesta": 1, "cita": "Mt 2:23", "explicacion": "Vivieron en Nazaret."},
+        {"tipo": "ordenar", "pregunta": "Ordena la historia.", "eventos": ["Se establecen en Nazaret", "Huyen a Egipto", "Vuelven a Israel"], "orden_correcto": ["Huyen a Egipto", "Vuelven a Israel", "Se establecen en Nazaret"], "cita": "Mt 2:13, 20-23"},
+        {"tipo": "completar", "pregunta": "Completa: «…De Egipto llamé a mi ___.»", "respuesta": "Hijo", "cita": "Mt 2:15"}
+      ],
+      "aplicacion": "Dios cuidó a su familia en el camino. ¿Cómo sabes que Dios te cuida?"
+    }
+  ]
+}

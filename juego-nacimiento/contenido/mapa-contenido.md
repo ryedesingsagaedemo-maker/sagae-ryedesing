@@ -88,6 +88,8 @@ Nota: en este bloque el juego debe mostrar al menos dos posturas y no imponer un
 
 ## Bloque 7. Los Evangelios: el nacimiento
 
+**Verificado (RVR1960):** Lc 1:26-38; Mt 1:18-25; Lc 2:1-38; Mt 2:1-23. **Pendiente:** Mt 1:1-17 y Lc 3:23-38 (genealogías).
+
 | # | Tema | Pasajes clave | Lugar | Aplicación |
 |---|---|---|---|---|
 | 7.1 | Genealogía | Mt 1:1–17; Lc 3:23–38 | — | Dos genealogías, una de José (Mt) y otra de María (Lc) según la tradición evangélica; se presenta la diferencia |
@@ -98,10 +100,10 @@ Nota: en este bloque el juego debe mostrar al menos dos posturas y no imponer un
 | 7.6 | Pastores | Lc 2:8–20 | Campos cerca de Belén | Evangelio anunciado a humildes |
 | 7.7 | Magos | Mt 2:1–12 | Oriente, Jerusalén, Belén | Adoración y regalos |
 | 7.8 | Herodes y la huida | Mt 2:13–18 | Belén, Egipto, Ramá | Mandato de Herodes; aviso en sueños a José |
-| 7.9 | Regreso a Nazaret | Mt 2:19–23 | Egipto, Nazaret | Cumplimiento de Oseas y de la profecía de Nazareno |
+| 7.9 | Regreso a Nazaret | Mt 2:19–23 | Egipto, Nazaret | Mt 2:23 dice «para que se cumpliese lo que fue dicho por los profetas, que habría de ser llamado nazareno» (sin cita de profeta concreta en el texto) |
 | 7.10 | Simeón y Ana | Lc 2:21–38 | Jerusalén, templo | Luz para las naciones (Is 42:6) |
 
-**Mapas:** Nazaret → Belén (≈ 140 km según la distancia del juego; confirmar cálculo), Belén → Jerusalén (≈ 10 km), Jerusalén → Egipto (ruta), Egipto → Nazaret.
+**Mapas:** Nazaret → Belén ≈ 111 km en línea recta (calculado; la cifra de ≈140 km del video era una ruta estimada por el valle del Jordán, no la distancia en línea recta), Belén → Jerusalén ≈ 8.6 km, Nazaret → Jerusalén ≈ 103 km. Jerusalén → Egipto y Egipto → Nazaret: ruta aproximada, sin coordenadas fijas en el texto.
 
 Nota de distancias: los cálculos son en línea recta a partir de coordenadas aproximadas; la distancia por camino es mayor. Indicar en la pantalla de distancias.
 
