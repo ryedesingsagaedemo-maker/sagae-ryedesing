@@ -4,6 +4,7 @@ sys.path.insert(0, 'contenido')
 from bloques_a import BLOQUES as A
 from bloques_b import BLOQUES as B
 from ciudades import validar
+import genealogias as GEN
 
 dev = json.load(open('contenido/devocionales.json'))
 rm = json.load(open('contenido/ruta-mapas.json'))
@@ -14,7 +15,8 @@ for k, (gid, titulo) in GR.items():
     b7 = json.load(open(f'niveles/{gid}.json'))
     for n in b7['niveles']:
         n['devocional'] = dev[n['id']]
-    bloques.append({'id': 'b7', 'num': 7, 'titulo': 'Los Evangelios: el nacimiento', 'sub': 'Mateo 1–2 · Lucas 1–2', 'niveles': b7['niveles']})
+    b7['niveles'] = (GEN.NIVELES_JA if k == 'ja' else GEN.NIVELES_NI) + b7['niveles']
+    bloques.append({'id': 'b7', 'num': 7, 'titulo': 'Los Evangelios: el nacimiento', 'sub': 'Genealogías · Mateo 1–2 · Lucas 1–3', 'niveles': b7['niveles']})
     bloques.sort(key=lambda b: b['num'])
     ids = [n['id'] for b in bloques for n in b['niveles']]
     assert len(ids) == len(set(ids)), 'ids repetidos'
@@ -32,7 +34,7 @@ ciudades = validar()
 # cada lugar del mapa debe tener su ficha
 for n in rm['lugares']:
     assert n.strip() in ciudades, f'Lugar sin ficha: {n!r}'
-out = {'grupos': grupos, **rm, 'ciudades': ciudades}
+out = {'grupos': grupos, **rm, 'ciudades': ciudades, 'genealogias': GEN.validar()}
 open('niveles/datos.js', 'w').write('window.DATOS = ' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';\n')
 tot = sum(len(b['niveles']) for g in grupos.values() for b in g['bloques'])
 print('datos.js', len(open('niveles/datos.js').read()) // 1024, 'KB ·', tot, 'niveles')

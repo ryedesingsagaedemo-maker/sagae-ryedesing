@@ -1,4 +1,4 @@
-# Juego bíblico: el nacimiento de Jesucristo · Templo Bíblico Emmanuel
+# Juego bíblico: el nacimiento de Jesucristo · Templo Bíblico Emanuel
 
 Publicado en: https://juego-nacimiento.vercel.app
 
@@ -34,3 +34,13 @@ lo que dice la Biblia, religión, cultura, economía y comercio, y su relación 
 Contenido en `contenido/ciudades.py`. Cada punto bíblico lleva cita verificada en la RVR1960
 (`build.py` falla si una cita no está en la lista verificada o si un lugar del mapa no tiene ficha).
 Los datos de historia y arqueología se marcan aparte como dato humano, no Escritura.
+
+## Genealogías (v0.5)
+Pantalla "🌳 Genealogías" (desde Inicio y desde la Ruta): Mateo 1:1-17 en tres grupos de catorce con las mujeres
+y notas por nombre; Lucas 3:23-38 de Jesús a Adán con recorrido animado; comparación con las dos explicaciones
+conservadoras de la diferencia; y tres juegos. Además, 3 niveles por edad al inicio del bloque 7.
+Contenido en `contenido/genealogias.py` (textos RVR1960 verificados; `build.py` comprueba nombres y citas).
+
+## Nombre
+El nombre correcto es **Templo Bíblico Emanuel** (una sola m). El logo (`assets/logo.png` e iconos) y la
+marca de agua de las cápsulas se corrigieron.

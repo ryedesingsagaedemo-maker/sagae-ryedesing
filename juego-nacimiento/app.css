@@ -1,4 +1,4 @@
-/* Juego del nacimiento · Templo Bíblico Emmanuel
+/* Juego del nacimiento · Templo Bíblico Emanuel
    Paleta: tinta marrón, pergamino, oro del logo. Profundidad con relieves, sombras en capas y texturas. */
 :root{
   --ink:#24180c; --ink2:#5b4630; --paper:#f7efdc; --card:#fffaf0;
@@ -246,3 +246,52 @@ body.con-modal .tabs,body.con-modal .subir{display:none}
 .fichas-lista .fl button span{font-size:20px}.fichas-lista .fl small{font:12px Arial,sans-serif;color:var(--ink2)}
 .conoce{margin-top:10px;width:100%}
 .modal-ficha{background:linear-gradient(180deg,#2a1d0f,#120c06)}.modal-ficha .modal-top{background:linear-gradient(180deg,#3a2814,#1c140b);border-bottom:2px solid var(--gold);box-shadow:0 4px 12px rgba(0,0,0,.4)}
+
+/* ---------- genealogías ---------- */
+.gen{margin-top:14px}
+.seg button{white-space:nowrap}
+@media (max-width:420px){.seg button{font-size:13px;padding:0 4px}}
+.verso-c{font-style:italic;font-size:17px;margin:0 0 8px}
+.gen-grupo{position:relative;overflow:hidden}
+.gen-grupo:before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--gc,var(--gold))}
+.gen-grupo.g0{--gc:#c08a1e}.gen-grupo.g1{--gc:#7a2a1f}.gen-grupo.g2{--gc:#3d5a73}
+.gen-cab{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.gen-cab h2{margin:0;font-size:19px}.gen-cab small{font:13px Arial,sans-serif;color:var(--ink2)}
+.gnum{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;font:800 18px Arial,sans-serif;color:#fff;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.45),var(--gc) 60%);box-shadow:0 3px 6px rgba(0,0,0,.3)}
+.g14{margin-left:auto;font:800 13px Arial,sans-serif;color:var(--gc);border:2px solid var(--gc);border-radius:999px;padding:3px 10px;background:#fff}
+.cadena,.escalera{display:flex;flex-wrap:wrap;align-items:center;gap:6px 2px}
+.escalera{max-height:340px;overflow:auto;padding:4px;border-radius:12px;background:rgba(255,255,255,.4)}
+.eslabon{color:#b49660;font:700 14px Arial,sans-serif;padding:0 1px}
+.gchip{min-height:38px;padding:6px 11px;font-size:15px;border-radius:999px;box-shadow:0 2px 0 #c9b07a,0 3px 6px rgba(60,35,10,.12)}
+.gchip.info{border-color:var(--gold);font-weight:700}
+.gchip.info:after{content:" ⓘ";font-size:11px;color:var(--gold)}
+.gchip.mujer{background:linear-gradient(180deg,#fff0f0,#f8d9d6);border-color:#c97a7a;color:#7a2a2a;font-style:italic}
+.gchip.repite{opacity:.55}
+.gchip.cristo{background:linear-gradient(180deg,#fff3c4,#e7c46b);border-color:var(--gold);font-weight:800}
+.gchip.dios{background:linear-gradient(180deg,#3a2814,#1c140b);color:var(--gold3)}
+.gchip.hito{border-width:2px}
+.gchip.sel{outline:3px solid var(--gold);outline-offset:2px}
+.escalera .gchip{opacity:.55;transition:opacity .2s,transform .2s}
+.escalera .gchip.vista,.escalera .gchip.hito,.escalera .gchip.sel{opacity:1}
+.escalera .gchip.vista{transform:translateY(-2px);box-shadow:0 2px 0 var(--gold),0 0 12px rgba(231,196,107,.8)}
+.gen-nota{margin-top:12px;padding:12px 14px;border-radius:14px;background:#fffaf0;border-left:5px solid var(--gold);box-shadow:var(--sh1);animation:pop .25s}
+.gen-nota p{margin:6px 0}
+.gen-ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 12px}
+.contador{font:14px Arial,sans-serif;color:var(--ink2)}.contador b{font-size:22px;color:var(--gold)}
+.leer{margin:14px 0;padding:12px 14px;border-radius:14px;background:#fffaf0;border:1px solid #e6d3a6;box-shadow:var(--sh1)}
+.leer summary{cursor:pointer;font-weight:700}.leer p{line-height:1.6}
+.cmp-h,.cmp-f{display:grid;grid-template-columns:28% 1fr 1fr;gap:8px;align-items:start}
+.cmp-h{font:800 13px Arial,sans-serif;color:var(--gold);text-transform:uppercase;padding-bottom:6px;border-bottom:2px solid #e6d3a6}
+.cmp-f{padding-top:10px;font-size:15px}.cmp-t{font:700 13px Arial,sans-serif;color:var(--ink2)}
+.cmp-r{margin:2px 0 8px;text-align:right;border-bottom:1px dashed #e6d3a6;padding-bottom:6px}
+.pq{margin:10px 0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.6);border-left:4px solid var(--gold)}
+.pq h3{margin:0 0 4px;font-size:16px}.pq p{margin:0}
+.frase{font-size:19px;font-style:italic;text-align:center;padding:14px;margin:8px 0;border-radius:14px;background:#fffaf0;box-shadow:var(--sh1)}
+.opciones.dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opciones.dos>button:before{display:none}
+.sel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:10px 0}
+.sel-grid button.marcado{background:linear-gradient(180deg,#fff3c4,#e7c46b);border-color:var(--gold);font-weight:700}
+.enlace-gen{display:flex;align-items:center;gap:12px;width:100%;text-align:left}
+.enlace-gen .ico{font-size:26px}.enlace-gen small{display:block;font:13px Arial,sans-serif;color:var(--ink2)}
+.enlace-gen>span:last-child{margin-left:auto;font-size:22px;color:var(--gold)}

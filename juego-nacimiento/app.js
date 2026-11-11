@@ -1,4 +1,4 @@
-/* Juego bíblico: el nacimiento de Jesucristo · Templo Bíblico Emmanuel */
+/* Juego bíblico: el nacimiento de Jesucristo · Templo Bíblico Emanuel */
 (function () {
   'use strict';
   const D = window.DATOS;
@@ -142,7 +142,7 @@
   const tabs = document.getElementById('tabs');
   tabs.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) ir(b.dataset.tab); });
   function marcarTab(t) { tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t)); }
-  const VISTAS = { inicio, niveles, ruta, mapa: mapaTab, notas, nivel };
+  const VISTAS = { inicio, niveles, ruta, mapa: mapaTab, notas, nivel, genealogia };
   const urlDe = (tab, arg) => location.href.split('#')[0] + '#' + tab + (arg ? '/' + arg : '');
   function ir(tab, arg, push = true) {
     if (!VISTAS[tab] || (tab === 'nivel' && !todos().some((n) => n.id === arg))) { tab = 'inicio'; arg = null; }
@@ -254,7 +254,7 @@
   const hechos = (lista = todos()) => lista.filter((n) => S.progreso[n.id]).length;
 
   function inicio() {
-    $app.innerHTML = `<div class="hero"><div class="chip" style="color:var(--gold2);position:relative">Templo Bíblico Emmanuel</div>
+    $app.innerHTML = `<div class="hero"><div class="chip" style="color:var(--gold2);position:relative">Templo Bíblico Emanuel</div>
       <h1>El nacimiento de Jesucristo</h1>
       <p class="lead">De Génesis a Apocalipsis: las profecías, los lugares y el porqué de cada viaje, con la Reina-Valera 1960.</p>
       <button class="gold ver-intro" id="verIntro">▶ Ver la intro</button></div>`;
@@ -268,6 +268,7 @@
     const menu = el(`<div class="menu">
       <button data-t="niveles"><span class="ico">📖</span><b>Niveles</b><small>Video, lectura, devocional, juego, memoria</small></button>
       <button data-t="ruta"><span class="ico">✨</span><b>Ruta de la promesa</b><small>De Génesis 3:15 a Apocalipsis 22:16</small></button>
+      <button data-t="genealogia"><span class="ico">🌳</span><b>Genealogías</b><small>Mateo 1 y Lucas 3: de Adán y Abraham a Jesús</small></button>
       <button data-t="mapa"><span class="ico">🗺️</span><b>Mapa de viajes</b><small>Distancias y por qué se movieron</small></button>
       <button data-t="notas"><span class="ico">✍️</span><b>Mis notas</b><small>Lo que has expresado con tus palabras</small></button></div>`);
     menu.querySelectorAll('button').forEach((b) => (b.onclick = () => ir(b.dataset.t)));
@@ -474,6 +475,8 @@
     $app.append(migas(['Inicio', 'Ruta de la promesa']));
     $app.append(el(`<div><h1>Ruta de la promesa</h1><p class="lead">Desde el pecado de Adán hasta Apocalipsis: lo que Dios prometió sobre el Mesías y lo que significa para nosotros.</p></div>`));
     $app.append(el(`<div class="card"><h2>Cápsula: el linaje prometido</h2><video controls playsinline preload="metadata" poster="videos/capsula-ruta.jpg" src="videos/capsula-ruta.mp4"></video></div>`));
+    const lg = el(`<button class="card enlace-gen"><span class="ico">🌳</span><span><b>Las genealogías de Jesús</b><small>Mateo 1 y Lucas 3: nombre por nombre, de Adán y Abraham a Cristo</small></span><span>→</span></button>`);
+    lg.onclick = () => ir('genealogia'); $app.append(lg);
     const r = el(`<div class="ruta"></div>`);
     D.ruta.forEach((p, i) => {
       r.append(el(`<div class="paso"><div class="card"><div class="chip">${i + 1} · ${esc(p.cita)}</div><h3>${esc(p.titulo)}</h3>
@@ -500,6 +503,132 @@
       });
     };
     j.querySelector('#otra').onclick = reto; reto();
+  }
+
+  /* ---------- genealogías (Mateo 1 · Lucas 3) ---------- */
+  let genVista = 'mt';
+  function genealogia(arg) {
+    const G = D.genealogias;
+    if (arg && ['mt', 'lc', 'cmp', 'jue'].includes(arg)) genVista = arg;
+    $app.innerHTML = '';
+    $app.append(migas(['Inicio', 'Genealogías']));
+    $app.append(el(`<div><h1>Las genealogías de Jesús</h1><p class="lead">Mateo muestra al Rey, hijo de David e hijo de Abraham. Lucas sube hasta Adán, «hijo de Dios». Toca un nombre para saber quién es.</p></div>`));
+    const seg = el(`<div class="seg" role="tablist">${[['mt', '📜 Mateo 1'], ['lc', '📜 Lucas 3'], ['cmp', '⚖️ Comparar'], ['jue', '🎯 Juegos']].map(([k, t]) => `<button data-k="${k}" class="${k === genVista ? 'on' : ''}">${t}</button>`).join('')}</div>`);
+    seg.querySelectorAll('button').forEach((b) => (b.onclick = () => { genVista = b.dataset.k; try { history.replaceState({ tab: 'genealogia', arg: genVista }, '', urlDe('genealogia', genVista)); } catch (e) {} genealogia(); }));
+    $app.append(seg);
+    const zona = el(`<div class="gen"></div>`); $app.append(zona);
+    const LC_JOSE = { texto: 'Lucas dice que Jesús era hijo de José «según se creía»: José fue su padre legal, no según la carne. Lucas ya había narrado el nacimiento virginal (Lc 1:34-35).', cita: 'Lc 3:23' };
+    const nota = (n, i) => (genVista === 'lc' && i !== undefined) ? (n === 'José' ? (i === 1 ? LC_JOSE : null) : n === 'Judá' ? (G.lucas[i + 1] === 'Jacob' ? G.notas[n] : null) : G.notas[n]) : (G.notas[n] || G.notas_mujer[n]);
+    const panel = () => el(`<div class="gen-nota hidden" aria-live="polite"></div>`);
+    const mostrar = (p, n, i) => { const x = nota(n, i); if (!x) return; p.classList.remove('hidden'); p.innerHTML = `<b>${esc(n === 'la que fue mujer de Urías' ? 'Betsabé, «la que fue mujer de Urías»' : n)}</b><p>${esc(x.texto)}</p><span class="ref">${esc(x.cita)}</span>`; p.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
+    const chip = (n, cls = '', i) => `<button class="gchip ${cls}${nota(n, i) ? ' info' : ''}" data-n="${esc(n)}"${i !== undefined ? ` data-i="${i}"` : ''}>${esc(n)}</button>`;
+    const leer = (cita) => `<details class="leer"><summary>📖 Leer ${cita} (RVR1960)</summary><p>${esc(G.textos[cita])}</p></details>`;
+    if (genVista === 'mt') {
+      const M = G.mateo, MUJ = { 3: 'Tamar', 9: 'Rahab', 10: 'Rut', 13: 'la que fue mujer de Urías', 39: 'María' };
+      zona.append(el(`<div class="card dorada"><p class="verso-c">«Libro de la genealogía de Jesucristo, hijo de David, hijo de Abraham.» <span class="ref">Mt 1:1</span></p>
+        <p class="muted">Mateo ordena la lista en tres grupos de catorce (Mt 1:17). David cierra el primer grupo y abre el segundo, porque el texto dice «desde Abraham hasta David» y «desde David hasta la deportación». Las mujeres van en color rosa.</p></div>`));
+      G.grupos_mt.forEach((g, gi) => {
+        const nombres = M.slice(g.desde, g.hasta + 1);
+        const c = el(`<div class="card gen-grupo g${gi}"><div class="gen-cab"><span class="gnum">${gi + 1}</span><div><h2>${esc(g.titulo)}</h2><small>${esc(g.sub)}</small></div><span class="g14">14</span></div>
+          <div class="cadena">${nombres.map((n, k) => { const i = g.desde + k; return chip(n, (gi === 1 && k === 0 ? 'repite ' : '') + (n === 'Jesús' ? 'cristo' : '')) + (MUJ[i] && !(i === 13 && gi === 0) ? chip(MUJ[i], 'mujer') : ''); }).join('<span class="eslabon">›</span>')}</div></div>`);
+        const p = panel(); c.append(p);
+        c.querySelectorAll('.gchip').forEach((b) => (b.onclick = () => { c.querySelectorAll('.gchip.sel').forEach((x) => x.classList.remove('sel')); b.classList.add('sel'); mostrar(p, b.dataset.n); }));
+        zona.append(c);
+      });
+      zona.append(el(leer('Mt 1:1-17')));
+    } else if (genVista === 'lc') {
+      const L = G.lucas, hitos = ['Jesús', 'José', 'Elí', 'Zorobabel', 'Natán', 'David', 'Abraham', 'Noé', 'Adán', 'Dios'];
+      const c = el(`<div class="card dorada"><p class="verso-c">«…hijo, según se creía, de José, hijo de Elí… hijo de Adán, hijo de Dios.» <span class="ref">Lc 3:23, 38</span></p>
+        <p class="muted">Lucas va al revés: empieza en Jesús y sube generación por generación. Pulsa «Recorrer» para verlo subir.</p>
+        <div class="gen-ctrl"><button class="gold" id="recorrer">▶ Recorrer de Jesús a Adán</button><span class="contador"><b id="gcnt">0</b> generaciones</span></div>
+        <div class="escalera">${L.map((n, i) => (i ? '<span class="eslabon">‹</span>' : '') + chip(n, (hitos.includes(n) ? 'hito ' : '') + (n === 'Jesús' ? 'cristo' : n === 'Dios' ? 'dios' : ''), i)).join('')}</div></div>`);
+      const p = panel(); c.append(p);
+      const ch = [...c.querySelectorAll('.gchip')];
+      ch.forEach((b) => (b.onclick = () => { ch.forEach((x) => x.classList.remove('sel')); b.classList.add('sel'); const x = nota(b.dataset.n, +b.dataset.i); if (x) mostrar(p, b.dataset.n, +b.dataset.i); else { p.classList.remove('hidden'); p.innerHTML = `<b>${esc(b.dataset.n)}</b><p>Generación ${+b.dataset.i} contando desde Jesús. La Biblia no da más detalles de esta persona.</p><span class="ref">Lc 3:23-38</span>`; } }));
+      let t = null;
+      c.querySelector('#recorrer').onclick = () => {
+        clearInterval(t); ch.forEach((x) => x.classList.remove('vista')); let i = 0;
+        const cnt = c.querySelector('#gcnt');
+        t = setInterval(() => {
+          if (!document.body.contains(c) || i >= ch.length) { clearInterval(t); return; }
+          ch[i].classList.add('vista'); if (hitos.includes(ch[i].dataset.n)) ch[i].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          cnt.textContent = Math.min(i, ch.length - 2); i++;
+        }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 20 : 110);
+      };
+      zona.append(c, el(leer('Lc 3:23-38')));
+    } else if (genVista === 'cmp') {
+      zona.append(el(`<div class="card"><h2>Mateo y Lucas, lado a lado</h2><div class="cmp">
+        <div class="cmp-h"><span></span><b>Mateo 1</b><b>Lucas 3</b></div>
+        ${G.comparar.map((r) => `<div class="cmp-f"><span class="cmp-t">${esc(r.t)}</span><span>${esc(r.mt)}</span><span>${esc(r.lc)}</span></div><p class="ref cmp-r">${esc(r.cita)}</p>`).join('')}</div></div>`));
+      zona.append(el(`<div class="card"><h2>¿Por qué son diferentes?</h2>
+        ${G.por_que.map((x) => `<div class="pq"><h3>${esc(x.titulo)}</h3><p>${esc(x.texto)} <span class="ref">${esc(x.cita)}</span></p></div>`).join('')}
+        <p class="muted">Las dos explicaciones de Lucas son sostenidas por intérpretes que creen en la inspiración de la Biblia. El juego no impone una: muestra lo que dice el texto.</p></div>`));
+    } else {
+      genJuegos(zona, G);
+    }
+  }
+  function genJuegos(zona, G) {
+    // 1) ¿Mateo o Lucas?
+    const j1 = el(`<div class="card"><h2>🎯 ¿Mateo o Lucas?</h2><p class="muted">Lee la frase y decide a qué genealogía corresponde.</p>
+      <div class="frase" id="fr"></div><div class="opciones dos"><button data-r="mt">📜 Mateo 1</button><button data-r="lc">📜 Lucas 3</button></div><div id="f1"></div><p class="muted" id="p1"></p></div>`);
+    let orden = barajar(G.cual), i1 = 0, ok1 = 0;
+    const pinta1 = () => {
+      const f1 = j1.querySelector('#f1'); f1.className = ''; f1.innerHTML = '';
+      j1.querySelectorAll('[data-r]').forEach((b) => { b.disabled = false; b.className = ''; });
+      if (i1 >= orden.length) {
+        j1.querySelector('#fr').innerHTML = `<b>¡Terminaste! ${ok1} de ${orden.length}.</b>`;
+        j1.querySelectorAll('[data-r]').forEach((b) => (b.disabled = true));
+        const r = el(`<button class="primary">🔁 Otra vez</button>`); r.onclick = () => { orden = barajar(G.cual); i1 = 0; ok1 = 0; r.remove(); pinta1(); }; f1.append(r); return;
+      }
+      j1.querySelector('#fr').textContent = '«' + orden[i1].frase + '»';
+      j1.querySelector('#p1').textContent = `${i1 + 1} de ${orden.length} · aciertos: ${ok1}`;
+    };
+    j1.querySelectorAll('[data-r]').forEach((b) => (b.onclick = () => {
+      const q = orden[i1], bien = b.dataset.r === q.resp; if (bien) ok1++;
+      j1.querySelectorAll('[data-r]').forEach((x) => { x.disabled = true; if (x.dataset.r === q.resp) x.classList.add('ok'); });
+      if (!bien) b.classList.add('bad');
+      const f1 = j1.querySelector('#f1'); f1.className = 'fb ' + (bien ? 'ok' : 'bad');
+      f1.innerHTML = `<b>${bien ? '¡Correcto!' : 'Era ' + (q.resp === 'mt' ? 'Mateo' : 'Lucas') + '.'}</b> `;
+      const sig = el(`<button class="primary">Siguiente →</button>`); sig.onclick = () => { i1++; pinta1(); }; f1.append(sig);
+    }));
+    pinta1();
+    // 2) Encuentra a las mujeres
+    const reales = G.mujeres.filter((m) => m !== 'María');
+    const j2 = el(`<div class="card"><h2>🌹 Encuentra a las cuatro mujeres</h2><p class="muted">Además de María, Mateo nombra a cuatro mujeres. Márcalas y pulsa «Comprobar».</p><div class="sel-grid"></div>
+      <button class="gold" id="comp2">Comprobar</button><div id="f2"></div></div>`);
+    const grid = j2.querySelector('.sel-grid');
+    barajar([...reales.map((m) => m === 'la que fue mujer de Urías' ? 'Betsabé (mujer de Urías)' : m), ...G.distractores]).forEach((m) => {
+      const b = el(`<button>${esc(m)}</button>`); b.onclick = () => b.classList.toggle('marcado'); grid.append(b);
+    });
+    j2.querySelector('#comp2').onclick = () => {
+      const bien = ['Tamar', 'Rahab', 'Rut', 'Betsabé (mujer de Urías)'];
+      let ok = 0, mal = 0;
+      grid.querySelectorAll('button').forEach((b) => { const r = bien.includes(b.textContent), m = b.classList.contains('marcado'); b.classList.toggle('ok', r); b.classList.toggle('bad', m && !r); if (m && r) ok++; if (m && !r) mal++; });
+      const f = j2.querySelector('#f2'); const todo = ok === 4 && mal === 0;
+      f.className = 'fb ' + (todo ? 'ok' : 'bad');
+      f.innerHTML = `<b>${todo ? '¡Muy bien!' : `Acertaste ${ok} de 4${mal ? ` y marcaste ${mal} que no están` : ''}.`}</b> Tamar, Rahab, Rut y Betsabé: pecadores y extranjeros que Dios incluyó por gracia. <span class="ref">Mt 1:3-6</span>`;
+    };
+    // 3) Ordena la cadena
+    const j3 = el(`<div class="card"><h2>🔗 Ordena la cadena</h2><p class="muted">Toca los nombres en el orden de Mateo 1, del más antiguo al más nuevo.</p>
+      <div class="orden" id="z3"></div><div class="piezas" id="p3"></div><div id="f3"></div><button id="otra3">🔁 Otra cadena</button></div>`);
+    const reto = () => {
+      const M = G.mateo, ini = Math.floor(Math.random() * (M.length - 5)), sel = M.slice(ini, ini + 5), elegidos = [];
+      const z = j3.querySelector('#z3'), p = j3.querySelector('#p3'), f = j3.querySelector('#f3');
+      z.textContent = ''; p.innerHTML = ''; f.className = ''; f.innerHTML = '';
+      barajar(sel.map((_, k) => k)).forEach((k) => {
+        const b = el(`<button>${esc(sel[k])}</button>`);
+        b.onclick = () => {
+          elegidos.push(k); b.classList.add('hidden'); z.textContent = elegidos.map((x) => sel[x]).join(' → ');
+          if (elegidos.length === sel.length) {
+            const ok = elegidos.every((x, i) => x === i);
+            f.className = 'fb ' + (ok ? 'ok' : 'bad'); f.innerHTML = (ok ? '<b>¡Correcto!</b> ' : '<b>Casi.</b> ') + esc(sel.join(' → ')) + ' <span class="ref">Mt 1:2-16</span>';
+          }
+        };
+        p.append(b);
+      });
+    };
+    j3.querySelector('#otra3').onclick = reto; reto();
+    zona.append(j1, j2, j3);
   }
 
   /* ---------- mapa de viajes ---------- */
@@ -541,8 +670,8 @@
     if (visto && !forzar) return;
     const n = el(`<div class="intro" role="dialog" aria-label="Presentación"><div class="rayos"></div>
       <button class="saltar">Saltar ⏭</button>
-      <div class="sello"><img src="assets/logo.png" alt="Logo del Templo Bíblico Emmanuel"></div>
-      <div class="l1">Templo Bíblico Emmanuel presenta</div>
+      <div class="sello"><img src="assets/logo.png" alt="Logo del Templo Bíblico Emanuel"></div>
+      <div class="l1">Templo Bíblico Emanuel presenta</div>
       <div class="l2">El nacimiento de Jesucristo</div>
       <div class="l3">De Génesis a Apocalipsis · Reina-Valera 1960</div>
       <button class="gold entrar">Comenzar ▶</button></div>`);
