@@ -27,3 +27,10 @@ Textos bíblicos copiados de la Reina-Valera 1960 (Bible Gateway). Distancias ca
 desde coordenadas aproximadas; el camino real es más largo. Egipto: el texto no dice la ciudad; el mapa usa el
 delta del Nilo como referencia. Daniel 9 y Apocalipsis llevan una nota: los intérpretes conservadores difieren en detalles; el juego se limita a lo que el texto afirma.
 Pendiente: genealogías (Mt 1:1-17; Lc 3:23-38) y revisión pastoral del contenido.
+
+## Fichas de ciudades (v0.4)
+Al tocar una ciudad en el mapa (o en "📜 Conoce los lugares") se abre su ficha: nombre y significado,
+lo que dice la Biblia, religión, cultura, economía y comercio, y su relación con Cristo, más una pregunta.
+Contenido en `contenido/ciudades.py`. Cada punto bíblico lleva cita verificada en la RVR1960
+(`build.py` falla si una cita no está en la lista verificada o si un lugar del mapa no tiene ficha).
+Los datos de historia y arqueología se marcan aparte como dato humano, no Escritura.

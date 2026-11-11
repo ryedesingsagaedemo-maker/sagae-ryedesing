@@ -3,6 +3,7 @@ import json, sys
 sys.path.insert(0, 'contenido')
 from bloques_a import BLOQUES as A
 from bloques_b import BLOQUES as B
+from ciudades import validar
 
 dev = json.load(open('contenido/devocionales.json'))
 rm = json.load(open('contenido/ruta-mapas.json'))
@@ -27,7 +28,11 @@ for g in grupos.values():
                     for o in q['opciones']:
                         assert o in rm['lugares'], f'Lugar sin coordenadas: {o!r}'
                         assert rm['lugares'][o]['mapa'] == q['mapa'], f'{o!r} no está en el mapa {q["mapa"]}'
-out = {'grupos': grupos, **rm}
+ciudades = validar()
+# cada lugar del mapa debe tener su ficha
+for n in rm['lugares']:
+    assert n.strip() in ciudades, f'Lugar sin ficha: {n!r}'
+out = {'grupos': grupos, **rm, 'ciudades': ciudades}
 open('niveles/datos.js', 'w').write('window.DATOS = ' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';\n')
 tot = sum(len(b['niveles']) for g in grupos.values() for b in g['bloques'])
 print('datos.js', len(open('niveles/datos.js').read()) // 1024, 'KB ·', tot, 'niveles')

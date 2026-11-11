@@ -173,22 +173,67 @@
 
   /* ---------- ventana a pantalla completa (mapas) ---------- */
   let modalAbierto = null;
-  function abrirModal(titulo, contenido) {
+  function abrirModal(titulo, contenido, clase) {
+    const habia = !!modalAbierto;
     cerrarModal();
     const m = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titulo)}"><div class="modal-top"><b>${esc(titulo)}</b>
       <button class="primary" id="cerrarModal">✕ Cerrar</button></div><div class="modal-cuerpo"></div></div>`);
+    if (clase) m.classList.add(clase);
     m.querySelector('.modal-cuerpo').append(contenido);
     m.querySelector('#cerrarModal').onclick = () => history.back();
     document.body.append(m); document.body.classList.add('con-modal'); modalAbierto = m;
-    try { history.pushState({ modal: true }, '', location.href); } catch (e) {}
+    if (!habia) { try { history.pushState({ modal: true }, '', location.href); } catch (e) {} }
     m.querySelector('#cerrarModal').focus();
   }
   function cerrarModal() { if (modalAbierto) { modalAbierto.remove(); modalAbierto = null; document.body.classList.remove('con-modal'); } }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalAbierto) history.back(); });
   function botonAmpliar(clave, opts, titulo) {
     const b = el(`<button class="ampliar">🔍 Ampliar mapa</button>`);
-    b.onclick = () => abrirModal(titulo || 'Mapa', mapa(clave, Object.assign({}, opts, { onTap: null })));
+    b.onclick = () => abrirModal(titulo || 'Mapa', mapa(clave, Object.assign({}, opts, { onTap: opts.fichas ? (n) => abrirFicha(n) : null })));
     return b;
+  }
+
+  /* ---------- ficha de cada ciudad ---------- */
+  const ETQ = { biblia: '📖 La Biblia dice', historia: '🏺 Historia y arqueología' };
+  function abrirFicha(nombre) {
+    const n = nombre.trim(), c = D.ciudades[n];
+    if (!c) return;
+    const L = D.lugares[n] || D.lugares[nombre];
+    const f = el(`<article class="ficha">
+      <header class="ficha-cab"><div class="ficha-pin">📍</div><div><h2>${esc(n)}</h2><div class="ficha-tit">${esc(c.titulo)}</div></div></header>
+      <p class="ficha-hoy">🧭 ${esc(c.hoy)}${L ? ` <span class="muted">(${L.lat.toFixed(2)}° N, ${L.lon.toFixed(2)}° E)</span>` : ''}</p>
+      <blockquote class="verso"><p>“${esc(c.clave.texto)}”</p><cite>${esc(c.clave.cita)} · RVR1960</cite></blockquote>
+      <nav class="ficha-ind" aria-label="Secciones">${c.secciones.map((s, i) => `<button data-i="${i}">${esc(s.t)}</button>`).join('')}<button data-i="cristo">✝️ Y Cristo</button><button data-i="prueba">❓ Ponte a prueba</button></nav>
+      ${c.secciones.map((s, i) => `<section class="fsec ${s.fuente}" id="fs-${i}"><h3>${esc(s.t)}</h3><span class="fuente">${ETQ[s.fuente]}</span>
+        <ul>${s.items.map((it) => `<li>${esc(it.texto)}${it.cita ? ` <span class="ref">${esc(it.cita)}</span>` : ''}</li>`).join('')}</ul></section>`).join('')}
+      <section class="fsec cristo" id="fs-cristo"><h3>✝️ ¿Qué tiene que ver con Cristo?</h3><p>${esc(c.cristo)}</p></section>
+      <section class="fsec prueba" id="fs-prueba"><h3>❓ Ponte a prueba</h3><p><b>${esc(c.pregunta.pregunta)}</b></p><div class="opciones"></div><div class="fb-f"></div></section>
+      <p class="muted ficha-nota">📖 Lo marcado como “La Biblia dice” sale del texto (RVR1960) con su cita. 🏺 Lo de historia y arqueología es dato humano: ayuda a entender el contexto, pero no es Escritura y puede corregirse con nuevos hallazgos.</p>
+      <div class="ficha-pie"><button class="primary" data-x="cerrar">✕ Cerrar ficha</button><button data-x="arriba">↑ Arriba</button></div>
+    </article>`);
+    const q = c.pregunta, op = f.querySelector('.prueba .opciones'), fb = f.querySelector('.fb-f');
+    barajar(q.opciones.map((_, i) => i)).forEach((k) => {
+      const b = el(`<button>${esc(q.opciones[k])}</button>`);
+      b.onclick = () => {
+        op.querySelectorAll('button').forEach((x) => { x.disabled = true; if (+x.dataset.k === q.respuesta) x.classList.add('ok'); });
+        if (k !== q.respuesta) b.classList.add('bad');
+        fb.className = 'fb-f fb ' + (k === q.respuesta ? 'ok' : 'bad');
+        fb.innerHTML = `<b>${k === q.respuesta ? '¡Correcto!' : 'No exactamente.'}</b> ${esc(q.explicacion)} <span class="ref">${esc(q.cita)}</span>`;
+      };
+      b.dataset.k = k; op.append(b);
+    });
+    f.querySelectorAll('.ficha-ind button').forEach((b) => { b.onclick = () => f.querySelector('#fs-' + b.dataset.i).scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    f.querySelector('[data-x=cerrar]').onclick = () => history.back();
+    f.querySelector('[data-x=arriba]').onclick = () => f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    abrirModal('Conoce ' + n, f, 'modal-ficha');
+  }
+  function botonesFichas(nombres) {
+    const w = el(`<div class="fichas-lista"><h3>📜 Conoce los lugares</h3><p class="muted">Toca una ciudad en el mapa o aquí: historia, religión, cultura, economía y lo que dice la Biblia.</p><div class="fl"></div></div>`);
+    [...new Set(nombres.filter(Boolean).map((x) => x.trim()))].filter((x) => D.ciudades[x]).forEach((x) => {
+      const b = el(`<button><span>📍</span><b>${esc(x)}</b><small>${esc(D.ciudades[x].titulo)}</small></button>`);
+      b.onclick = () => abrirFicha(x); w.querySelector('.fl').append(b);
+    });
+    return w;
   }
 
   /* ---------- botón para subir ---------- */
@@ -345,6 +390,7 @@
           const ok = n === q.respuesta;
           g.querySelector('path').setAttribute('fill', ok ? '#3f8a4a' : '#b0472f');
           responder(ok, (ok ? '' : `Era ${q.respuesta.trim()}. `) + (q.explicacion || ''));
+          if (D.ciudades[q.respuesta.trim()]) { const b = el(`<button class="conoce">📜 Conoce ${esc(q.respuesta.trim())}</button>`); b.onclick = () => abrirFicha(q.respuesta); op.append(b); }
         },
       }));
       op.append(el(`<p class="muted">Toca un punto rojo del mapa.</p>`), botonAmpliar(q.mapa, { puntos: q.opciones, enfoque: q.opciones }, 'Mapa de la pregunta'));
@@ -473,14 +519,15 @@
     const v = D.viajes.find((x) => x.id === viajeSel);
     const puntos = v.mapa === 'H' ? ['Nazaret', 'Belén', 'Jerusalén', 'Ramá'] : v.mapa === 'M' ? ['Ur', 'Harán', 'Siquem', 'Egipto  ', 'Monte Sinaí'] : [...new Set([v.de, v.a, 'Egipto'].filter(Boolean))];
     const card = el(`<div class="card"></div>`);
-    const om = Object.assign({ puntos, ruta: [v.de, v.a], icono: ICONOS[v.id] || '🚶' }, PISTAS[v.id] || {});
-    card.append(mapa(v.mapa, om), botonAmpliar(v.mapa, om, v.titulo));
+    const om = Object.assign({ puntos, ruta: [v.de, v.a], icono: ICONOS[v.id] || '🚶', fichas: true }, PISTAS[v.id] || {});
+    card.append(mapa(v.mapa, Object.assign({}, om, { onTap: (n) => abrirFicha(n) })), el(`<p class="pista-f">👆 Toca una ciudad para ver su ficha</p>`), botonAmpliar(v.mapa, om, v.titulo));
     const A = v.de && D.lugares[v.de], B = v.a && D.lugares[v.a];
     const d = A && B ? Math.round(km(A, B)) : null;
     card.append(el(`<div><h2 style="margin-top:12px">${esc(v.titulo)}</h2><div class="badge">${esc(D.tipos[v.tipo])}</div>
       <p>${esc(v.motivo)}</p><p class="ref">${esc(v.cita)}</p>
       ${d ? `<div class="dist">≈ <span id="kmCont" data-km="${d}">0</span> km</div><p class="muted">En línea recta entre ${esc(v.de.trim())} (${A.lat.toFixed(2)}° N, ${A.lon.toFixed(2)}° E) y ${esc(v.a.trim())} (${B.lat.toFixed(2)}° N, ${B.lon.toFixed(2)}° E). El camino real es más largo.</p>` : '<p class="muted">El texto no indica el punto exacto de partida o llegada, así que no se calcula distancia.</p>'}
       ${[v.de, v.a].filter(Boolean).map((n) => `<p class="muted">• ${esc(n.trim())}: ${esc(D.lugares[n].nota)}</p>`).join('')}</div>`));
+    card.append(botonesFichas(puntos));
     $app.append(card);
     const kc = card.querySelector('#kmCont');
     if (kc) { const fin = +kc.dataset.km, t0 = performance.now(); const paso = (t) => { const f = Math.min(1, (t - t0 - 300) / 2300); kc.textContent = Math.max(0, Math.round(fin * (f < 0 ? 0 : 1 - Math.pow(1 - f, 3)))); if (f < 1) requestAnimationFrame(paso); }; requestAnimationFrame(paso); }
